@@ -721,6 +721,44 @@ std::vector<double> MACSolver2D::AddViscosityFV(const std::vector<double>& u, co
 	return dV;
 }
 
+std::vector<double> MACSolver2D::AddGravityUF() {
+	std::vector<double> gU = std::vector((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0));
+
+	if (kFr == 0) {
+		for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
+		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
+				gU[idx(i, j)] = 0.0;
+		}
+	}
+	else {
+		for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
+		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
+			gU[idx(i, j)] = -1.0 / kFr;
+		}
+	}
+
+	return gU;
+}
+
+std::vector<double> MACSolver2D::AddGravityVF() {
+	std::vector<double> gV = std::vector((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0));
+
+	if (kFr == 0) {
+		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+		for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++) {
+			gV[idx(i, j)] = 0.0;
+		}
+	}
+	else {
+		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+		for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++) {
+			gV[idx(i, j)] = -1.0 / kFr;
+		}
+	}
+
+	return gV;
+}
+
 int MACSolver2D::SetPoissonSolver(POISSONTYPE type) {
 	m_PoissonSolverType = type;
 	if (!m_Poisson)
