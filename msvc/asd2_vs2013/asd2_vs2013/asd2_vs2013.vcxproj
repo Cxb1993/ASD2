@@ -31,11 +31,12 @@
     <UseIntelMKL>Parallel</UseIntelMKL>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>Intel C++ Compiler XE 14.0</PlatformToolset>
-    <CharacterSet>MultiByte</CharacterSet>
+    <CharacterSet>Unicode</CharacterSet>
     <UseIntelMKL>Parallel</UseIntelMKL>
+    <UseILP64Interfaces>true</UseILP64Interfaces>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
@@ -46,7 +47,7 @@
     <UseIntelMKL>Parallel</UseIntelMKL>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>Intel C++ Compiler XE 14.0</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -84,6 +85,8 @@
     <IncludePath>$(HDF5_DIR)\include;$(SolutionDir)..\..\include;$(MKLIncludeDir);$(TECPLOT_DIR)\include;$(IncludePath)</IncludePath>
     <LibraryPath>$(HDF5_DIR)\lib;$(SolutionDir)..\..\lib\windows;$(MKLLibDir);$(TECPLOT_DIR)\szl;$(LibraryPath)</LibraryPath>
     <SourcePath>$(SolutionDir)..\..\src;$(SourcePath)</SourcePath>
+    <OutDir>$(SolutionDir)..\..\lib\</OutDir>
+    <TargetExt>.lib</TargetExt>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(SolutionDir)..\..\lib\</OutDir>
@@ -94,10 +97,11 @@
     <SourcePath>$(SolutionDir)..\..\src;$(SourcePath)</SourcePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <TargetName>asd2_debug</TargetName>
+    <TargetName>asd2</TargetName>
     <IncludePath>$(HDF5_DIR)\include;$(SolutionDir)..\..\include;$(MKLIncludeDir);$(TECPLOT_DIR)\include;$(IncludePath)</IncludePath>
     <LibraryPath>$(HDF5_DIR)\lib;$(SolutionDir)..\..\lib\windows;$(MKLLibDir);$(TECPLOT_DIR)\szl;$(LibraryPath)</LibraryPath>
     <SourcePath>$(SolutionDir)..\..\src;$(SourcePath)</SourcePath>
+    <TargetExt>.lib</TargetExt>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -124,9 +128,11 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>%(HDF5_DIR)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_VARIADIC_MAX=10;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>$(HDF5_DIR)\lib\szip.lib;$(HDF5_DIR)\lib\zlib.lib;$(HDF5_DIR)\lib\hdf5.lib;$(HDF5_DIR)\lib\hdf5_cpp.lib;$(TECPLOT_DIR)\lib\tecio.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Lib>
       <AdditionalDependencies>$(HDF5_DIR)\lib\szip.lib;$(HDF5_DIR)\lib\zlib.lib;$(HDF5_DIR)\lib\hdf5.lib;$(HDF5_DIR)\lib\hdf5_cpp.lib;$(TECPLOT_DIR)\lib\tecio.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -161,13 +167,14 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <Optimization>Disabled</Optimization>
+      <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>
       </FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>%(HDF5_DIR)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_VARIADIC_MAX=10;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>

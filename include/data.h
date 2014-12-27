@@ -72,4 +72,4 @@ public:
 	std::string getStringValFromJson(jsonxx::Object io, std::string name);
 };
 
-#endif
+#endif __DATA_H_

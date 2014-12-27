@@ -124,15 +124,12 @@ int BoundaryCondition2D::ApplyBC_V_2D(std::vector<double>& arr) {
 	return 0;
 }
 
-int BoundaryCondition2D::SetBC_P_2D(std::string BC_W, std::string BC_E,
-	std::string BC_S, std::string BC_N, std::string BC_B, std::string BC_T) {
+int BoundaryCondition2D::SetBC_P_2D(std::string BC_W, std::string BC_E,	std::string BC_S, std::string BC_N) {
 
 	std::transform(BC_W.begin(), BC_W.end(), BC_W.begin(), ::tolower);
 	std::transform(BC_E.begin(), BC_E.end(), BC_E.begin(), ::tolower);
 	std::transform(BC_S.begin(), BC_S.end(), BC_S.begin(), ::tolower);
 	std::transform(BC_N.begin(), BC_N.end(), BC_N.begin(), ::tolower);
-	std::transform(BC_B.begin(), BC_B.end(), BC_B.begin(), ::tolower);
-	std::transform(BC_T.begin(), BC_T.end(), BC_T.begin(), ::tolower);
 	if (BC_W == "periodic")
 		m_BC_PW = BC::PERIODIC;
 	else if (BC_W == "neumann")

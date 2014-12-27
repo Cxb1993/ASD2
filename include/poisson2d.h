@@ -1,18 +1,18 @@
-#ifndef __POISSON_H_
-#define __POISSON_H_
+#ifndef __POISSON2D_H_
+#define __POISSON2D_H_
 
 #define _USE_MATH_DEFINES
 #include <cmath>
+#include <cstdlib>
 #include <iostream>
 #include <fstream>
 #include <string>
-#include <cstdlib>
 
 #include <algorithm>
 #include <functional>
 #include <limits>
 #include <memory>
-#include <unordered_map>
+#include <vector>
 
 // MKL for Poisson equation solver
 #include <mkl.h>
@@ -24,25 +24,25 @@
 // for matrix and vector operation
 #include <mkl_pblas.h>
 
+// Tecplot  IO
+#include "TECIO.h"
+#include "TECXXX.h"
+
 #include "common.h"
 #include "data.h"
-#include "bc.h"
-class PoissonSolver {
+#include "bc2d.h"
+
+class PoissonSolver2D {
+	int kNx, kNy, kNumBCGrid;
 public:
-	int GS_1FUniform_3D(double ***phi, double ***rhs, int nx, int ny, int nz, int num_bc_grid,
-		double dx, double dy, double dz, std::shared_ptr<BoundaryCondition> PBC);
-	int MKL_1FUniform_3D(double ***phi, double ***rhs,
-		int nx, int ny, int nz, int num_bc_grid,
-		double lenX, double lenY, double lenZ,
-		double dx, double dy, double dz, std::shared_ptr<BoundaryCondition> PBC);
-	int CG_1FUniform_3D(double ***phi, double ***rhs,
-		int nx, int ny, int nz, int num_bc_grid,
-		double lenX, double lenY, double lenZ,
-		double dx, double dy, double dz, std::shared_ptr<BoundaryCondition> PBC);
-	int RCICG_1FUniform_3D(double ***phi, double ***rhs,
-		int nx, int ny, int nz, int num_bc_grid,
-		double lenX, double lenY, double lenZ,
-		double dx, double dy, double dz, std::shared_ptr<BoundaryCondition> PBC);
+	PoissonSolver2D(int nx, int ny, int num_bc_grid);
+
+	int GS_1FUniform_2D(std::vector<double>& phi, const std::vector<double>& rhs,
+		double dx, double dy, std::shared_ptr<BoundaryCondition2D> PBC);
+	int MKL_1FUniform_2D(std::vector<double>& phi, const std::vector<double>& rhs,
+		double lenX, double lenY, double dx, double dy, std::shared_ptr<BoundaryCondition2D> PBC);
+
+	int idx(int i, int j);
 };
 
-#endif __POISSON_H_
+#endif __POISSON2D_H_

@@ -4,7 +4,7 @@
 						thrown in the test body
 	-> Assign NULL to your variable as a initial value.
 */
-#include "../include/data.h"
+#include "data.h"
 
 Data::Data() {
 }

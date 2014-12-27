@@ -2,3 +2,6 @@
 .sdf
 *.opensdf
 *.sdf
+*.manifest
+*.lastbuildstate
+*.tlog
