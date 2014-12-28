@@ -1,4 +1,5 @@
 #include "mac2d.h"
+#include "levelset2d.h"
 
 int main(int argc, char *argv[]) {
 	// Set initial level set
@@ -18,6 +19,7 @@ int main(int argc, char *argv[]) {
 	const std::string fname_vel("cavityVel_Re_" + std::to_string(Re));
 	const std::string fname_div("cavityDiv_Re_" + std::to_string(Re));
 	int iterskip = 1;
+
 	std::unique_ptr<MACSolver2D> MSolver;
 	MSolver = std::make_unique<MACSolver2D>(Re, We, Fr,
 		L, U, sigma, densityRatio, viscosityRatio, rhoI, muI,
@@ -37,4 +39,10 @@ int main(int argc, char *argv[]) {
 	MSolver->SetPLTType(PLTTYPE::BINARY);
 	MSolver->SetPoissonSolver(POISSONTYPE::MKL);
 
+	std::unique_ptr<LevelSetSolver2D> LSolver;
+	LSolver = std::make_unique<LevelSetSolver2D>(nx, ny, num_bc_grid, dx, dy);
+	std::vector<double> ls((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid));
+
+	LSolver->m_signedInitLS = LSolver->GetSignedLSNormalized(ls);
+	LSolver->SetBC_P_2D("neumann", "neumann", "neumann", "neumann");
 }
