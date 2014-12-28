@@ -146,7 +146,7 @@ int PoissonSolver2D::MKL_1FUniform_2D(std::vector<double>& phi, const std::vecto
 
 	for (MKL_INT j = 0; j <= MKLny; j++)
 	for (MKL_INT i = 0; i <= MKLnx; i++) {
-		f[idx(i, j)]
+		f[i + (MKLny + 1) * j]
 			= rhs[idx(i + kNumBCGrid, j + kNumBCGrid)];
 	}
 
@@ -184,7 +184,7 @@ int PoissonSolver2D::MKL_1FUniform_2D(std::vector<double>& phi, const std::vecto
 	for (MKL_INT j = 0; j <= MKLny; j++)
 	for (MKL_INT i = 0; i <= MKLnx; i++) {
 		phi[idx(i + kNumBCGrid, j + kNumBCGrid)]
-			= f[idx(i, j)];
+			= f[i + (MKLny + 1) * j];
 	}
 
 	delete[] BCtype;

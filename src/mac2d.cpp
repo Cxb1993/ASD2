@@ -167,7 +167,6 @@ std::vector<double> MACSolver2D::AddConvectionFV(const std::vector<double>& u, c
 	for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++)
 		tmpU[idx(i, j)] = (u[idx(i, j)] + u[idx(i, j - 1)] + u[idx(i + 1, j - 1)] + u[idx(i + 1, j)]) * 0.25;
 
-
 	std::vector<double> vecF_VX(kNx + 2 * kNumBCGrid, 0.0), vecF_VY(kNy + 2 * kNumBCGrid);
 	
 	// V : X direction
@@ -332,7 +331,6 @@ int MACSolver2D::UnitHJWENO5(
 
 	return 0;
 }
-
 
 std::vector<double> MACSolver2D::AddViscosityFU(const std::vector<double>& u, const std::vector<double>& v, 
 	const std::vector<double>& ls) {
