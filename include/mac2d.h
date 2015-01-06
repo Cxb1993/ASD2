@@ -66,7 +66,7 @@ public:
 	int AllocateVariables();
 
 	// Related to Level Set Related
-	int UpdateKappa(const std::vector<double>& ls);
+	std::vector<double> UpdateKappa(const std::vector<double>& ls);
 	
 	// Convection Term
 	std::vector<double> AddConvectionFU(const std::vector<double>& u, const std::vector<double>& v);
@@ -87,7 +87,7 @@ public:
 
 	// Poisson 
 	int SetPoissonSolver(POISSONTYPE type);
-	int SolvePoisson(std::vector<double>& p, const std::vector<double>& div, const std::vector<double>& ls,
+	int SolvePoisson(std::vector<double>& phi, const std::vector<double>& div, const std::vector<double>& ls,
 		const std::vector<double>& u, const std::vector<double>& v);
 
 	// update velocity using projection

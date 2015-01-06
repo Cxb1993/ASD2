@@ -283,10 +283,10 @@ int PoissonSolver2D::MKL_2FUniform_2D(std::vector<double>& phi, const std::vecto
 			bd_by[i] = 2.0 * PBC->m_BC_DirichletConstantPN
 			- phi[idx(i + kNumBCGrid, kNy + kNumBCGrid)];
 	}
-
+	/*
 	// discretize for 2 fluid
 	// using level set, get normal vector
-	std::vector<double> n1((MKLnx + 1) * (MKLny + 1)), n2((MKLnx + 1) * (MKLny + 1));
+	std::vector<double> ns1((MKLnx + 1) * (MKLny + 1)), ns2((MKLnx + 1) * (MKLny + 1));
 	double lsSize = 0.0;
 	for (MKL_INT j = 0; j <= MKLny; j++)
 	for (MKL_INT i = 0; i <= MKLnx; i++) {
@@ -298,10 +298,10 @@ int PoissonSolver2D::MKL_2FUniform_2D(std::vector<double>& phi, const std::vecto
 		ns1[idx(i, j)] /= (lsSize + 1.0e-80);
 		ns2[idx(i, j)] /= (lsSize + 1.0e-80);
 	}
-
+	*/
 
 	for (MKL_INT j = 0; j <= MKLny; j++)
-	for (MKL_INT i = 0; i <= MKLnx; i++) {
+	for (MKL_INT i = 0; i <= MKLnx; i++) {	
 		f[i + (MKLny + 1) * j]
 			= rhs[idx(i + kNumBCGrid, j + kNumBCGrid)];
 	}
