@@ -42,6 +42,7 @@ int main(int argc, char *argv[]) {
 	std::unique_ptr<LevelSetSolver2D> LSolver;
 	LSolver = std::make_unique<LevelSetSolver2D>(nx, ny, num_bc_grid, dx, dy);
 	std::vector<double> ls((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid));
+	// inside value must be positive levelset, otherwise, negative
 
 	LSolver->m_signedInitLS = LSolver->GetSignedLSNormalized(ls);
 	LSolver->SetBC_P_2D("neumann", "neumann", "neumann", "neumann");

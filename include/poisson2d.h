@@ -41,6 +41,9 @@ public:
 		double dx, double dy, std::shared_ptr<BoundaryCondition2D> PBC);
 	int MKL_1FUniform_2D(std::vector<double>& phi, const std::vector<double>& rhs,
 		double lenX, double lenY, double dx, double dy, std::shared_ptr<BoundaryCondition2D> PBC);
+	
+	int MKL_2FUniform_2D(std::vector<double>& phi, const std::vector<double>& rhs,
+		double lenX, double lenY, double dx, double dy, std::shared_ptr<BoundaryCondition2D> PBC);
 
 	int idx(int i, int j);
 };

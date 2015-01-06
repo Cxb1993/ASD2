@@ -87,7 +87,8 @@ public:
 
 	// Poisson 
 	int SetPoissonSolver(POISSONTYPE type);
-	int SolvePoisson(std::vector<double>& phi, const std::vector<double>& div);
+	int SolvePoisson(std::vector<double>& p, const std::vector<double>& div, const std::vector<double>& ls,
+		const std::vector<double>& u, const std::vector<double>& v);
 
 	// update velocity using projection
 	std::vector<double> GetDivergence(const std::vector<double>& u, const std::vector<double>& v);
