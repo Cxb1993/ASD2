@@ -1076,6 +1076,33 @@ int MACSolver2D::UpdateVel(std::vector<double>& u, std::vector<double>& v,
 	return 0;
 }
 
+double MACSolver2D::UpdateDt(const std::vector<double>& u, const std::vector<double>& v) {
+	double uAMax = 0.0;
+	double vAMax = 0.0;
+	double Cefl = 0.0, Vefl = 0.0, Gefl = 0.0;
+	double dt = std::numeric_limits<double>::max();
+
+	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
+		uAMax = std::max(uAMax, std::fabs((u[idx(i + 1, j)] * u[idx(i, j)]) * 0.5));
+		vAMax = std::max(vAMax, std::fabs((v[idx(i, j + 1)] * v[idx(i, j)]) * 0.5));
+	}
+	
+	Cefl = uAMax / kDx + vAMax / kDy;
+	Vefl = std::max(kMuI / kRhoI, kMuO / kRhoO) * (2.0 / (kDx * kDx) + 2.0 / (kDy * kDy));
+	Gefl = std::sqrt(std::fabs(kG) / kDy);
+	
+	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
+		dt = std::min(dt,
+			1.0 / (0.5 * (Cefl + Vefl + 
+			std::sqrt(std::pow(Cefl + Vefl, 2.0) +
+			4.0 * Gefl))));
+	}
+
+	return dt;
+}
+
 int MACSolver2D::SetBC_U_2D(std::string BC_W, std::string BC_E,	std::string BC_S, std::string BC_N) {
 	if (!m_BC) {
 		m_BC = std::make_shared<BoundaryCondition2D>(kNx, kNy, kNumBCGrid);

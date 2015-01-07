@@ -94,6 +94,7 @@ public:
 	std::vector<double> GetDivergence(const std::vector<double>& u, const std::vector<double>& v);
 	int UpdateVel(std::vector<double>& u, std::vector<double>& v,
 		const std::vector<double>& us, const std::vector<double>& vs, const std::vector<double>& ps);
+	double UpdateDt(const std::vector<double>& u, const std::vector<double>& v);
 
 	// BC
 	int SetBC_U_2D(std::string BC_W, std::string BC_E, std::string BC_S, std::string BC_N);
