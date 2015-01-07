@@ -84,6 +84,48 @@ std::vector<double> MACSolver2D::UpdateKappa(const std::vector<double>& ls) {
 	return kappa;
 }
 
+std::vector<double> MACSolver2D::UpdateFU(const std::shared_ptr<LevelSetSolver2D>& LSolver,
+	std::vector<double> ls, std::vector<double>u, std::vector<double> v) {
+	
+	std::vector<double> cU((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
+	std::vector<double> vU((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
+	std::vector<double> rhsU((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
+
+	// Convection term
+	cU = this->AddConvectionFU(u, v);
+
+	// Viscous term
+	vU = this->AddViscosityFU(u, v, ls);
+
+	// Get RHS(Right Hand Side)
+	for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
+	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
+		rhsU[idx(i, j)] = -cU[idx(i, j)] + vU[idx(i, j)];
+
+	return rhsU;
+}
+
+std::vector<double> MACSolver2D::UpdateFV(const std::shared_ptr<LevelSetSolver2D>& LSolver,
+	std::vector<double> ls, std::vector<double>u, std::vector<double> v) {
+
+	std::vector<double> cV((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
+	std::vector<double> vV((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
+	std::vector<double> rhsV((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
+
+	// Convection term
+	cV = this->AddConvectionFV(u, v);
+
+	// Viscous term
+	vV = this->AddViscosityFV(u, v, ls);
+
+	// Get RHS(Right Hand Side)
+	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+	for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++)
+		rhsV[idx(i, j)] = -cV[idx(i, j)] + vV[idx(i, j)];
+
+	return rhsV;
+}
+
 std::vector<double> MACSolver2D::AddConvectionFU(const std::vector<double>& u, const std::vector<double>& v) {
 	std::vector<double> cU((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
 	std::vector<double> tmpV((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
@@ -147,10 +189,11 @@ std::vector<double> MACSolver2D::AddConvectionFU(const std::vector<double>& u, c
 		alphaY = tmpV[idx(i, j)];
 
 		cU[idx(i, j)]
-				= 0.5 * (LXP[idx(i, j)] + LXM[idx(i, j)])
+				= (0.5 * (LXP[idx(i, j)] + LXM[idx(i, j)])
 				+ 0.5 * (LYP[idx(i, j)] + LYM[idx(i, j)])
 				- alphaX * (0.5 * (LXP[idx(i, j)] - LXM[idx(i, j)]))
-				- alphaY * (0.5 * (LYP[idx(i, j)] - LYM[idx(i, j)]));
+				- alphaY * (0.5 * (LYP[idx(i, j)] - LYM[idx(i, j)]))) 
+				/ ((m_rho[idx(i - 1, j)] + m_rho[idx(i, j)]) * 0.5);
 	}
 
 	return cU;
@@ -219,10 +262,11 @@ std::vector<double> MACSolver2D::AddConvectionFV(const std::vector<double>& u, c
 		alphaY = v[idx(i, j)];
 
 		cV[idx(i, j)]
-			= 0.5 * (LXP[idx(i, j)] + LXM[idx(i, j)])
+			= (0.5 * (LXP[idx(i, j)] + LXM[idx(i, j)])
 			+ 0.5 * (LYP[idx(i, j)] + LYM[idx(i, j)])
 			- alphaX * (0.5 * (LXP[idx(i, j)] - LXM[idx(i, j)]))
-			- alphaY * (0.5 * (LYP[idx(i, j)] - LYM[idx(i, j)]));
+			- alphaY * (0.5 * (LYP[idx(i, j)] - LYM[idx(i, j)])))
+			/ ((m_rho[idx(i, j - 1)] + m_rho[idx(i, j)]) * 0.5);
 	}
 
 	return cV;
@@ -766,6 +810,30 @@ std::vector<double> MACSolver2D::AddGravityVF() {
 	}
 
 	return gV;
+}
+
+std::vector<double> MACSolver2D::GetUhat(const std::vector<double>& u, const std::vector<double>& rhsu) {
+	std::vector<double> uhat((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
+
+	// Update rhs
+	for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
+	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
+		uhat[idx(i, j)] = u[idx(i, j)] + m_dt * rhsu[idx(i, j)];
+	}
+
+	return uhat;
+}
+
+std::vector<double> MACSolver2D::GetVhat(const std::vector<double>& v, const std::vector<double>& rhsv) {
+	std::vector<double> vhat((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
+
+	// Update rhs
+	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+	for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++) {
+		vhat[idx(i, j)] = v[idx(i, j)] + m_dt * rhsv[idx(i, j)];
+	}
+
+	return vhat;
 }
 
 int MACSolver2D::SetPoissonSolver(POISSONTYPE type) {

@@ -18,6 +18,7 @@
 
 #include "common.h"
 #include "bc2d.h"
+#include "levelset2d.h"
 #include "poisson2d.h"
 
 class MACSolver2D {
@@ -68,6 +69,11 @@ public:
 	// Related to Level Set Related
 	std::vector<double> UpdateKappa(const std::vector<double>& ls);
 	
+	std::vector<double> UpdateFU(const std::shared_ptr<LevelSetSolver2D>& LSolver,
+		std::vector<double> ls, std::vector<double>u, std::vector<double> v);
+	std::vector<double> UpdateFV(const std::shared_ptr<LevelSetSolver2D>& LSolver,
+		std::vector<double> ls, std::vector<double>u, std::vector<double> v);
+
 	// Convection Term
 	std::vector<double> AddConvectionFU(const std::vector<double>& u, const std::vector<double>& v);
 	std::vector<double> AddConvectionFV(const std::vector<double>& u, const std::vector<double>& v);
@@ -79,15 +85,15 @@ public:
 		const std::vector<double>& u, const std::vector<double>& v, const std::vector<double>& ls);
 	std::vector<double> AddViscosityFV(
 		const std::vector<double>& u, const std::vector<double>& v, const std::vector<double>& ls);
-	// Surface Term
-
+	
 	// Gravity Term
 	std::vector<double> AddGravityUF();
 	std::vector<double> AddGravityVF();
-
+	std::vector<double> GetUhat(const std::vector<double>& u, const std::vector<double>& rhsu);
+	std::vector<double> GetVhat(const std::vector<double>& v, const std::vector<double>& rhsv);
 	// Poisson 
 	int SetPoissonSolver(POISSONTYPE type);
-	int SolvePoisson(std::vector<double>& phi, const std::vector<double>& div, const std::vector<double>& ls,
+	int SolvePoisson(std::vector<double>& ps, const std::vector<double>& div, const std::vector<double>& ls,
 		const std::vector<double>& u, const std::vector<double>& v);
 
 	// update velocity using projection
@@ -119,7 +125,7 @@ public:
 	void TDMA(double* a, double* b, double* c, double* d, int n);
 	int SetPLTType(PLTTYPE type);
 	int OutRes(int iter, double curTime, const std::string fname_vel_base, const std::string fname_div_base,
-		const std::vector<double>& u, const std::vector<double>& v, const std::vector<double>& phi);
+		const std::vector<double>& u, const std::vector<double>& v, const std::vector<double>& ps);
 	int OutResClose();
 
 	int idx(int i, int j);
