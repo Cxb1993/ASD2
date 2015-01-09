@@ -24,10 +24,6 @@
 // for matrix and vector operation
 #include <mkl_pblas.h>
 
-// Tecplot  IO
-#include "TECIO.h"
-#include "TECXXX.h"
-
 #include "common.h"
 #include "data.h"
 #include "bc2d.h"

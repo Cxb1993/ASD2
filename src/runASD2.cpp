@@ -1,5 +1,4 @@
 #include "mac2d.h"
-#include "levelset2d.h"
 
 int GNx = 0, GNy = 0, GNumBCGrid = 0;
 int idx(int i, int j);

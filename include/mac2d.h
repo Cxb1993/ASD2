@@ -21,6 +21,10 @@
 #include "levelset2d.h"
 #include "poisson2d.h"
 
+// Tecplot  IO
+#include "TECIO.h"
+#include "TECXXX.h"
+
 class MACSolver2D {
 public:
 	const int kNx, kNy, kNumBCGrid;

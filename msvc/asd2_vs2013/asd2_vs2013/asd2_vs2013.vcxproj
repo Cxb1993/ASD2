@@ -83,7 +83,7 @@
     <TargetName>asd2_debug</TargetName>
     <ExecutablePath>$(HDF5_DIR)\bin;$(ICInstallDir)bin\Intel64;$(ExecutablePath)</ExecutablePath>
     <IncludePath>$(HDF5_DIR)\include;$(SolutionDir)..\..\include;$(MKLIncludeDir);$(TECPLOT_DIR)\include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(HDF5_DIR)\lib;$(SolutionDir)..\..\lib\windows;$(MKLLibDir);$(TECPLOT_DIR)\szl;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(SolutionDir)..\..\lib;$(SolutionDir)..\..\lib\windows;$(HDF5_DIR)\lib;$(MKLLibDir);$(TECPLOT_DIR)\szl;$(LibraryPath)</LibraryPath>
     <SourcePath>$(SolutionDir)..\..\src;$(SourcePath)</SourcePath>
     <OutDir>$(SolutionDir)..\..\lib\</OutDir>
     <TargetExt>.lib</TargetExt>
@@ -128,7 +128,7 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>%(HDF5_DIR)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_VARIADIC_MAX=10;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
