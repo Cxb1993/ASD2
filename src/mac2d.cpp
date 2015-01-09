@@ -2,15 +2,16 @@
 
 MACSolver2D::MACSolver2D(double Re, double We, double Fr,
 	double L, double U, double sigma, double densityRatio, double viscosityRatio, double rhoI, double muI,
-	int nx, int ny, double lenX, double lenY, double cfl,
-	int maxtime, int maxiter, int niterskip, int num_bc_grid,
+	int nx, int ny, double baseX, double baseY, double lenX, double lenY,
+	double cfl,	int maxtime, int maxiter, int niterskip, int num_bc_grid,
 	bool writeVTK) :
 	kRe(Re), kWe(We), kFr(Fr),
 	kLScale(L), kUScale(U), kSigma(sigma),
 	kG(kFr * L / (U * U)), kRhoScale(We * sigma / (L * U * U)), kMuScale(kRhoScale * L * U / Re),
 	kRhoI(rhoI), kRhoO(rhoI / densityRatio), kRhoRatio(densityRatio),
 	kMuI(muI), kMuO(muI / viscosityRatio), kMuRatio(viscosityRatio),
-	kNx(nx), kNy(ny), kLenX(lenX), kLenY(lenY), kDx(lenX / static_cast<double>(nx)), kDy(lenY / static_cast<double>(ny)),
+	kNx(nx), kNy(ny), kBaseX(baseX), kBaseY(baseY), kLenX(lenX), kLenY(lenY),
+	kDx(lenX / static_cast<double>(nx)), kDy(lenY / static_cast<double>(ny)),
 	kCFL(cfl), kMaxTime(maxtime), kMaxIter(maxiter), kNIterSkip(niterskip), kNumBCGrid(num_bc_grid),
 	kWriteVTK(writeVTK) {
 
@@ -20,13 +21,14 @@ MACSolver2D::MACSolver2D(double Re, double We, double Fr,
 }
 
 MACSolver2D::MACSolver2D(double rhoI, double rhoO, double muI, double muO, double gConstant,
-	double L, double U, double sigma, int nx, int ny, double lenX, double lenY, double cfl,
-	int maxtime, int maxiter, int niterskip, int num_bc_grid,
+	double L, double U, double sigma, int nx, int ny, double baseX, double baseY, double lenX, double lenY,
+	double cfl, int maxtime, int maxiter, int niterskip, int num_bc_grid,
 	bool writeVTK) :
 	kRhoScale(rhoI), kMuScale(muI), kG(gConstant), kLScale(L), kUScale(U), kSigma(sigma),
 	kRhoI(rhoI), kRhoO(rhoO), kMuI(muI), kMuO(muO), kRhoRatio(rhoI / rhoO), kMuRatio(muI / muO),
 	kRe(rhoI * L * U / muI), kWe(rhoI * L * U * U / sigma), kFr(U * U / (gConstant * L)),
-	kNx(nx), kNy(ny), kLenX(lenX), kLenY(lenY), kDx(lenX / static_cast<double>(nx)), kDy(lenY / static_cast<double>(ny)),
+	kNx(nx), kNy(ny), kBaseX(baseX), kBaseY(baseY), kLenX(lenX), kLenY(lenY),
+	kDx(lenX / static_cast<double>(nx)), kDy(lenY / static_cast<double>(ny)),
 	kCFL(cfl), kMaxTime(maxtime), kMaxIter(maxiter), kNIterSkip(niterskip), kNumBCGrid(num_bc_grid),
 	kWriteVTK(writeVTK) {
 
@@ -1275,7 +1277,8 @@ int MACSolver2D::SetPLTType(PLTTYPE type) {
 }
 
 int MACSolver2D::OutRes(int iter, double curTime, const std::string fname_vel_base, const std::string fname_div_base,
-	const std::vector<double>& u, const std::vector<double>& v, const std::vector<double>& phi) {
+	const std::vector<double>& u, const std::vector<double>& v,
+	const std::vector<double>& phi, const std::vector<double>& ls) {
 	if (m_PLTType == PLTTYPE::ASCII || m_PLTType == PLTTYPE::BOTH) {
 		std::ofstream outF;
 		std::string fname_vel(fname_vel_base + "_ASCII.plt");
@@ -1284,12 +1287,12 @@ int MACSolver2D::OutRes(int iter, double curTime, const std::string fname_vel_ba
 			outF.open(fname_vel.c_str(), std::ios::out);
 
 			outF << "TITLE = VEL" << std::endl;
-			outF << "VARIABLES = \"X\", \"Y\", \"U\", \"V\", \"PHI\" " << std::endl;
+			outF << "VARIABLES = \"X\", \"Y\", \"U\", \"V\", \"LS\", \"PHI\" " << std::endl;
 			outF.close();
 
 			outF.open(fname_div.c_str(), std::ios::out);
 			outF << "TITLE = DIV" << std::endl;
-			outF << "VARIABLES = \"X\", \"Y\", \"DIV\", \"PHI\" " << std::endl;
+			outF << "VARIABLES = \"X\", \"Y\", \"LS\", \"DIV\", \"PHI\" " << std::endl;
 			outF.close();
 		}
 
@@ -1317,10 +1320,11 @@ int MACSolver2D::OutRes(int iter, double curTime, const std::string fname_vel_ba
 			<< std::endl;
 		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-			outF << static_cast<double>(i + 0.5 - kNumBCGrid) * kDx << std::string(",")
-				<< static_cast<double>(j + 0.5 - kNumBCGrid) * kDy << std::string(",")
+			outF << kBaseX + static_cast<double>(i + 0.5 - kNumBCGrid) * kDx << std::string(",")
+				<< kBaseY + static_cast<double>(j + 0.5 - kNumBCGrid) * kDy << std::string(",")
 				<< static_cast<double>(resU[idx(i, j)]) << std::string(",")
 				<< static_cast<double>(resV[idx(i, j)]) << std::string(",")
+				<< static_cast<double>(ls[idx(i, j)]) << std::string(",")
 				<< static_cast<double>(phi[idx(i, j)]) << std::endl;
 
 		outF.close();
@@ -1335,10 +1339,11 @@ int MACSolver2D::OutRes(int iter, double curTime, const std::string fname_vel_ba
 			<< std::endl;
 		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-			outF << static_cast<double>(i + 0.5 - kNumBCGrid) * kDx << std::string(",")
-				<< static_cast<double>(j + 0.5 - kNumBCGrid) * kDy << std::string(",")
-				<< static_cast<double>(phi[idx(i, j)]) << std::string(",")
-				<< static_cast<double>(resDiv[idx(i, j)]) << std::endl;
+			outF << kBaseX + static_cast<double>(i + 0.5 - kNumBCGrid) * kDx << std::string(",")
+				<< kBaseY + static_cast<double>(j + 0.5 - kNumBCGrid) * kDy << std::string(",")
+				<< static_cast<double>(ls[idx(i, j)]) << std::string(",")
+				<< static_cast<double>(resDiv[idx(i, j)]) << std::string(",")
+				<< static_cast<double>(phi[idx(i, j)]) << std::endl;
 
 		outF.close();
 	}
@@ -1353,16 +1358,18 @@ int MACSolver2D::OutRes(int iter, double curTime, const std::string fname_vel_ba
 			resY((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0),
 			resU((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0),
 			resV((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0),
+			resLS((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0),
 			resPhi((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
 
 		std::vector<double> resDiv = GetDivergence(u, v);
 
 		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
 		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++) {
-			resX[idx(i, j)] = (i + 0.5 - kNumBCGrid) * kNx;
-			resY[idx(i, j)] = (j + 0.5 - kNumBCGrid) * kNy;
+			resX[idx(i, j)] = kBaseX + (i + 0.5 - kNumBCGrid) * kNx;
+			resY[idx(i, j)] = kBaseY + (j + 0.5 - kNumBCGrid) * kNy;
 			resU[idx(i, j)] = (u[idx(i, j)] + u[idx(i + 1, j)]) * 0.5;
 			resV[idx(i, j)] = (v[idx(i, j)] + v[idx(i, j + 1)]) * 0.5;
+			resLS[idx(i, j)] = ls[idx(i, j)];
 			resPhi[idx(i, j)] = phi[idx(i, j)];
 		}
 
@@ -1377,7 +1384,7 @@ int MACSolver2D::OutRes(int iter, double curTime, const std::string fname_vel_ba
 			* header information
 			*/
 			stat = TECINI142(const_cast<char *>(std::string("VELOCITY").c_str()),  /* Name of the entire dataset.  */
-							const_cast<char *>(std::string("X, Y, U, V, PHI").c_str()),  
+							const_cast<char *>(std::string("X, Y, U, V, LS, PHI").c_str()),  
 							/* Defines the variables for the data file. Each zone must contain each of the variables listed here. 
 							* The order of the variables in the list is used to define the variable number (e.g. X is Var 1).*/
 							const_cast<char *>(fname_vel.c_str()),
@@ -1429,11 +1436,12 @@ int MACSolver2D::OutRes(int iter, double curTime, const std::string fname_vel_ba
 		stat = TECDAT142(&ARRSIZEVAL, resY.data(), &DIsDouble);
 		stat = TECDAT142(&ARRSIZEVAL, resU.data(), &DIsDouble);
 		stat = TECDAT142(&ARRSIZEVAL, resV.data(), &DIsDouble);
+		stat = TECDAT142(&ARRSIZEVAL, resLS.data(), &DIsDouble);
 		stat = TECDAT142(&ARRSIZEVAL, resPhi.data(), &DIsDouble);
 
 		if (m_iter == 0) {
 			stat = TECINI142(const_cast<char *>(std::string("DIVERGENCE").c_str()),  /* Name of the entire dataset.  */
-				const_cast<char *>(std::string("X, Y, DIV, PHI").c_str()),
+				const_cast<char *>(std::string("X, Y, LS, DIV, PHI").c_str()),
 				/* Defines the variables for the data file. Each zone must contain each of the variables listed here.
 				* The order of the variables in the list is used to define the variable number (e.g. X is Var 1).*/
 				const_cast<char *>(fname_div.c_str()),
@@ -1454,6 +1462,7 @@ int MACSolver2D::OutRes(int iter, double curTime, const std::string fname_vel_ba
 
 		stat = TECDAT142(&ARRSIZEVAL, resX.data(), &DIsDouble);
 		stat = TECDAT142(&ARRSIZEVAL, resY.data(), &DIsDouble);
+		stat = TECDAT142(&ARRSIZEVAL, resLS.data(), &DIsDouble);
 		stat = TECDAT142(&ARRSIZEVAL, resDiv.data(), &DIsDouble);
 		stat = TECDAT142(&ARRSIZEVAL, resPhi.data(), &DIsDouble);
 	}

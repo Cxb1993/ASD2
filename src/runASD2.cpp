@@ -8,14 +8,13 @@ int main(int argc, char *argv[]) {
 	// Set initial level set
 	const double Re = 100.0, We = 0.0, Fr = 0.0;
 	const double L = 1.0, U = 1.0;
-	const double rhoI = 1.0, muI = rhoI * L * U / Re, sigma = 0.0;
-	// for 1-phase flow, set ratio to 1.
-	const double densityRatio = 1, viscosityRatio = 1;
+	const double rhoI = 1.226, muI = 1.78e-5;
+	const double rhoO = 1000, muO = 1.137e-3, sigma = 0.0728;
+	const double gConstant = -9.81;
 	// # of cells
-	// const int nx = 128, ny = 128, nz = 8;
-	const int nx = 128, ny = 128;
-	const double lenX = L, lenY = L, cfl = 0.1;
-	const int maxtime = 2.0, niter = 30, niterskip = 1, num_bc_grid = 3;
+	const int nx = 80, ny = 120;
+	const double baseX = -0.01, baseY = -0.01, lenX = 0.02, lenY = 0.03, cfl = 0.5;
+	const int maxtime = 2.0, maxiter = 30, niterskip = 1, num_bc_grid = 3;
 	const bool writeVTK = false;
 	// length of each cell
 	const double dx = lenX / nx, dy = lenY / ny;
@@ -29,10 +28,9 @@ int main(int argc, char *argv[]) {
 	GNumBCGrid = num_bc_grid;
 
 	std::unique_ptr<MACSolver2D> MSolver;
-	MSolver = std::make_unique<MACSolver2D>(Re, We, Fr,
-		L, U, sigma, densityRatio, viscosityRatio, rhoI, muI,
-		nx, ny, lenX, lenY, cfl,
-		maxtime, niter, niterskip, num_bc_grid, writeVTK);
+	MSolver = std::make_unique<MACSolver2D>(rhoI, rhoO, muI, muO, gConstant,
+		L, U, sigma, nx, ny, baseX, baseY, lenX, lenY, cfl, maxtime, maxiter, niterskip, num_bc_grid,
+		writeVTK);
 	MSolver->SetBC_U_2D("dirichlet", "dirichlet", "dirichlet", "dirichlet");
 	MSolver->SetBC_V_2D("dirichlet", "dirichlet", "dirichlet", "dirichlet");
 	MSolver->SetBC_P_2D("neumann", "neumann", "neumann", "neumann");
@@ -44,7 +42,7 @@ int main(int argc, char *argv[]) {
 	MSolver->SetBCConstantVE(0.0);
 	MSolver->SetBCConstantVS(0.0);
 	MSolver->SetBCConstantVN(0.0);
-	MSolver->SetPLTType(PLTTYPE::BINARY);
+	MSolver->SetPLTType(PLTTYPE::BOTH);
 	MSolver->SetPoissonSolver(POISSONTYPE::MKL);
 
 	std::shared_ptr<LevelSetSolver2D> LSolver;
@@ -53,33 +51,45 @@ int main(int argc, char *argv[]) {
 	// inside value must be positive levelset, otherwise, negative
 
 	// init level set
+	double radius = 1.0 / 300.0, x = 0.0, y = 0.0, d = 0.0;
+
+	LSolver->SetBC_P_2D("neumann", "neumann", "neumann", "neumann");
+	LSolver->ApplyBC_P_2D(ls);
 	for (int i = num_bc_grid; i < nx + num_bc_grid; i++)
 	for (int j = num_bc_grid; j < ny + num_bc_grid; j++) {
-		ls[idx(i, j)] = 1.0;
+		// positive : inside, negative : outside
+		x = baseX + (i - num_bc_grid) * dx;
+		y = baseY + (j - num_bc_grid) * dy;
+		d = std::sqrt(x * x + y * y) - radius;
+
+		ls[idx(i, j)] = -d;
 	}
+	LSolver->m_signedInitLS = LSolver->GetSignedLSNormalized(ls);
 	LSolver->Reinit_Sussman_2D(ls);
 
-	LSolver->m_signedInitLS = LSolver->GetSignedLSNormalized(ls);
 	LSolver->SetBC_P_2D("neumann", "neumann", "neumann", "neumann");
+	LSolver->ApplyBC_P_2D(ls);
 
 	// init velocity and pseudo-pressure
 	MSolver->AllocateVariables();
 
 	for (int i = 0; i < nx + 2 * num_bc_grid; i++)
 	for (int j = 0; j < ny + 2 * num_bc_grid; j++) {
-		MSolver->m_u[idx(i, j)] = 1.0;
+		MSolver->m_u[idx(i, j)] = 0.0;
 		MSolver->m_v[idx(i, j)] = 0.0;
-		MSolver->m_w[idx(i, j)] = 0.0;
+		MSolver->m_p[idx(i, j)] = 0.0;
 		MSolver->m_ps[idx(i, j)] = 0.0;
 	}
 
 	MSolver->ApplyBC_U_2D(MSolver->m_u);
 	MSolver->ApplyBC_V_2D(MSolver->m_v);
+	MSolver->ApplyBC_P_2D(MSolver->m_ps);
+	MSolver->ApplyBC_P_2D(MSolver->m_p);
 	
 	// prevent dt == 0.0
 	MSolver->m_dt = cfl * std::min(dx, dy) / U;
-	MSolver->OutRes(0, 0.0, fname_vel, fname_div, MSolver->m_u, MSolver->m_v, MSolver->m_ps);
-
+	MSolver->OutRes(0, 0.0, fname_vel, fname_div, MSolver->m_u, MSolver->m_v, MSolver->m_ps, ls);
+	
 	std::vector<double> FU((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid)), FV((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid));
 	std::vector<double> uhat((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid)), vhat((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid));
 	std::vector<double> div((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid));
@@ -129,7 +139,8 @@ int main(int argc, char *argv[]) {
 		MSolver->m_totTime += MSolver->m_dt;
 		MSolver->m_iter++;
 		if ((MSolver->m_iter % MSolver->kNIterSkip) == 0) {
-			MSolver->OutRes(MSolver->m_iter, MSolver->m_totTime, fname_vel, fname_div, MSolver->m_u, MSolver->m_v, MSolver->m_ps);
+			MSolver->OutRes(MSolver->m_iter, MSolver->m_totTime, fname_vel, fname_div,
+				MSolver->m_u, MSolver->m_v, MSolver->m_ps, ls);
 		}
 	}
 

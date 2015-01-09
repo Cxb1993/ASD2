@@ -24,7 +24,7 @@
 class MACSolver2D {
 public:
 	const int kNx, kNy, kNumBCGrid;
-	const double kLenX, kLenY, kDx, kDy;
+	const double kBaseX, kBaseY, kLenX, kLenY, kDx, kDy;
 
 	const double kRe, kWe, kFr;
 	const double kLScale, kUScale, kSigma, kG, kMuScale, kRhoScale;
@@ -47,7 +47,7 @@ public:
 	std::string m_outFname;
 
 	// velocity
-	std::vector<double> m_u, m_v, m_w;
+	std::vector<double> m_u, m_v;
 	// density, curvature, viscosity
 	std::vector<double> m_rho, m_kappa, m_mu;
 
@@ -56,11 +56,11 @@ public:
 	MACSolver2D();
 	MACSolver2D(double Re, double We, double Fr,
 		double L, double U, double sigma, double densityRatio, double viscosityRatio, double rhoI, double mu1,
-		int nx, int ny, double lenX, double lenY, double cfl,
+		int nx, int ny, double baseX, double baseY, double lenX, double lenY, double cfl,
 		int maxtime, int maxiter, int niterskip, int num_bc_grid, bool writeVTK);
 	MACSolver2D(double rhoI, double rhoO, double muI, double muO, double gConstant,
 		double L, double U, double sigma,
-		int nx, int ny, double lenX, double lenY, double cfl,
+		int nx, int ny, double baseX, double baseY, double lenX, double lenY, double cfl,
 		int maxtime, int maxiter, int niterskip, int num_bc_grid, bool writeVTK);
 	~MACSolver2D();
 
@@ -125,7 +125,8 @@ public:
 	void TDMA(double* a, double* b, double* c, double* d, int n);
 	int SetPLTType(PLTTYPE type);
 	int OutRes(int iter, double curTime, const std::string fname_vel_base, const std::string fname_div_base,
-		const std::vector<double>& u, const std::vector<double>& v, const std::vector<double>& ps);
+		const std::vector<double>& u, const std::vector<double>& v,
+		const std::vector<double>& ps, const std::vector<double>& ls);
 	int OutResClose();
 
 	int idx(int i, int j);

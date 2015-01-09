@@ -403,16 +403,19 @@ int LevelSetSolver2D::SetBC_P_2D(std::string BC_W, std::string BC_E, std::string
 
 int LevelSetSolver2D::ApplyBC_U_2D(std::vector<double>& arr) {
 	m_BC->ApplyBC_U_2D(arr);
+	
 	return 0;
 }
 
 int LevelSetSolver2D::ApplyBC_V_2D(std::vector<double>& arr) {
 	m_BC->ApplyBC_V_2D(arr);
+
 	return 0;
 }
 
 int LevelSetSolver2D::ApplyBC_P_2D(std::vector<double>& arr) {
 	m_BC->ApplyBC_P_2D(arr);
+	
 	return 0;
 }
 

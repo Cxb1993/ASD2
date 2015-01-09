@@ -28,7 +28,6 @@ public:
 	
 	BC m_BC_UW, m_BC_UE, m_BC_US, m_BC_UN;
 	BC m_BC_VW, m_BC_VE, m_BC_VS, m_BC_VN;
-	BC m_BC_WW, m_BC_WE, m_BC_WS, m_BC_WN;
 	BC m_BC_PW, m_BC_PE, m_BC_PS, m_BC_PN;
 	double m_BC_DirichletConstantUW, m_BC_DirichletConstantUE, m_BC_DirichletConstantUS, m_BC_DirichletConstantUN;
 	double m_BC_DirichletConstantVW, m_BC_DirichletConstantVE, m_BC_DirichletConstantVS, m_BC_DirichletConstantVN;
@@ -43,11 +42,9 @@ public:
 	*/
 	int SetBC_U_2D(std::string BC_W, std::string BC_E, std::string BC_S, std::string BC_N);
 	int SetBC_V_2D(std::string BC_W, std::string BC_E, std::string BC_S, std::string BC_N);
-	int SetBC_W_2D(std::string BC_W, std::string BC_E, std::string BC_S, std::string BC_N);
 	int SetBC_P_2D(std::string BC_W, std::string BC_E, std::string BC_S, std::string BC_N);
 	int ApplyBC_U_2D(std::vector<double>& arr);
 	int ApplyBC_V_2D(std::vector<double>& arr);
-	int ApplyBC_W_2D(std::vector<double>& arr);
 	int ApplyBC_P_2D(std::vector<double>& arr);
 
 	void BC_UW(std::vector<double>& arr);
