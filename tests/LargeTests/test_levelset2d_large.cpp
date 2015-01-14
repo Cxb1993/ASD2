@@ -37,20 +37,20 @@ int LevelSetTest_2D_Simple() {
 		y = baseY + (j - NBC3) * dy;
 		d = std::sqrt(std::pow(x, 2.0) + std::pow(y, 2.0)) - radius;
 
-		ls[idx3(ny, i, j)] = -d;
+		ls[idx3(nx, i, j)] = -d;
 
-		if (ls[idx3(ny, i, j)] > 0)
+		if (ls[idx3(nx, i, j)] > 0)
 			orgMass++;
 
-		lsOrg[idx3(ny, i, j)] = ls[idx3(ny, i, j)];
+		lsOrg[idx3(nx, i, j)] = ls[idx3(nx, i, j)];
 
-		err[idx3(ny, i, j)] = 0.0;
+		err[idx3(nx, i, j)] = 0.0;
 	}
 
 	for (int i = 0; i < nx + 2 * NBC3; i++)
 	for (int j = 0; j < ny + 2 * NBC3; j++) {
-		u[idx3(ny, i, j)] = 1.0;
-		v[idx3(ny, i, j)] = 0.0;
+		u[idx3(nx, i, j)] = 1.0;
+		v[idx3(nx, i, j)] = 0.0;
 
 	}
 
@@ -96,7 +96,7 @@ int LevelSetTest_2D_Simple() {
 
 		for (int i = NBC3; i < nx + NBC3; i++)
 		for (int j = NBC3; j < ny + NBC3; j++) {
-			if (ls[idx3(ny, i, j)] > 0.0)
+			if (ls[idx3(nx, i, j)] > 0.0)
 				LSMass++;
 		}
 
@@ -112,15 +112,15 @@ int LevelSetTest_2D_Simple() {
 
 	for (int j = NBC3; j < ny + NBC3; j++)
 	for (int i = NBC3; i < nx + NBC3; i++) {
-		err[idx3(ny, i, j)] = std::fabs(ls[idx3(ny, i, j)] - lsOrg[idx3(ny, i, j)]);
-		errNormInfty = std::max(std::fabs(err[idx3(ny, i, j)]), errNormInfty);
-		errNorm1 += std::fabs(ls[idx3(ny, i, j)] - lsOrg[idx3(ny, i, j)]);
-		errNorm2 += std::pow(std::fabs(ls[idx3(ny, i, j)] - lsOrg[idx3(ny, i, j)]), 2.0);
+		err[idx3(nx, i, j)] = std::fabs(ls[idx3(nx, i, j)] - lsOrg[idx3(nx, i, j)]);
+		errNormInfty = std::max(std::fabs(err[idx3(nx, i, j)]), errNormInfty);
+		errNorm1 += std::fabs(ls[idx3(nx, i, j)] - lsOrg[idx3(nx, i, j)]);
+		errNorm2 += std::pow(std::fabs(ls[idx3(nx, i, j)] - lsOrg[idx3(nx, i, j)]), 2.0);
 
-		if (lsOrg[idx3(ny, i, j)] > 0.0)
+		if (lsOrg[idx3(nx, i, j)] > 0.0)
 			orgMass++;
 
-		if (ls[idx3(ny, i, j)] > 0.0)
+		if (ls[idx3(nx, i, j)] > 0.0)
 			LSMass++;
 	}
 
@@ -174,20 +174,20 @@ int LevelSetTest_2D_ReinitOnly() {
 			y = baseY + (j - NBC3) * dy;
 			d = std::sqrt(std::pow(x, 2.0) + std::pow(y, 2.0)) - radius;
 
-			ls[idx3(ny, i, j)] = -d;
+			ls[idx3(nx, i, j)] = -d;
 
-			if (ls[idx3(ny, i, j)] > 0)
+			if (ls[idx3(nx, i, j)] > 0)
 				orgMass++;
 
-			lsOrg[idx3(ny, i, j)] = ls[idx3(ny, i, j)];
+			lsOrg[idx3(nx, i, j)] = ls[idx3(nx, i, j)];
 
-			err[idx3(ny, i, j)] = 0.0;
+			err[idx3(nx, i, j)] = 0.0;
 		}
 
 	for (int j = 0; j < ny + 2 * NBC3; j++)
 	for (int i = 0; i < nx + 2 * NBC3; i++) {
-		u[idx3(ny, i, j)] = 1.0;
-		v[idx3(ny, i, j)] = 1.0;
+		u[idx3(nx, i, j)] = 1.0;
+		v[idx3(nx, i, j)] = 1.0;
 	}
 
 	LSolver->SetBC_U_2D("neumann", "neumann", "neumann", "neumann");
@@ -232,7 +232,7 @@ int LevelSetTest_2D_ReinitOnly() {
 
 		for (int i = NBC3; i < nx + NBC3; i++)
 		for (int j = NBC3; j < ny + NBC3; j++) {
-			if (ls[idx3(ny, i, j)] > 0.0)
+			if (ls[idx3(nx, i, j)] > 0.0)
 				LSMass++;
 		}
 
@@ -248,15 +248,15 @@ int LevelSetTest_2D_ReinitOnly() {
 
 	for (int j = NBC3; j < ny + NBC3; j++)
 		for (int i = NBC3; i < nx + NBC3; i++) {
-			err[idx3(ny, i, j)] = std::fabs(ls[idx3(ny, i, j)] - lsOrg[idx3(ny, i, j)]);
-			errNormInfty = std::max(std::fabs(err[idx3(ny, i, j)]), errNormInfty);
-			errNorm1 += std::fabs(ls[idx3(ny, i, j)] - lsOrg[idx3(ny, i, j)]);
-			errNorm2 += std::pow(std::fabs(ls[idx3(ny, i, j)] - lsOrg[idx3(ny, i, j)]), 2.0);
+			err[idx3(nx, i, j)] = std::fabs(ls[idx3(nx, i, j)] - lsOrg[idx3(nx, i, j)]);
+			errNormInfty = std::max(std::fabs(err[idx3(nx, i, j)]), errNormInfty);
+			errNorm1 += std::fabs(ls[idx3(nx, i, j)] - lsOrg[idx3(nx, i, j)]);
+			errNorm2 += std::pow(std::fabs(ls[idx3(nx, i, j)] - lsOrg[idx3(nx, i, j)]), 2.0);
 
-			if (lsOrg[idx3(ny, i, j)] > 0.0)
+			if (lsOrg[idx3(nx, i, j)] > 0.0)
 				orgMass++;
 
-			if (ls[idx3(ny, i, j)] > 0.0)
+			if (ls[idx3(nx, i, j)] > 0.0)
 				LSMass++;
 		}
 
@@ -312,28 +312,28 @@ int LevelSetTest_2D_Sussman621_ReinitSussman() {
 		y = baseY + (j - NBC3) * dy;
 		d = std::sqrt(std::pow(x - centerX, 2.0) + std::pow(y - centerY, 2.0)) - radius;
 
-		ls[idx3(ny, i, j)] = -8.0;
+		ls[idx3(nx, i, j)] = -8.0;
 		if (d < 0)
-			ls[idx3(ny, i, j)] = 8.0;
+			ls[idx3(nx, i, j)] = 8.0;
 
 
 		if (x >= (50 - 0.25 * slotW) && x <= (50 + 0.25 * slotW)) {
 			if (y <= 75 + 7.5)
-				ls[idx3(ny, i, j)] = -8.0;
+				ls[idx3(nx, i, j)] = -8.0;
 		}
 
-		u[idx3(ny, i, j)] = (M_PI / 314.0) * (50.0 - y);
-		v[idx3(ny, i, j)] = (M_PI / 314.0) * (x - 50.0);
+		u[idx3(nx, i, j)] = (M_PI / 314.0) * (50.0 - y);
+		v[idx3(nx, i, j)] = (M_PI / 314.0) * (x - 50.0);
 
-		if (ls[idx3(ny, i, j)] > 0)
+		if (ls[idx3(nx, i, j)] > 0)
 			orgMass++;
 
-		u[idx3(ny, i, j)] = (M_PI / 314.0) * (50.0 - y);
-		v[idx3(ny, i, j)] = (M_PI / 314.0) * (x - 50.0);
+		u[idx3(nx, i, j)] = (M_PI / 314.0) * (50.0 - y);
+		v[idx3(nx, i, j)] = (M_PI / 314.0) * (x - 50.0);
 
-		lsOrg[idx3(ny, i, j)] = ls[idx3(ny, i, j)];
+		lsOrg[idx3(nx, i, j)] = ls[idx3(nx, i, j)];
 
-		err[idx3(ny, i, j)] = 0.0;
+		err[idx3(nx, i, j)] = 0.0;
 	}
 
 	LSolver->ApplyBC_P_2D(ls);
@@ -375,7 +375,7 @@ int LevelSetTest_2D_Sussman621_ReinitSussman() {
 
 		for (int i = NBC3; i < nx + NBC3; i++)
 		for (int j = NBC3; j < ny + NBC3; j++) {
-			if (ls[idx3(ny, i, j)] > 0.0)
+			if (ls[idx3(nx, i, j)] > 0.0)
 				LSMass++;
 		}
 			
@@ -391,15 +391,15 @@ int LevelSetTest_2D_Sussman621_ReinitSussman() {
 
 	for (int j = NBC3; j < ny + NBC3; j++)
 	for (int i = NBC3; i < nx + NBC3; i++) {
-		err[idx3(ny, i, j)] = std::fabs(ls[idx3(ny, i, j)] - lsOrg[idx3(ny, i, j)]);
-		errNormInfty = std::max(std::fabs(err[idx3(ny, i, j)]), errNormInfty);
-		errNorm1 += std::fabs(ls[idx3(ny, i, j)] - lsOrg[idx3(ny, i, j)]);
-		errNorm2 += std::pow(std::fabs(ls[idx3(ny, i, j)] - lsOrg[idx3(ny, i, j)]), 2.0);
+		err[idx3(nx, i, j)] = std::fabs(ls[idx3(nx, i, j)] - lsOrg[idx3(nx, i, j)]);
+		errNormInfty = std::max(std::fabs(err[idx3(nx, i, j)]), errNormInfty);
+		errNorm1 += std::fabs(ls[idx3(nx, i, j)] - lsOrg[idx3(nx, i, j)]);
+		errNorm2 += std::pow(std::fabs(ls[idx3(nx, i, j)] - lsOrg[idx3(nx, i, j)]), 2.0);
 
-		if (lsOrg[idx3(ny, i, j)] > 0.0)
+		if (lsOrg[idx3(nx, i, j)] > 0.0)
 			orgMass++;
 
-		if (ls[idx3(ny, i, j)] > 0.0)
+		if (ls[idx3(nx, i, j)] > 0.0)
 			LSMass++;
 	}
 

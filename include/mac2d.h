@@ -47,7 +47,7 @@ public:
 	std::shared_ptr<BoundaryCondition2D> m_BC;
 	std::shared_ptr<PoissonSolver2D> m_Poisson;
 	int m_iter;
-	double m_dt, m_totTime;
+	double m_dt, m_curTime;
 	std::string m_outFname;
 
 	// velocity

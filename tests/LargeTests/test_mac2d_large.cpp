@@ -1,9 +1,6 @@
-#include "mac2d.h"
+#include "test_mac2d_large.h"
 
-int GNx = 0, GNy = 0, GNumBCGrid = 0;
-int idx3(int nx, int i, int j);
-
-int main(int argc, char *argv[]) {
+int MAC2DTest_SmallAirBubble() {
 	// Set initial level set
 	const double Re = 100.0, We = 0.0, Fr = 0.0;
 	const double L = 1.0, U = 1.0;
@@ -21,11 +18,7 @@ int main(int argc, char *argv[]) {
 	const std::string fname_div("LSDiv_Re_" + std::to_string(Re));
 	int iterskip = 1;
 	int stat = 0;
-
-	GNx = nx;
-	GNy = ny;
-	GNumBCGrid = num_bc_grid;
-
+	
 	std::unique_ptr<MACSolver2D> MSolver;
 	MSolver = std::make_unique<MACSolver2D>(rhoI, rhoO, muI, muO, gConstant,
 		L, U, sigma, nx, ny, baseX, baseY, lenX, lenY, cfl, maxtime, maxiter, niterskip, num_bc_grid,
@@ -61,7 +54,7 @@ int main(int argc, char *argv[]) {
 		y = baseY + (j - num_bc_grid) * dy;
 		d = std::sqrt(x * x + y * y) - radius;
 
-		ls[idx3(ny, i, j)] = -d;
+		ls[idx3(nx, i, j)] = -d;
 	}
 	LSolver->m_signedInitLS = LSolver->GetSignedLSNormalized(ls);
 	LSolver->Reinit_Sussman_2D(ls);
@@ -74,25 +67,26 @@ int main(int argc, char *argv[]) {
 
 	for (int i = 0; i < nx + 2 * num_bc_grid; i++)
 	for (int j = 0; j < ny + 2 * num_bc_grid; j++) {
-		MSolver->m_u[idx3(ny, i, j)] = 0.0;
-		MSolver->m_v[idx3(ny, i, j)] = 0.0;
-		MSolver->m_p[idx3(ny, i, j)] = 0.0;
-		MSolver->m_ps[idx3(ny, i, j)] = 0.0;
+		MSolver->m_u[idx3(nx, i, j)] = 0.0;
+		MSolver->m_v[idx3(nx, i, j)] = 0.0;
+		MSolver->m_p[idx3(nx, i, j)] = 0.0;
+		MSolver->m_ps[idx3(nx, i, j)] = 0.0;
 	}
 
 	MSolver->ApplyBC_U_2D(MSolver->m_u);
 	MSolver->ApplyBC_V_2D(MSolver->m_v);
 	MSolver->ApplyBC_P_2D(MSolver->m_ps);
 	MSolver->ApplyBC_P_2D(MSolver->m_p);
-	
+
 	// prevent dt == 0.0
 	MSolver->m_dt = cfl * std::min(dx, dy) / U;
 	MSolver->OutRes(0, 0.0, fname_vel, fname_div, MSolver->m_u, MSolver->m_v, MSolver->m_ps, ls);
 	
-	std::vector<double> FU((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid), 0.0), FV((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid), 0.0);
-	std::vector<double> uhat((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid), 0.0), vhat((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid), 0.0);
-	std::vector<double> div((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid), 0.0);
-	
+	std::vector<double> FU((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid)), FV((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid));
+	std::vector<double> uhat((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid)), vhat((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid));
+	std::vector<double> div((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid));
+
+	exit(1);
 	while (MSolver->m_curTime < MSolver->kMaxTime && MSolver->m_iter < MSolver->kMaxIter) {
 		// Solver Level set part first
 		// Have to use \phi^{n+1} for rho, mu, kappa
@@ -101,16 +95,15 @@ int main(int argc, char *argv[]) {
 
 		// Solve Momentum Part
 		// Update Rho, Mu, Kappa
-		if (We != 0.0)
+		if (We != 0.0) {
 			MSolver->UpdateKappa(ls);
-		MSolver->ApplyBC_P_2D(MSolver->m_kappa);
+			MSolver->ApplyBC_P_2D(MSolver->m_kappa);
+		}
 
 		// Update F and apply time discretization
-		FU = MSolver->UpdateFU(LSolver, ls,
-			MSolver->m_u, MSolver->m_v);
-		FV = MSolver->UpdateFV(LSolver, ls,
-			MSolver->m_u, MSolver->m_v);
-		
+		FU = MSolver->UpdateFU(LSolver, ls, MSolver->m_u, MSolver->m_v);
+		FV = MSolver->UpdateFV(LSolver, ls,	MSolver->m_u, MSolver->m_v);
+
 		// Get intermediate velocity
 		uhat = MSolver->GetUhat(MSolver->m_u, FU);
 		vhat = MSolver->GetVhat(MSolver->m_v, FV);
@@ -133,7 +126,7 @@ int main(int argc, char *argv[]) {
 
 		MSolver->ApplyBC_U_2D(MSolver->m_u);
 		MSolver->ApplyBC_V_2D(MSolver->m_v);
-		
+
 		MSolver->m_dt = MSolver->UpdateDt(MSolver->m_u, MSolver->m_v);
 		MSolver->m_curTime += MSolver->m_dt;
 		MSolver->m_iter++;
@@ -149,9 +142,4 @@ int main(int argc, char *argv[]) {
 	LSolver.reset();
 
 	return 0;
-}
-
-
-inline int idx3(int nx, int i, int j) {
-	return i + (GNx + 2 * GNumBCGrid) * j;
 }

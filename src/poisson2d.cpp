@@ -4,7 +4,7 @@ PoissonSolver2D::PoissonSolver2D(int nx, int ny, int num_bc_grid) :
 	kNx(nx), kNy(ny), kNumBCGrid(num_bc_grid) {
 }
 
-int PoissonSolver2D::GS_1FUniform_2D(std::vector<double>& phi, const std::vector<double>& rhs,
+int PoissonSolver2D::GS_2FUniform_2D(std::vector<double>& phi, const std::vector<double>& rhs,
 	double dx, double dy, std::shared_ptr<BoundaryCondition2D> PBC) {
 	std::vector<double> oldPhi((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
 	std::vector<double> tmpPhi((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
@@ -52,146 +52,6 @@ int PoissonSolver2D::GS_1FUniform_2D(std::vector<double>& phi, const std::vector
 	return 0;
 }
 
-int PoissonSolver2D::MKL_1FUniform_2D(std::vector<double>& phi, const std::vector<double>& rhs,
-	double lenX, double lenY, double dx, double dy, std::shared_ptr<BoundaryCondition2D> PBC) {
-
-	double q;
-	double ax, bx, ay, by, az, bz;
-	MKL_INT ix, iy, iz, i, stat;
-	// nx, ny, nz = # of cells
-	// MKLnx, MKLny, MKLnz = # of mesh intervals incluidng one extra boundary node of each side,
-	// e.g. 0(boundary),1,2, ... , MKLnx(boundary) : index of node
-	MKL_INT MKLnx = kNx + 1, MKLny = kNy + 1;
-	MKL_INT ipar[128];
-	DFTI_DESCRIPTOR_HANDLE xhandle = 0;
-	char *BCtype = new char[5];
-	if (PBC->m_BC_PW == BC::DIRICHLET)
-		BCtype[0] = 'D';
-	else if (PBC->m_BC_PW == BC::NEUMANN)
-		BCtype[0] = 'N';
-	else if (PBC->m_BC_PW == BC::PERIODIC)
-		BCtype[0] = 'P';
-
-	if (PBC->m_BC_PE == BC::DIRICHLET)
-		BCtype[1] = 'D';
-	else if (PBC->m_BC_PE == BC::NEUMANN)
-		BCtype[1] = 'N';
-	else if (PBC->m_BC_PE == BC::PERIODIC)
-		BCtype[1] = 'P';
-
-	if (PBC->m_BC_PS == BC::DIRICHLET)
-		BCtype[2] = 'D';
-	else if (PBC->m_BC_PS == BC::NEUMANN)
-		BCtype[2] = 'N';
-	else if (PBC->m_BC_PS == BC::PERIODIC)
-		BCtype[2] = 'P';
-
-	if (PBC->m_BC_PN == BC::DIRICHLET)
-		BCtype[3] = 'D';
-	else if (PBC->m_BC_PN == BC::NEUMANN)
-		BCtype[3] = 'N';
-	else if (PBC->m_BC_PN == BC::PERIODIC)
-		BCtype[3] = 'P';
-		
-	// insert null character 
-	BCtype[6] = '\0';
-
-	std::vector<double> bd_ax(MKLny + 1);
-	std::vector<double> bd_bx(MKLny + 1);
-	std::vector<double> bd_ay(MKLnx + 1);
-	std::vector<double> bd_by(MKLnx + 1);
-	std::vector<double> f((MKLnx + 1) * (MKLny + 1));
-	std::vector<double> dpar(5 * MKLnx / 2 + 7);
-			
-	for (i = 0; i < 128; i++) {
-		ipar[i] = 0;
-	}
-
-	/* Defining the rectangular domain 0<x<1, 0<y<1 for 3D Poisson Solver */
-	ax = -0.5 * dx;
-	bx = lenX + 0.5 * dx;
-	ay = -0.5 * dy;
-	by = lenY + 0.5 * dy;
-	q = 0.0;
-
-	/* Setting the values of the boundary function g(x,y) that is equal to
-	the normal derivative of the TRUE solution in the mesh points laying on
-	Neumann boundaries */
-	for (MKL_INT j = 0; j <= MKLny; j++) {
-		bd_ax[j] = 0.0;
-		bd_bx[j] = 0.0;
-
-		if (PBC->m_BC_PW == BC::DIRICHLET)
-			bd_ax[j] = 2.0 * PBC->m_BC_DirichletConstantPW
-			- phi[idx(kNumBCGrid, j + kNumBCGrid)];
-		if (PBC->m_BC_PE == BC::DIRICHLET)
-			bd_bx[j] = 2.0 * PBC->m_BC_DirichletConstantPE
-			- phi[idx(kNx + kNumBCGrid, j + kNumBCGrid)];
-	}
-
-	/* Setting the values of the boundary function g(x,y) that is equal to
-	the normal derivative of the TRUE solution in the mesh points laying on
-	Neumann boundaries */
-	for (MKL_INT i = 0; i <= MKLnx; i++) {
-			bd_ay[i] = 0.0;
-			bd_by[i] = 0.0;
-
-			if (PBC->m_BC_PS == BC::DIRICHLET)
-				bd_ay[i] = 2.0 * PBC->m_BC_DirichletConstantPS
-				- phi[idx(i + kNumBCGrid, kNumBCGrid)];
-			if (PBC->m_BC_PN == BC::DIRICHLET)
-				bd_by[i] = 2.0 * PBC->m_BC_DirichletConstantPN
-				- phi[idx(i + kNumBCGrid, kNy + kNumBCGrid)];
-	}
-
-	for (MKL_INT j = 0; j <= MKLny; j++)
-	for (MKL_INT i = 0; i <= MKLnx; i++) {
-		f[i + (MKLny + 1) * j]
-			= rhs[idx(i + kNumBCGrid, j + kNumBCGrid)];
-	}
-
-	d_init_Helmholtz_2D(&ax, &bx, &ay, &by, &MKLnx, &MKLny, BCtype, &q, ipar, dpar.data(), &stat);
-	if (stat != 0){
-		perror("MKL Error:d_init_Helmholtz_3D");
-		exit(1);
-	}
-
-	/* Contains error messaging options:, print to screen (default) */
-	ipar[1] = 1;
-	/* Contains warning messaging options, ignore warning message */
-	ipar[2] = 0;
-	ipar[21] = 1;
-
-	d_commit_Helmholtz_2D(f.data(), bd_ax.data(), bd_bx.data(), bd_ay.data(), bd_by.data(), &xhandle, ipar, dpar.data(), &stat);
-	if (stat != 0) {
-		perror("MKL Error:d_commit_Helmholtz_3D");
-		exit(1);
-	}
-	
-	d_Helmholtz_2D(f.data(), bd_ax.data(), bd_bx.data(), bd_ay.data(), bd_by.data(), &xhandle, ipar, dpar.data(), &stat);
-	if (stat != 0 && stat != 1) {
-		perror("MKL Error:d_Helmholtz_3D");
-		exit(1);
-	}
-
-	free_Helmholtz_2D(&xhandle, ipar, &stat);
-	if (stat != 0) {
-		perror("MKL Error:free_Helmholtz_3D");
-		exit(1);
-	}
-
-	for (MKL_INT j = 0; j <= MKLny; j++)
-	for (MKL_INT i = 0; i <= MKLnx; i++) {
-		phi[idx(i + kNumBCGrid, j + kNumBCGrid)]
-			= f[i + (MKLny + 1) * j];
-	}
-
-	delete[] BCtype;
-	MKL_Free_Buffers();
-
-	return 0;
-}
-
 int PoissonSolver2D::MKL_2FUniform_2D(std::vector<double>& phi, const std::vector<double>& rhs,
 	double lenX, double lenY, double dx, double dy, std::shared_ptr<BoundaryCondition2D> PBC) {
 
@@ -234,7 +94,7 @@ int PoissonSolver2D::MKL_2FUniform_2D(std::vector<double>& phi, const std::vecto
 		BCtype[3] = 'P';
 
 	// insert null character 
-	BCtype[6] = '\0';
+	BCtype[4] = '\0';
 
 	std::vector<double> bd_ax(MKLny + 1);
 	std::vector<double> bd_bx(MKLny + 1);
@@ -283,27 +143,11 @@ int PoissonSolver2D::MKL_2FUniform_2D(std::vector<double>& phi, const std::vecto
 			bd_by[i] = 2.0 * PBC->m_BC_DirichletConstantPN
 			- phi[idx(i + kNumBCGrid, kNy + kNumBCGrid)];
 	}
-	/*
-	// discretize for 2 fluid
-	// using level set, get normal vector
-	std::vector<double> ns1((MKLnx + 1) * (MKLny + 1)), ns2((MKLnx + 1) * (MKLny + 1));
-	double lsSize = 0.0;
-	for (MKL_INT j = 0; j <= MKLny; j++)
-	for (MKL_INT i = 0; i <= MKLnx; i++) {
-		ns1[idx(i, j)] = (ls[idx(i + 1 + kNumBCGrid, j + kNumBCGrid)]
-			- ls[idx(i - 1 + kNumBCGrid, j + kNumBCGrid)]) / (2.0 * kDx);
-		ns2[idx(i, j)] = (ls[idx(i + kNumBCGrid, j + 1 + kNumBCGrid)]
-			- ls[idx(i + kNumBCGrid, j - 1 + kNumBCGrid)]) / (2.0 * kDy);
-		lsSize = std::sqrt(ns1[idx(i, j)] * ns1[idx(i, j)] + ns2[idx(i, j)] * ns2[idx(i, j)]);
-		ns1[idx(i, j)] /= (lsSize + 1.0e-80);
-		ns2[idx(i, j)] /= (lsSize + 1.0e-80);
-	}
-	*/
-
+	
 	for (MKL_INT j = 0; j <= MKLny; j++)
 	for (MKL_INT i = 0; i <= MKLnx; i++) {	
-		f[i + (MKLny + 1) * j]
-			= rhs[idx(i + kNumBCGrid, j + kNumBCGrid)];
+		f[i + (MKLnx + 1) * j]
+			= rhs[idx(i + kNumBCGrid - 1, j + kNumBCGrid - 1)];
 	}
 
 	d_init_Helmholtz_2D(&ax, &bx, &ay, &by, &MKLnx, &MKLny, BCtype, &q, ipar, dpar.data(), &stat);
@@ -336,11 +180,10 @@ int PoissonSolver2D::MKL_2FUniform_2D(std::vector<double>& phi, const std::vecto
 		exit(1);
 	}
 
-
 	for (MKL_INT j = 0; j <= MKLny; j++)
 	for (MKL_INT i = 0; i <= MKLnx; i++) {
-		phi[idx(i + kNumBCGrid, j + kNumBCGrid)]
-			= f[i + (MKLny + 1) * j];
+		phi[idx(i + kNumBCGrid - 1, j + kNumBCGrid - 1)]
+			= f[i + (MKLnx + 1) * j];
 	}
 
 	delete[] BCtype;
@@ -350,5 +193,5 @@ int PoissonSolver2D::MKL_2FUniform_2D(std::vector<double>& phi, const std::vecto
 }
 
 inline int PoissonSolver2D::idx(int i, int j) {
-	return i + (kNx + 2 * kNumBCGrid) * j;
+	return j + (kNy + 2 * kNumBCGrid) * i;
 }

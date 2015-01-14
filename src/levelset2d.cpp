@@ -543,5 +543,5 @@ double LevelSetSolver2D::minmod(double a, double b) {
 }
 
 inline int LevelSetSolver2D::idx(int i, int j) {
-	return j + (kNy + 2 * kNumBCGrid) * i;
+	return i + (kNx + 2 * kNumBCGrid) * j;
 }

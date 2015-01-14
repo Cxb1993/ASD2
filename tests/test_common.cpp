@@ -1,7 +1,7 @@
 #include "test_common.h"
 
-inline int idx3(int ny, int i, int j) {
-	return j + (ny + 2 * NBC3) * i;
+inline int idx3(int nx, int i, int j) {
+	return i + (nx + 2 * NBC3) * j;
 }
 
 int OutRes(int iter, double curTime, const std::string fname_vel_base, const std::string fname_div_base,
@@ -33,12 +33,12 @@ int OutRes(int iter, double curTime, const std::string fname_vel_base, const std
 
 		std::vector<double> resDiv = div;
 
-		for (int j = NBC3; j < ny + NBC3; j++)
 		for (int i = NBC3; i < nx + NBC3; i++)
+		for (int j = NBC3; j < ny + NBC3; j++)
 			resU[idx3(nx, i, j)] = (u[idx3(nx, i, j)] + u[idx3(nx, i + 1, j)]) * 0.5;
 
-		for (int j = NBC3; j < ny + NBC3; j++)
 		for (int i = NBC3; i < nx + NBC3; i++)
+		for (int j = NBC3; j < ny + NBC3; j++)
 			resV[idx3(nx, i, j)] = (v[idx3(nx, i, j)] + v[idx3(nx, i, j + 1)]) * 0.5;
 
 		outF.open(fname_vel.c_str(), std::ios::app);
@@ -98,12 +98,12 @@ int OutRes(int iter, double curTime, const std::string fname_vel_base, const std
 
 		for (int i = NBC3; i < nx + NBC3; i++)
 		for (int j = NBC3; j < ny + NBC3; j++) {
-			resX[(j - NBC3) + ny * (i - NBC3)] = baseX + (i + 0.5 - NBC3) * dx;
-			resY[(j - NBC3) + ny * (i - NBC3)] = baseY + (j + 0.5 - NBC3) * dy;
-			resU[(j - NBC3) + ny * (i - NBC3)] = (u[idx3(nx, i, j)] + u[idx3(nx, i + 1, j)]) * 0.5;
-			resV[(j - NBC3) + ny * (i - NBC3)] = (v[idx3(nx, i, j)] + v[idx3(nx, i, j + 1)]) * 0.5;
-			resLS[(j - NBC3) + ny * (i - NBC3)] = ls[idx3(nx, i, j)];
-			resPhi[(j - NBC3) + ny * (i - NBC3)] = phi[idx3(nx, i, j)];
+			resX[(i - NBC3) + nx * (j - NBC3)] = baseX + (i + 0.5 - NBC3) * dx;
+			resY[(i - NBC3) + nx * (j - NBC3)] = baseY + (j + 0.5 - NBC3) * dy;
+			resU[(i - NBC3) + nx * (j - NBC3)] = (u[idx3(nx, i, j)] + u[idx3(nx, i + 1, j)]) * 0.5;
+			resV[(i - NBC3) + nx * (j - NBC3)] = (v[idx3(nx, i, j)] + v[idx3(nx, i, j + 1)]) * 0.5;
+			resLS[(i - NBC3) + nx * (j - NBC3)] = ls[idx3(nx, i, j)];
+			resPhi[(i - NBC3) + nx * (j - NBC3)] = phi[idx3(nx, i, j)];
 		}
 
 		INTEGER4 Debug = 1;

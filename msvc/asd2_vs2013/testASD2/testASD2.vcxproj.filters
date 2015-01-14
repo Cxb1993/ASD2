@@ -24,12 +24,18 @@
     <ClCompile Include="..\..\..\tests\test_common.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\tests\LargeTests\test_mac2d_large.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\tests\test_common.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\tests\LargeTests\test_levelset2d_large.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\tests\LargeTests\test_mac2d_large.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
