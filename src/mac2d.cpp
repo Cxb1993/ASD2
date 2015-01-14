@@ -166,14 +166,14 @@ std::vector<double> MACSolver2D::AddConvectionFU(const std::vector<double>& u, c
 	std::vector<double> FYP(kNy + 2 * kNumBCGrid, 0.0), FYM(kNy + 2 * kNumBCGrid, 0.0);
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++) {
 		for (int j = 0; j < kNy + 2 *kNumBCGrid; j++) {
-			vecF_UY[i] = u[idx(i, j)];
+			vecF_UY[j] = u[idx(i, j)];
 		}
 
 		UnitHJWENO5(vecF_UY, FYP, FYM, kDy, kNy);
 
-		for (int j = 0; j < kNy + 2 * kNumBCGrid; i++) {
-			LYP[idx(i, j)] = FYP[i];
-			LYM[idx(i, j)] = FYM[i];
+		for (int j = 0; j < kNy + 2 * kNumBCGrid; j++) {
+			LYP[idx(i, j)] = FYP[j];
+			LYM[idx(i, j)] = FYM[j];
 		}
 
 		// set all vector elements to zero keeping its size
@@ -239,14 +239,14 @@ std::vector<double> MACSolver2D::AddConvectionFV(const std::vector<double>& u, c
 	std::vector<double> FYP(kNy + 2 * kNumBCGrid, 0.0), FYM(kNy + 2 * kNumBCGrid, 0.0);
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++) {
 		for (int j = 0; j < kNy + 2 * kNumBCGrid; j++) {
-			vecF_VY[i] = v[idx(i, j)];
+			vecF_VY[j] = v[idx(i, j)];
 		}
 
 		UnitHJWENO5(vecF_VY, FYP, FYM, kDy, kNy);
 
-		for (int j = 0; j < kNy + 2 * kNumBCGrid; i++) {
-			LYP[idx(i, j)] = FYP[i];
-			LYM[idx(i, j)] = FYM[i];
+		for (int j = 0; j < kNy + 2 * kNumBCGrid; j++) {
+			LYP[idx(i, j)] = FYP[j];
+			LYM[idx(i, j)] = FYM[j];
 		}
 
 		// set all vector elements to zero keeping its size
@@ -287,7 +287,7 @@ int MACSolver2D::UnitHJWENO5(
 	std::vector<double> IS2(n + 2 * kNumBCGrid, 0.0);
 	
 	// \dfrac{\Delta^+ F}{\Delta x}
-	std::vector<double> DFPlus = std::vector<double>(n + 2 * kNumBCGrid, 0.0);
+	std::vector<double> DFPlus = std::vector<double>(n + 2  * kNumBCGrid, 0.0);
 
 	// Compute Smoothness for phi^{-}
 	for (int i = 0; i < n + 2 * kNumBCGrid - 1; i++)
@@ -1267,7 +1267,7 @@ void MACSolver2D::SetBCConstantPN(double BC_ConstantN) {
 }
 
 inline int MACSolver2D::idx(int i, int j) {
-	return i + (kNx + 2 * kNumBCGrid) * j;
+	return j + (kNy + 2 * kNumBCGrid) * i;
 }
 
 int MACSolver2D::SetPLTType(PLTTYPE type) {
@@ -1425,7 +1425,7 @@ int MACSolver2D::OutRes(int iter, double curTime, const std::string fname_vel_ba
 			&NFConns, &FNMode, &TotalNumFaceNodes,
 			&TotalNumBndryFaces, &TotalNumBndryConn,
 			NULL, NULL, NULL, &ShrConn);
-
+			
 		INTEGER4 DIsDouble = 1;  /* set DIsDouble to 0, for float
 								 * values.
 								 */

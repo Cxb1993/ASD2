@@ -1,7 +1,7 @@
 #include "test_common.h"
 
-inline int idx3(int nx, int i, int j) {
-	return i + (nx + 2 * NBC3) * j;
+inline int idx3(int ny, int i, int j) {
+	return j + (ny + 2 * NBC3) * i;
 }
 
 int OutRes(int iter, double curTime, const std::string fname_vel_base, const std::string fname_div_base,
@@ -33,12 +33,12 @@ int OutRes(int iter, double curTime, const std::string fname_vel_base, const std
 
 		std::vector<double> resDiv = div;
 
-		for (int i = NBC3 + 1; i < nx + NBC3; i++)
 		for (int j = NBC3; j < ny + NBC3; j++)
+		for (int i = NBC3; i < nx + NBC3; i++)
 			resU[idx3(nx, i, j)] = (u[idx3(nx, i, j)] + u[idx3(nx, i + 1, j)]) * 0.5;
 
+		for (int j = NBC3; j < ny + NBC3; j++)
 		for (int i = NBC3; i < nx + NBC3; i++)
-		for (int j = NBC3 + 1; j < ny + NBC3; j++)
 			resV[idx3(nx, i, j)] = (v[idx3(nx, i, j)] + v[idx3(nx, i, j + 1)]) * 0.5;
 
 		outF.open(fname_vel.c_str(), std::ios::app);
@@ -47,11 +47,11 @@ int OutRes(int iter, double curTime, const std::string fname_vel_base, const std
 			<< std::string("\", I=") << nx << std::string(", J=") << ny
 			<< std::string(", DATAPACKING=POINT")
 			<< std::string(", SOLUTIONTIME=") << curTime
-			<< std::string(", STRANDID=") << iter
+			<< std::string(", STRANDID=") << iter + 1
 			<< std::endl;
 		
-		for (int i = NBC3; i < nx + NBC3; i++)
 		for (int j = NBC3; j < ny + NBC3; j++)
+		for (int i = NBC3; i < nx + NBC3; i++)
 			outF << baseX + static_cast<double>(i + 0.5 - NBC3) * dx << std::string(",")
 			<< baseY + static_cast<double>(j + 0.5 - NBC3) * dy << std::string(",")
 			<< static_cast<double>(resU[idx3(nx, i, j)]) << std::string(",")
@@ -67,10 +67,11 @@ int OutRes(int iter, double curTime, const std::string fname_vel_base, const std
 			<< std::string("\", I=") << nx << std::string(", J=") << ny
 			<< std::string(", DATAPACKING=POINT")
 			<< std::string(", SOLUTIONTIME=") << curTime
-			<< std::string(", STRANDID=") << iter
+			<< std::string(", STRANDID=") << iter + 1
 			<< std::endl;
-		for (int i = NBC3; i < nx + NBC3; i++)
+
 		for (int j = NBC3; j < ny + NBC3; j++)
+		for (int i = NBC3; i < nx + NBC3; i++)
 			outF << baseX + static_cast<double>(i + 0.5 - NBC3) * dx << std::string(",")
 			<< baseY + static_cast<double>(j + 0.5 - NBC3) * dy << std::string(",")
 			<< static_cast<double>(ls[idx3(nx, i, j)]) << std::string(",")
@@ -84,25 +85,25 @@ int OutRes(int iter, double curTime, const std::string fname_vel_base, const std
 		INTEGER4 whichFile = 0, stat = 0;
 		std::string fname_vel(fname_vel_base + "_BINARY.szplt");
 		std::string fname_div(fname_div_base + "_BINARY.szplt");
-
+		
 		std::vector<double>
-			resX((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0),
-			resY((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0),
-			resU((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0),
-			resV((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0),
-			resLS((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0),
-			resPhi((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
+			resX(nx * ny, 0.0),
+			resY(nx * ny, 0.0),
+			resU(nx * ny, 0.0),
+			resV(nx * ny, 0.0),
+			resLS(nx * ny, 0.0),
+			resPhi(nx * ny, 0.0);
 
 		std::vector<double> resDiv = div;
 
-		for (int j = NBC3; j < ny + NBC3; j++)
-		for (int i = NBC3; i < nx + NBC3; i++) {
-			resX[idx3(nx, i, j)] = baseX + (i + 0.5 - NBC3) * nx;
-			resY[idx3(nx, i, j)] = baseY + (j + 0.5 - NBC3) * ny;
-			resU[idx3(nx, i, j)] = (u[idx3(nx, i, j)] + u[idx3(nx, i + 1, j)]) * 0.5;
-			resV[idx3(nx, i, j)] = (v[idx3(nx, i, j)] + v[idx3(nx, i, j + 1)]) * 0.5;
-			resLS[idx3(nx, i, j)] = ls[idx3(nx, i, j)];
-			resPhi[idx3(nx, i, j)] = phi[idx3(nx, i, j)];
+		for (int i = NBC3; i < nx + NBC3; i++)
+		for (int j = NBC3; j < ny + NBC3; j++) {
+			resX[(j - NBC3) + ny * (i - NBC3)] = baseX + (i + 0.5 - NBC3) * dx;
+			resY[(j - NBC3) + ny * (i - NBC3)] = baseY + (j + 0.5 - NBC3) * dy;
+			resU[(j - NBC3) + ny * (i - NBC3)] = (u[idx3(nx, i, j)] + u[idx3(nx, i + 1, j)]) * 0.5;
+			resV[(j - NBC3) + ny * (i - NBC3)] = (v[idx3(nx, i, j)] + v[idx3(nx, i, j + 1)]) * 0.5;
+			resLS[(j - NBC3) + ny * (i - NBC3)] = ls[idx3(nx, i, j)];
+			resPhi[(j - NBC3) + ny * (i - NBC3)] = phi[idx3(nx, i, j)];
 		}
 
 		INTEGER4 Debug = 1;
@@ -135,7 +136,7 @@ int OutRes(int iter, double curTime, const std::string fname_vel_base, const std
 		/* Create an IJ-ordered zone, by using IMax and JMax
 		* values that are greater than one, and setting KMax to one.
 		*/
-		INTEGER4 IMax = nx, JMax = ny, KMax = 0;
+		INTEGER4 IMax = nx, JMax = ny, KMax = 1;
 
 		double   SolTime = curTime;
 		INTEGER4 StrandID = iter + 1; /* StaticZone */

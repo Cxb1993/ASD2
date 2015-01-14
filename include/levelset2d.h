@@ -17,11 +17,11 @@
 class LevelSetSolver2D {
 public:
 	LevelSetSolver2D(int nx, int ny, int num_bc_grid, double dx, double dy);
-
+	
 	std::vector<double> HJWENO5_LS_2D(std::vector<double>& ls,
 		const std::vector<double>& u, const std::vector<double>& v);
 	
-	int Solve_LevelSet_2D(std::vector<double>& ls, const std::vector<double>& u, const std::vector<double>& v);
+	int Solve_LevelSet_2D(std::vector<double>& ls, const std::vector<double>& u, const std::vector<double>& v, double dt);
 
 	int Reinit_Original_2D(std::vector<double>& ls);
 	int Reinit_Sussman_2D(std::vector<double>& ls);
@@ -58,8 +58,9 @@ public:
 	double minmod(double a, double b);
 	int idx(int i, int j);
 	
-	const double kEps, kThickness;
-	const int kNx, kNy, kNumBCGrid, kDx, kDy;
+	const double kEps, kThickness, kMaxATime;
+	const int kNx, kNy, kNumBCGrid;
+	const double kDx, kDy;
 	std::vector<int> m_signedInitLS;
 
 	// artificial dt for reinitialization only 

@@ -15,6 +15,8 @@
 #include "../include/common.h"
 #include "../include/levelset2d.h"
 
+int LevelSetTest_2D_Simple();
+int LevelSetTest_2D_ReinitOnly();
 int LevelSetTest_2D_Sussman621_ReinitSussman();
 
 #endif __TEST_LEVEL2DLARGE_H__

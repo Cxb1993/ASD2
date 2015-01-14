@@ -96,7 +96,7 @@ int main(int argc, char *argv[]) {
 	while (MSolver->m_totTime < MSolver->kMaxTime && MSolver->m_iter < MSolver->kMaxIter) {
 		// Solver Level set part first
 		// Have to use \phi^{n+1} for rho, mu, kappa
-		LSolver->Solve_LevelSet_2D(ls, MSolver->m_u, MSolver->m_v);
+		LSolver->Solve_LevelSet_2D(ls, MSolver->m_u, MSolver->m_v, MSolver->m_dt);
 		LSolver->Reinit_Sussman_2D(ls);
 
 		// Solve Momentum Part
