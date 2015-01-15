@@ -2,7 +2,7 @@
 
 int MAC2DTest_SmallAirBubble() {
 	// Set initial level set
-	const double Re = 100.0, We = 0.0, Fr = 0.0;
+	const double Re = 1.0, We = 1.0, Fr = 1.0;
 	const double L = 1.0, U = 1.0;
 	const double rhoI = 1.226, muI = 1.78e-5;
 	const double rhoO = 1000, muO = 1.137e-3, sigma = 0.0728;
@@ -68,7 +68,7 @@ int MAC2DTest_SmallAirBubble() {
 	for (int i = 0; i < nx + 2 * num_bc_grid; i++)
 	for (int j = 0; j < ny + 2 * num_bc_grid; j++) {
 		MSolver->m_u[idx3(nx, i, j)] = 0.0;
-		MSolver->m_v[idx3(nx, i, j)] = 0.0;
+		MSolver->m_v[idx3(nx, i, j)] = 1.0;
 		MSolver->m_p[idx3(nx, i, j)] = 0.0;
 		MSolver->m_ps[idx3(nx, i, j)] = 0.0;
 	}
@@ -86,7 +86,6 @@ int MAC2DTest_SmallAirBubble() {
 	std::vector<double> uhat((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid)), vhat((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid));
 	std::vector<double> div((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid));
 
-	exit(1);
 	while (MSolver->m_curTime < MSolver->kMaxTime && MSolver->m_iter < MSolver->kMaxIter) {
 		// Solver Level set part first
 		// Have to use \phi^{n+1} for rho, mu, kappa
@@ -122,7 +121,7 @@ int MAC2DTest_SmallAirBubble() {
 		MSolver->ApplyBC_P_2D(MSolver->m_ps);
 
 		stat = MSolver->UpdateVel(MSolver->m_u, MSolver->m_v,
-			uhat, vhat, MSolver->m_ps);
+			uhat, vhat, MSolver->m_ps, ls);
 
 		MSolver->ApplyBC_U_2D(MSolver->m_u);
 		MSolver->ApplyBC_V_2D(MSolver->m_v);
@@ -131,6 +130,7 @@ int MAC2DTest_SmallAirBubble() {
 		MSolver->m_curTime += MSolver->m_dt;
 		MSolver->m_iter++;
 		if ((MSolver->m_iter % MSolver->kNIterSkip) == 0) {
+			std::cout << "Bubble : " << MSolver->m_iter << " " << MSolver->m_curTime << " " << MSolver->m_dt << std::endl;
 			MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
 				MSolver->m_u, MSolver->m_v, MSolver->m_ps, ls);
 		}

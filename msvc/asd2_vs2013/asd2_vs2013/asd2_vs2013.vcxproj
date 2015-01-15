@@ -129,6 +129,8 @@
       <AdditionalIncludeDirectories>%(HDF5_DIR)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_VARIADIC_MAX=10;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <UseProcessorExtensions>AVX</UseProcessorExtensions>
+      <GenerateAlternateCodePaths>AVX</GenerateAlternateCodePaths>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>

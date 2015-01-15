@@ -4,6 +4,7 @@
 #define _USE_MATH_DEFINES
 #include <cmath>
 #include <cassert>
+#include <cfloat>
 #include <cstdlib>
 #include <iostream>
 #include <istream>
@@ -79,8 +80,8 @@ public:
 		std::vector<double> ls, std::vector<double>u, std::vector<double> v);
 
 	// Convection Term
-	std::vector<double> AddConvectionFU(const std::vector<double>& u, const std::vector<double>& v);
-	std::vector<double> AddConvectionFV(const std::vector<double>& u, const std::vector<double>& v);
+	std::vector<double> AddConvectionFU(const std::vector<double>& u, const std::vector<double>& v, const std::vector<double>& ls);
+	std::vector<double> AddConvectionFV(const std::vector<double>& u, const std::vector<double>& v, const std::vector<double>& ls);
 	int UnitHJWENO5(
 		const std::vector<double> &F, std::vector<double> &FP, std::vector<double> &FM, const double d, const int n);
 
@@ -91,8 +92,8 @@ public:
 		const std::vector<double>& u, const std::vector<double>& v, const std::vector<double>& ls);
 	
 	// Gravity Term
-	std::vector<double> AddGravityUF();
-	std::vector<double> AddGravityVF();
+	std::vector<double> AddGravityFU();
+	std::vector<double> AddGravityFV();
 	std::vector<double> GetUhat(const std::vector<double>& u, const std::vector<double>& rhsu);
 	std::vector<double> GetVhat(const std::vector<double>& v, const std::vector<double>& rhsv);
 	// Poisson 
@@ -103,7 +104,7 @@ public:
 	// update velocity using projection
 	std::vector<double> GetDivergence(const std::vector<double>& u, const std::vector<double>& v);
 	int UpdateVel(std::vector<double>& u, std::vector<double>& v,
-		const std::vector<double>& us, const std::vector<double>& vs, const std::vector<double>& ps);
+		const std::vector<double>& us, const std::vector<double>& vs, const std::vector<double>& ps, const std::vector<double>& ls);
 	double UpdateDt(const std::vector<double>& u, const std::vector<double>& v);
 
 	// BC

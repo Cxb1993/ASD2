@@ -129,7 +129,7 @@ int main(int argc, char *argv[]) {
 		MSolver->ApplyBC_P_2D(MSolver->m_ps);
 
 		stat = MSolver->UpdateVel(MSolver->m_u, MSolver->m_v,
-			uhat, vhat, MSolver->m_ps);
+			uhat, vhat, MSolver->m_ps, ls);
 
 		MSolver->ApplyBC_U_2D(MSolver->m_u);
 		MSolver->ApplyBC_V_2D(MSolver->m_v);
