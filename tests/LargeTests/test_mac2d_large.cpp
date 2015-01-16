@@ -10,7 +10,7 @@ int MAC2DTest_SmallAirBubble() {
 	// # of cells
 	const int nx = 80, ny = 120;
 	const double baseX = -0.01, baseY = -0.01, lenX = 0.02, lenY = 0.03, cfl = 0.5;
-	const int maxtime = 2.0, maxiter = 30, niterskip = 1, num_bc_grid = 3;
+	const int maxtime = 2.0, maxiter = 10, niterskip = 1, num_bc_grid = 3;
 	const bool writeVTK = false;
 	// length of each cell
 	const double dx = lenX / nx, dy = lenY / ny;
@@ -68,7 +68,7 @@ int MAC2DTest_SmallAirBubble() {
 	for (int i = 0; i < nx + 2 * num_bc_grid; i++)
 	for (int j = 0; j < ny + 2 * num_bc_grid; j++) {
 		MSolver->m_u[idx3(nx, i, j)] = 0.0;
-		MSolver->m_v[idx3(nx, i, j)] = 1.0;
+		MSolver->m_v[idx3(nx, i, j)] = 0.0;
 		MSolver->m_p[idx3(nx, i, j)] = 0.0;
 		MSolver->m_ps[idx3(nx, i, j)] = 0.0;
 	}
@@ -130,7 +130,10 @@ int MAC2DTest_SmallAirBubble() {
 		MSolver->m_curTime += MSolver->m_dt;
 		MSolver->m_iter++;
 		if ((MSolver->m_iter % MSolver->kNIterSkip) == 0) {
+			// div = MSolver->GetDivergence(MSolver->m_u, MSolver->m_v);
 			std::cout << "Bubble : " << MSolver->m_iter << " " << MSolver->m_curTime << " " << MSolver->m_dt << std::endl;
+			// MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
+			// 	uhat, vhat, MSolver->m_ps, ls);
 			MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
 				MSolver->m_u, MSolver->m_v, MSolver->m_ps, ls);
 		}

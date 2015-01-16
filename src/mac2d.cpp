@@ -103,7 +103,7 @@ std::vector<double> MACSolver2D::UpdateFU(const std::shared_ptr<LevelSetSolver2D
 	vU = this->AddViscosityFU(u, v, ls);
 
 	// Gravity term
-	gU = this->AddGravityFU();
+	// gU = this->AddGravityFU();
 
 	// Get RHS(Right Hand Side)
 		// level set
@@ -134,7 +134,7 @@ std::vector<double> MACSolver2D::UpdateFU(const std::shared_ptr<LevelSetSolver2D
 			// |(lsS)| === theta * d  === |(interface)| === (1 - theta) * d === |(lsM)|
 			rhoEff = kRhoI * kRhoO / (kRhoI * theta + kRhoO * (1.0 - theta));
 		}
-
+		// std::cout << i << " " << j << " " << cU[idx(i, j)] << " " << vU[idx(i, j)] << " " << gU[idx(i, j)] << " " << rhoEff << std::endl;
 		rhsU[idx(i, j)] = (-cU[idx(i, j)] + vU[idx(i, j)] + gU[idx(i, j)]) / rhoEff;
 	}
 
