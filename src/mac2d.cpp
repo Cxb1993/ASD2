@@ -1235,6 +1235,7 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 		double dvWX = 0.0, dvWY = 0.0, dvEX = 0.0, dvEY = 0.0, dvSX = 0.0, dvSY = 0.0, dvNX = 0.0, dvNY = 0.0, dvMX = 0.0, dvMY = 0.0;
 		double aW = 0.0, aE = 0.0, aS = 0.0, aN = 0.0, aM = 0.0;
 		double rhoW = 0.0, rhoE = 0.0, rhoS = 0.0, rhoN = 0.0;
+		// 1 / rho is a coef of poisson equation
 		double iRhoW = 0.0, iRhoE = 0.0, iRhoS = 0.0, iRhoN = 0.0;
 		// jump condition [u]_\Gamma = a, [\beta u_n]_\Gamma = b
 		double a = 0.0, b = 0.0;
@@ -1321,7 +1322,7 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 				rhoEff = kRhoO * kRhoI / (kRhoO * theta + kRhoI * (1 - theta));
 				rhoW = kRhoO * kRhoI * (fabs(lsW) + fabs(lsM)) / (kRhoO * fabs(lsW) + kRhoI * fabs(lsM));
 				iRhoW = 1.0 / (kRhoO * kRhoI) * (fabs(lsW) + fabs(lsM)) / (1.0 / kRhoO * fabs(lsW) + 1.0 / kRhoI * fabs(lsM));
-				FW = (1.0 / rhoW) * aEff / (kDx * kDx) - (1.0 / rhoW) * b * theta / ((1.0 / kRhoO) * kDx);
+				FW = iRhoW * aEff / (kDx * kDx) - iRhoW * b * theta / ((1.0 / kRhoO) * kDx);
 			}
 			else if (lsW < 0 && lsM >= 0) {
 				// interface lies between u[i,j] and u[i - 1,j]
@@ -1339,7 +1340,7 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 				rhoEff = kRhoI * kRhoO / (kRhoI * theta + kRhoO * (1 - theta));
 				rhoW = kRhoI * kRhoO * (fabs(lsW) + fabs(lsM)) / (kRhoI * fabs(lsW) + kRhoO * fabs(lsM));
 				iRhoW = 1.0 / (kRhoI * kRhoO) * (fabs(lsW) + fabs(lsM)) / (1.0 / kRhoI * fabs(lsW) + 1.0 / kRhoO * fabs(lsM));
-				FW = -(1.0 / rhoW) * aEff / (kDx * kDx) + (1.0 / rhoW) * b * theta / ((1.0 / kRhoI) * kDx);
+				FW = -iRhoW * aEff / (kDx * kDx) + iRhoW * b * theta / ((1.0 / kRhoI) * kDx);
 			}
 
 			// FE
@@ -1368,7 +1369,7 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 				rhoEff = kRhoI * kRhoO / (kRhoI * theta + kRhoO * (1 - theta));
 				rhoE = kRhoI * kRhoO * (fabs(lsE) + fabs(lsM)) / (kRhoI * fabs(lsE) + kRhoO * fabs(lsM));
 				iRhoE = 1.0 / (kRhoI * kRhoO) * (fabs(lsE) + fabs(lsM)) / (1.0 / kRhoI * fabs(lsE) + 1.0 / kRhoO * fabs(lsM));
-				FE = (1.0 / rhoE) * aEff / (kDx * kDx) - (1.0 / rhoE) * b * theta / ((1.0 / kRhoO) * kDx);
+				FE = iRhoE * aEff / (kDx * kDx) - iRhoE * b * theta / ((1.0 / kRhoO) * kDx);
 			}
 			else if (lsM < 0 && lsE >= 0) {
 				// interface lies between u[i,j] and u[i + 1,j]
@@ -1386,7 +1387,7 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 				rhoEff = kRhoO * kRhoI / (kRhoO * theta + kRhoI * (1 - theta));
 				rhoE = kRhoO * kRhoI * (fabs(lsE) + fabs(lsM)) / (kRhoO * fabs(lsE) + kRhoI * fabs(lsM));
 				iRhoE = 1.0 / (kRhoO * kRhoI) * (fabs(lsE) + fabs(lsM)) / (1.0 / kRhoO * fabs(lsE) + 1.0 / kRhoI * fabs(lsM));
-				FE = (1.0 / rhoE) * aEff / (kDx * kDx) - (1.0 / rhoE) * b * theta / ((1.0 / kRhoI) * kDx);
+				FE = iRhoE * aEff / (kDx * kDx) - iRhoE * b * theta / ((1.0 / kRhoI) * kDx);
 			}
 
 			// FS
@@ -1414,7 +1415,7 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 				rhoEff = kRhoI * kRhoO / (kRhoI * theta + kRhoO * (1 - theta));
 				rhoS = kRhoO * kRhoI * (fabs(lsS) + fabs(lsM)) / (kRhoO * fabs(lsS) + kRhoI * fabs(lsM));
 				iRhoS = 1.0 / (kRhoO * kRhoI) * (fabs(lsS) + fabs(lsM)) / (1.0 / kRhoO * fabs(lsS) + 1.0 / kRhoI * fabs(lsM));
-				FS = (1.0 / rhoS) * aEff / (kDx * kDx) - (1.0 / rhoS) * b * theta / ((1.0 / kRhoO) * kDx);
+				FS = iRhoS * aEff / (kDx * kDx) - iRhoS * b * theta / ((1.0 / kRhoO) * kDx);
 			}
 			else if (lsM <= 0 && lsS > 0) {
 				// interface lies between u[i,j] and u[i,j - 1]
@@ -1432,7 +1433,7 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 				rhoEff = kRhoO * kRhoI / (kRhoO * theta + kRhoI * (1 - theta));
 				rhoS = kRhoI * kRhoO * (fabs(lsS) + fabs(lsM)) / (kRhoI * fabs(lsS) + kRhoO * fabs(lsM));
 				iRhoS = 1.0 / (kRhoI * kRhoO) * (fabs(lsS) + fabs(lsM)) / (1.0 / kRhoI * fabs(lsS) + 1.0 / kRhoO * fabs(lsM));
-				FS = (1.0 / rhoS) * aEff / (kDx * kDx) - (1.0 / rhoS) * b * theta / ((1.0 / kRhoI) * kDx);
+				FS = iRhoS * aEff / (kDx * kDx) - iRhoS * b * theta / ((1.0 / kRhoI) * kDx);
 			}
 
 			// FN
@@ -1460,7 +1461,7 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 				rhoEff = kRhoI * kRhoO / (kRhoI * theta + kRhoO * (1 - theta));
 				rhoN = kRhoI * kRhoO * (fabs(lsN) + fabs(lsM)) / (kRhoI * fabs(lsN) + kRhoO * fabs(lsM));
 				iRhoN = 1.0 / (kRhoI * kRhoO) * (fabs(lsN) + fabs(lsM)) / (1.0 / kRhoI * fabs(lsN) + 1.0 / kRhoO * fabs(lsM));
-				FN = (1.0 / rhoN) * aEff / (kDx * kDx) - (1.0 / rhoN) * b * theta / ((1.0 / kRhoO) * kDx);
+				FN = iRhoN * aEff / (kDx * kDx) - iRhoN * b * theta / ((1.0 / kRhoO) * kDx);
 			}
 			else if (lsM <= 0 && lsN > 0) {
 				// interface lies between u[i,j] and u[i,j + 1]
@@ -1478,7 +1479,7 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 				rhoEff = kRhoO * kRhoI / (kRhoO * theta + kRhoI * (1 - theta));
 				rhoN = kRhoO * kRhoI * (fabs(lsN) + fabs(lsM)) / (kRhoO * fabs(lsN) + kRhoI * fabs(lsM));
 				iRhoN = 1.0 / (kRhoO * kRhoI) * (fabs(lsN) + fabs(lsM)) / (1.0 / kRhoO * fabs(lsN) + 1.0 / kRhoI * fabs(lsM));
-				FN = (1.0 / rhoN) * aEff / (kDx * kDx) - (1.0 / rhoN) * b * theta / ((1.0 / kRhoI) * kDx);
+				FN = iRhoN * aEff / (kDx * kDx) - iRhoN * b * theta / ((1.0 / kRhoI) * kDx);
 			}
 
 			// AValsDic and AColsDic contain coef.s of A matrix of each row (a row of A matrix = a each point of 3D grid)
@@ -1491,16 +1492,16 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 			ARowIdx.push_back(rowIdx);
 
 			// Set default values, if a current pointer is in interior, it will not be changed.
-			AValsDic["S"] = -iRhoS / (kDy *kDy);
-			AColsDic["S"] = i + (j - 1) * kNx;
+			AValsDic["S"] = -iRhoS / (kDy * kDy);
+			AColsDic["S"] = (i - kNumBCGrid) + (j - 1 - kNumBCGrid) * kNx;
 			AValsDic["W"] = -iRhoW / (kDx * kDx);
-			AColsDic["W"] = (i - 1) + j * kNx;
+			AColsDic["W"] = (i - 1 - kNumBCGrid) + (j - kNumBCGrid) * kNx;
 			AValsDic["C"] = (iRhoW + iRhoE) / (kDx * kDx) + (iRhoS + iRhoN) / (kDy * kDy);
-			AColsDic["C"] = i + j * kNx;
+			AColsDic["C"] = (i - kNumBCGrid) + (j - kNumBCGrid) * kNx;
 			AValsDic["E"] = -iRhoE/ (kDx * kDx);
-			AColsDic["E"] = (i + 1) + j * kNx;
-			AValsDic["N"] = -iRhoN / (kDy *kDy);
-			AColsDic["N"] = i + (j + 1) * kNx;
+			AColsDic["E"] = (i + 1 - kNumBCGrid) + (j - kNumBCGrid) * kNx;
+			AValsDic["N"] = -iRhoN / (kDy * kDy);
+			AColsDic["N"] = (i - kNumBCGrid) + (j + 1 - kNumBCGrid) * kNx;
 
 			// West boundary
 			if (i == kNumBCGrid && m_BC->m_BC_PW == BC::NEUMANN) {
@@ -1511,12 +1512,12 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 				if (j == kNumBCGrid && m_BC->m_BC_PS == BC::NEUMANN) {
 					AValsDic["S"] = 0.0;
 					AColsDic["S"] = -1;
-					AValsDic["C"] -= iRhoS / (kDy *kDy);
+					AValsDic["C"] -= iRhoS / (kDy * kDy);
 				}
 				else if (j == kNumBCGrid + kNy - 1 && m_BC->m_BC_PN == BC::NEUMANN) {
 					AValsDic["N"] = 0.0;
 					AColsDic["N"] = -1;
-					AValsDic["C"] -= iRhoN / (kDy *kDy);
+					AValsDic["C"] -= iRhoN / (kDy * kDy);
 				}
 			}
 			// East boundary
@@ -1528,19 +1529,19 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 				if (j == kNumBCGrid && m_BC->m_BC_PS == BC::NEUMANN) {
 					AValsDic["S"] = 0.0;
 					AColsDic["S"] = -1;
-					AValsDic["C"] -= iRhoS / (kDy *kDy);
+					AValsDic["C"] -= iRhoS / (kDy * kDy);
 				}
 				else if (j == kNumBCGrid + kNy - 1 && m_BC->m_BC_PN == BC::NEUMANN) {
 					AValsDic["N"] = 0.0;
 					AColsDic["N"] = -1;
-					AValsDic["C"] -= iRhoN / (kDy *kDy);
+					AValsDic["C"] -= iRhoN / (kDy * kDy);
 				}
 			}
 			// South boundary
 			else if (j == kNumBCGrid && m_BC->m_BC_PS == BC::NEUMANN) {
 				AValsDic["S"] = 0.0;
 				AColsDic["S"] = -1;
-				AValsDic["C"] -= iRhoS / (kDy *kDy);;
+				AValsDic["C"] -= iRhoS / (kDy * kDy);;
 
 				if (i == kNumBCGrid && m_BC->m_BC_PW == BC::NEUMANN) {
 					AValsDic["W"] = 0.0;
@@ -1557,7 +1558,7 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 			else if (j == kNumBCGrid + kNy - 1 && m_BC->m_BC_PN == BC::NEUMANN) {
 				AValsDic["N"] = 0.0;
 				AColsDic["N"] = -1;
-				AValsDic["C"] -= iRhoN / (kDy *kDy);
+				AValsDic["C"] -= iRhoN / (kDy * kDy);
 
 				if (i == kNumBCGrid && m_BC->m_BC_PW == BC::NEUMANN) {
 					AValsDic["W"] = 0.0;
@@ -1605,6 +1606,7 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 			DiagVals.push_back(AValsDic["C"]);
 			rowIdx += tmpRowIdx;
 
+			// initially set variable coef. considered RHS
 			rhs[idx(i, j)] = FW + FE + FS + FN;
 
 			assert(rhs[idx(i, j)] == rhs[idx(i, j)]);
@@ -1614,6 +1616,7 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 			}
 		}
 
+		// Original value of RHS
 		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
 		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 			rhs[idx(i, j)] += -div[idx(i, j)];

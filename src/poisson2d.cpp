@@ -213,6 +213,7 @@ int PoissonSolver2D::ICPCG_2FUniform_2D(std::vector<double>& ps, const std::vect
 	for (int i = 0; i < kNx; i++) {
 		b[i + j * kNx] = rhs[idx(i, j)];
 		x[i + j * kNx] = 0.0;
+		d[i + j * kNx] = 0.0;
 	}
 
 	// get Ax(=A*x), using upper triangular matrix (Sparse BLAS)
@@ -251,26 +252,31 @@ int PoissonSolver2D::ICPCG_2FUniform_2D(std::vector<double>& ps, const std::vect
 		// get alpha (r^T_k * r_k) / (d^T_k q) (= (r^T_k * r_k) / (d^T_k A d_k))
 		// https://software.intel.com/en-us/node/468398#D4E53C70-D8FA-4095-A800-4203CAFE64FE
 		alpha = delta_new / (cblas_ddot(size, q, 1, d, 1) + err_tol * err_tol);
-		
+		std::cout << "Alpha : "<< delta_new << " " << cblas_ddot(size, q, 1, d, 1) << " " <<alpha << " " <<std::endl;
 		// x_k+1 = x_k + alpha * d_k
 		// https://software.intel.com/en-us/node/468394
 		cblas_daxpy(size, alpha, d, 1, x, 1);
 		if (std::isnan(alpha) || std::isinf(alpha)) {
-			std::cout << "poisson equation nan/inf error : " << iter << " " << alpha << std::endl;
+			std::cout << "poisson equation nan/inf error(alpha) : " << iter << " " << alpha << std::endl;
 			exit(1);
 		}
 		assert(alpha == alpha);
 
 		// r_k+1 = r_k -alpha * A * d_k
 		cblas_daxpy(size, -alpha, q, 1, r, 1);
-
 		// delta_old = delta_new
 		delta_old = delta_new;
 		// delta_mew = r^T r
 		delta_new = cblas_ddot(size, r, 1, r, 1);
 
 		beta = delta_new / (delta_old + err_tol * err_tol);
-
+		std::cout << "Beta : " << delta_new << " " << delta_old << std::endl;
+		if (std::isnan(beta) || std::isinf(beta)) {
+			std::cout << "poisson equation nan/inf error(beta) : " << iter << " " << beta << std::endl;
+			exit(1);
+		}
+		assert(beta == beta);
+		
 		// d_k+1 = r_k+1 + beta * d_k
 		// d = d * beta
 		cblas_daxpy(size, beta, d, 1, d, 1);
