@@ -1319,8 +1319,8 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 					+ m_dt * kSigma * kappa[idx(i, j)]);
 				aEff = (aM * fabs(lsW) + aW * fabs(lsM)) / (fabs(lsM) + fabs(lsW));
 				rhoEff = kRhoO * kRhoI / (kRhoO * theta + kRhoI * (1 - theta));
-				rhoW = kRhoO * kRhoI * (fabs(lsW) + fabs(lsM)) / (kRhoI * fabs(lsW) + kRhoO * fabs(lsM));
-				iRhoW = 1.0 / (kRhoO * kRhoI) * (fabs(lsW) + fabs(lsM)) / (1.0 / kRhoI * fabs(lsW) + 1.0 / kRhoO * fabs(lsM));
+				rhoW = kRhoO * kRhoI * (fabs(lsW) + fabs(lsM)) / (kRhoO * fabs(lsW) + kRhoI * fabs(lsM));
+				iRhoW = 1.0 / (kRhoO * kRhoI) * (fabs(lsW) + fabs(lsM)) / (1.0 / kRhoO * fabs(lsW) + 1.0 / kRhoI * fabs(lsM));
 				FW = (1.0 / rhoW) * aEff / (kDx * kDx) - (1.0 / rhoW) * b * theta / ((1.0 / kRhoO) * kDx);
 			}
 			else if (lsW < 0 && lsM >= 0) {
@@ -1337,8 +1337,8 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 					+ m_dt * kSigma * kappa[idx(i, j)]);
 				aEff = (aM * fabs(lsW) + aW * fabs(lsM)) / (fabs(lsM) + fabs(lsW));
 				rhoEff = kRhoI * kRhoO / (kRhoI * theta + kRhoO * (1 - theta));
-				rhoW = kRhoI * kRhoO * (fabs(lsW) + fabs(lsM)) / (kRhoO * fabs(lsW) + kRhoI * fabs(lsM));
-				iRhoW = 1.0 / (kRhoI * kRhoO) * (fabs(lsW) + fabs(lsM)) / (1.0 / kRhoO * fabs(lsW) + 1.0 / kRhoI * fabs(lsM));
+				rhoW = kRhoI * kRhoO * (fabs(lsW) + fabs(lsM)) / (kRhoI * fabs(lsW) + kRhoO * fabs(lsM));
+				iRhoW = 1.0 / (kRhoI * kRhoO) * (fabs(lsW) + fabs(lsM)) / (1.0 / kRhoI * fabs(lsW) + 1.0 / kRhoO * fabs(lsM));
 				FW = -(1.0 / rhoW) * aEff / (kDx * kDx) + (1.0 / rhoW) * b * theta / ((1.0 / kRhoI) * kDx);
 			}
 
@@ -1412,8 +1412,8 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 					+ m_dt * kSigma * kappa[idx(i, j)]);
 				aEff = (aM * fabs(lsS) + aS * fabs(lsM)) / (fabs(lsM) + fabs(lsS));
 				rhoEff = kRhoI * kRhoO / (kRhoI * theta + kRhoO * (1 - theta));
-				rhoS = kRhoI * kRhoO * (fabs(lsS) + fabs(lsM)) / (kRhoI * fabs(lsS) + kRhoO * fabs(lsM));
-				iRhoS = 1.0 / (kRhoI * kRhoO) * (fabs(lsS) + fabs(lsM)) / (1.0 / kRhoI * fabs(lsS) + 1.0 / kRhoO * fabs(lsM));
+				rhoS = kRhoO * kRhoI * (fabs(lsS) + fabs(lsM)) / (kRhoO * fabs(lsS) + kRhoI * fabs(lsM));
+				iRhoS = 1.0 / (kRhoO * kRhoI) * (fabs(lsS) + fabs(lsM)) / (1.0 / kRhoO * fabs(lsS) + 1.0 / kRhoI * fabs(lsM));
 				FS = (1.0 / rhoS) * aEff / (kDx * kDx) - (1.0 / rhoS) * b * theta / ((1.0 / kRhoO) * kDx);
 			}
 			else if (lsM <= 0 && lsS > 0) {
@@ -1430,8 +1430,8 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 					+ m_dt * kSigma * kappa[idx(i, j)]);
 				aEff = (aM * fabs(lsS) + aS * fabs(lsM)) / (fabs(lsM) + fabs(lsS));
 				rhoEff = kRhoO * kRhoI / (kRhoO * theta + kRhoI * (1 - theta));
-				rhoS = kRhoO * kRhoI * (fabs(lsS) + fabs(lsM)) / (kRhoO * fabs(lsS) + kRhoI * fabs(lsM));
-				iRhoS = 1.0 / (kRhoO * kRhoI) * (fabs(lsS) + fabs(lsM)) / (1.0 / kRhoO * fabs(lsS) + 1.0 / kRhoI * fabs(lsM));
+				rhoS = kRhoI * kRhoO * (fabs(lsS) + fabs(lsM)) / (kRhoI * fabs(lsS) + kRhoO * fabs(lsM));
+				iRhoS = 1.0 / (kRhoI * kRhoO) * (fabs(lsS) + fabs(lsM)) / (1.0 / kRhoI * fabs(lsS) + 1.0 / kRhoO * fabs(lsM));
 				FS = (1.0 / rhoS) * aEff / (kDx * kDx) - (1.0 / rhoS) * b * theta / ((1.0 / kRhoI) * kDx);
 			}
 
@@ -1503,68 +1503,68 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 			AColsDic["N"] = i + (j + 1) * kNx;
 
 			// West boundary
-			if (i == 0 && m_BC->m_BC_PW == BC::NEUMANN) {
+			if (i == kNumBCGrid && m_BC->m_BC_PW == BC::NEUMANN) {
 				AValsDic["W"] = 0.0;
 				AColsDic["W"] = -1;
 				AValsDic["C"] -= iRhoW / (kDx * kDx);
 
-				if (j == 0 && m_BC->m_BC_PS == BC::NEUMANN) {
+				if (j == kNumBCGrid && m_BC->m_BC_PS == BC::NEUMANN) {
 					AValsDic["S"] = 0.0;
 					AColsDic["S"] = -1;
 					AValsDic["C"] -= iRhoS / (kDy *kDy);
 				}
-				else if (j == kNy - 1 && m_BC->m_BC_PN == BC::NEUMANN) {
+				else if (j == kNumBCGrid + kNy - 1 && m_BC->m_BC_PN == BC::NEUMANN) {
 					AValsDic["N"] = 0.0;
 					AColsDic["N"] = -1;
 					AValsDic["C"] -= iRhoN / (kDy *kDy);
 				}
 			}
 			// East boundary
-			else if (i == kNx - 1 && m_BC->m_BC_PE == BC::NEUMANN) {
+			else if (i == kNumBCGrid + kNx - 1 && m_BC->m_BC_PE == BC::NEUMANN) {
 				AValsDic["E"] = 0.0;
 				AColsDic["E"] = -1;
 				AValsDic["C"] -= iRhoE / (kDx * kDx);
 
-				if (j == 0 && m_BC->m_BC_PS == BC::NEUMANN) {
+				if (j == kNumBCGrid && m_BC->m_BC_PS == BC::NEUMANN) {
 					AValsDic["S"] = 0.0;
 					AColsDic["S"] = -1;
 					AValsDic["C"] -= iRhoS / (kDy *kDy);
 				}
-				else if (j == kNy - 1 && m_BC->m_BC_PN == BC::NEUMANN) {
+				else if (j == kNumBCGrid + kNy - 1 && m_BC->m_BC_PN == BC::NEUMANN) {
 					AValsDic["N"] = 0.0;
 					AColsDic["N"] = -1;
 					AValsDic["C"] -= iRhoN / (kDy *kDy);
 				}
 			}
 			// South boundary
-			else if (j == 0 && m_BC->m_BC_PS == BC::NEUMANN) {
+			else if (j == kNumBCGrid && m_BC->m_BC_PS == BC::NEUMANN) {
 				AValsDic["S"] = 0.0;
 				AColsDic["S"] = -1;
 				AValsDic["C"] -= iRhoS / (kDy *kDy);;
 
-				if (i == 0 && m_BC->m_BC_PW == BC::NEUMANN) {
+				if (i == kNumBCGrid && m_BC->m_BC_PW == BC::NEUMANN) {
 					AValsDic["W"] = 0.0;
 					AColsDic["W"] = -1;
 					AValsDic["C"] -= iRhoW / (kDx * kDx);
 				}
-				else if (i == kNx - 1 && m_BC->m_BC_PE == BC::NEUMANN) {
+				else if (i == kNumBCGrid + kNx - 1 && m_BC->m_BC_PE == BC::NEUMANN) {
 					AValsDic["E"] = 0.0;
 					AColsDic["E"] = -1;
 					AValsDic["C"] -= iRhoE / (kDx * kDx);
 				}
 			}
 			// North boundary
-			else if (j == kNy - 1 && m_BC->m_BC_PN == BC::NEUMANN) {
+			else if (j == kNumBCGrid + kNy - 1 && m_BC->m_BC_PN == BC::NEUMANN) {
 				AValsDic["N"] = 0.0;
 				AColsDic["N"] = -1;
 				AValsDic["C"] -= iRhoN / (kDy *kDy);
 
-				if (i == 0 && m_BC->m_BC_PW == BC::NEUMANN) {
+				if (i == kNumBCGrid && m_BC->m_BC_PW == BC::NEUMANN) {
 					AValsDic["W"] = 0.0;
 					AColsDic["W"] = -1;
 					AValsDic["C"] -= iRhoW / (kDx * kDx);
 				}
-				else if (i == kNx - 1 && m_BC->m_BC_PE == BC::NEUMANN) {
+				else if (i == kNumBCGrid + kNx - 1 && m_BC->m_BC_PE == BC::NEUMANN) {
 					AValsDic["E"] = 0.0;
 					AColsDic["E"] = -1;
 					AValsDic["C"] -= iRhoE / (kDx * kDx);
@@ -1606,6 +1606,12 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 			rowIdx += tmpRowIdx;
 
 			rhs[idx(i, j)] = FW + FE + FS + FN;
+
+			assert(rhs[idx(i, j)] == rhs[idx(i, j)]);
+			if (std::isnan(rhs[idx(i, j)]) || std::isinf(rhs[idx(i, j)])) {
+				std::cout << "right hand side of poisson equation nan/inf error : " << i << " " << j << " " << rhs[idx(i, j)] << std::endl;
+				exit(1);
+			}
 		}
 
 		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)

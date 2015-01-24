@@ -198,7 +198,12 @@ int PoissonSolver2D::ICPCG_2FUniform_2D(std::vector<double>& ps, const std::vect
 	
 	MKL_INT Anrows = kNx * kNy, Ancols = kNx * kNy;
 	MKL_INT size = kNx * kNy;
-	std::vector<double> b(kNx * kNy), x(kNx * kNy), Ax(kNx * kNy), r(kNx * kNy), d(kNx * kNy), q(kNx * kNy);
+	double *b = Data::Allocate1Dd(size);
+	double *x = Data::Allocate1Dd(size);
+	double *Ax = Data::Allocate1Dd(size); 
+	double *r = Data::Allocate1Dd(size);
+	double *d = Data::Allocate1Dd(size);
+	double *q = Data::Allocate1Dd(size);
 
 	// check values
 	if (Anrows != ARowIdx.size() - 1)
@@ -209,70 +214,92 @@ int PoissonSolver2D::ICPCG_2FUniform_2D(std::vector<double>& ps, const std::vect
 		b[i + j * kNx] = rhs[idx(i, j)];
 		x[i + j * kNx] = 0.0;
 	}
+
 	// get Ax(=A*x), using upper triangular matrix (Sparse BLAS)
 	// https://software.intel.com/en-us/node/468560
 	char transa = 'n';
-	mkl_cspblas_dcsrgemv(&transa, &Anrows, AVals.data(), ARowIdx.data(), ACols.data(), x.data(), Ax.data());
+	mkl_cspblas_dcsrgemv(&transa, &Anrows, AVals.data(), ARowIdx.data(), ACols.data(), x, Ax);
 	// r = b - Ax, initial residual
 	// r = b
 	// https://software.intel.com/en-us/node/468396
-	cblas_dcopy(size, b.data(), 1, r.data(), 1);
+	cblas_dcopy(size, b, 1, r, 1);
 	// r = r - Ax
 	// https://software.intel.com/en-us/node/468394
-	cblas_daxpy(size, -1.0, Ax.data(), 1, r.data(), 1);
+	cblas_daxpy(size, -1.0, Ax, 1, r, 1);
 
 	// d_0 = r_0
-	cblas_dcopy(size, r.data(), 1, d.data(), 1);
-
+	cblas_dcopy(size, r, 1, d, 1);
+	
 	// declare coefficients
 	double alpha = 0.0, alpha1 = 0.0, beta = 0.0, beta1 = 0.0;
 	double delta_new = 0.0, delta_old = 0.0, delta0;
 
 	// delta = r * r^T
-	delta_old = cblas_ddot(size, r.data(), 1, r.data(), 1);
+	delta_old = cblas_ddot(size, r, 1, r, 1);
 	delta0 = delta_old;
 	delta_new = delta_old;
+	// std::cout << delta0 << std::endl;
 	const int maxiter = 200;
 	const double err_tol = 1.0e-6;
 	int iter = 0;
 	bool isConverged = false;
+
 	while (iter < maxiter && isConverged == false) {
-		// q = A * d_k, reuse every iteration
+		// q = A * d_k, reuse q every iteration
 		// https://software.intel.com/en-us/node/468560
-		mkl_cspblas_dcsrgemv(&transa, &Anrows, AVals.data(), ARowIdx.data(), ACols.data(), d.data(), q.data());
+		mkl_cspblas_dcsrgemv(&transa, &Anrows, AVals.data(), ARowIdx.data(), ACols.data(), d, q);
 		// get alpha (r^T_k * r_k) / (d^T_k q) (= (r^T_k * r_k) / (d^T_k A d_k))
 		// https://software.intel.com/en-us/node/468398#D4E53C70-D8FA-4095-A800-4203CAFE64FE
-		alpha = delta_new / (cblas_ddot(size, q.data(), 1, d.data(), 1) + err_tol * err_tol);
-
+		alpha = delta_new / (cblas_ddot(size, q, 1, d, 1) + err_tol * err_tol);
+		
 		// x_k+1 = x_k + alpha * d_k
 		// https://software.intel.com/en-us/node/468394
-		cblas_daxpy(size, alpha, d.data(), 1, x.data(), 1);
+		cblas_daxpy(size, alpha, d, 1, x, 1);
+		if (std::isnan(alpha) || std::isinf(alpha)) {
+			std::cout << "poisson equation nan/inf error : " << iter << " " << alpha << std::endl;
+			exit(1);
+		}
+		assert(alpha == alpha);
 
 		// r_k+1 = r_k -alpha * A * d_k
-		cblas_daxpy(size, -alpha, q.data(), 1, r.data(), 1);
+		cblas_daxpy(size, -alpha, q, 1, r, 1);
 
 		// delta_old = delta_new
 		delta_old = delta_new;
 		// delta_mew = r^T r
-		delta_new = cblas_ddot(size, r.data(), 1, r.data(), 1);
+		delta_new = cblas_ddot(size, r, 1, r, 1);
 
 		beta = delta_new / (delta_old + err_tol * err_tol);
 
 		// d_k+1 = r_k+1 + beta * d_k
 		// d = d * beta
-		cblas_daxpy(size, beta, d.data(), 1, d.data(), 1);
+		cblas_daxpy(size, beta, d, 1, d, 1);
 		// d = d + r_k+1
-		cblas_daxpy(size, 1.0, r.data(), 1, d.data(), 1);
+		cblas_daxpy(size, 1.0, r, 1, d, 1);
 
 		if (delta_new <= err_tol * err_tol * delta0)
 			isConverged = true;
 		iter++;
 	}
-
+	
 	for (int j = 0; j < kNy; j++)
 	for (int i = 0; i < kNx; i++) {
 		ps[idx(i, j)] = d[i + j * kNx];
+		assert(AVals[idx(i, j)] == AVals[idx(i, j)]);
+		assert(ACols[idx(i, j)] == ACols[idx(i, j)]);
+		assert(ps[idx(i, j)] == ps[idx(i, j)]);
+		if (std::isnan(ps[idx(i, j)]) || std::isinf(ps[idx(i, j)])) {
+			std::cout << "poisson equation nan/inf error : " << i << " " << j << " " << ps[idx(i, j)] << std::endl;
+			exit(1);
+		}
 	}
+
+	Data::Deallocate1Dd(b);
+	Data::Deallocate1Dd(x);
+	Data::Deallocate1Dd(Ax);
+	Data::Deallocate1Dd(r);
+	Data::Deallocate1Dd(d);
+	Data::Deallocate1Dd(q);
 
 	return 0;
 }
