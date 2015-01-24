@@ -14,7 +14,7 @@
 
 #define NBC3 (3)
 
-int idx3(int ny, int i, int j);
+int idx3(int nx, int i, int j);
 int OutRes(int iter, double curTime, const std::string fname_vel_base, const std::string fname_div_base,
 	const std::vector<double>& u, const std::vector<double>& v,
 	const std::vector<double>& phi, const std::vector<double>& div, 

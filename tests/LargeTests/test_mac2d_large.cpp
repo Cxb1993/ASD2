@@ -10,7 +10,7 @@ int MAC2DTest_SmallAirBubble() {
 	// # of cells
 	const int nx = 80, ny = 120;
 	const double baseX = -0.01, baseY = -0.01, lenX = 0.02, lenY = 0.03, cfl = 0.5;
-	const int maxtime = 2.0, maxiter = 10, niterskip = 1, num_bc_grid = 3;
+	const int maxtime = 2.0, maxiter = 5, niterskip = 1, num_bc_grid = 3;
 	const bool writeVTK = false;
 	// length of each cell
 	const double dx = lenX / nx, dy = lenY / ny;
@@ -35,7 +35,7 @@ int MAC2DTest_SmallAirBubble() {
 	MSolver->SetBCConstantVS(0.0);
 	MSolver->SetBCConstantVN(0.0);
 	MSolver->SetPLTType(PLTTYPE::BOTH);
-	MSolver->SetPoissonSolver(POISSONTYPE::MKL);
+	MSolver->SetPoissonSolver(POISSONTYPE::ICPCG);
 
 	std::shared_ptr<LevelSetSolver2D> LSolver;
 	LSolver = std::make_shared<LevelSetSolver2D>(nx, ny, num_bc_grid, dx, dy);
@@ -133,7 +133,7 @@ int MAC2DTest_SmallAirBubble() {
 			// div = MSolver->GetDivergence(MSolver->m_u, MSolver->m_v);
 			std::cout << "Bubble : " << MSolver->m_iter << " " << MSolver->m_curTime << " " << MSolver->m_dt << std::endl;
 			// MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
-			// 	uhat, vhat, MSolver->m_ps, ls);
+			// 	FU, FV, MSolver->m_ps, ls);
 			MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
 				MSolver->m_u, MSolver->m_v, MSolver->m_ps, ls);
 		}
