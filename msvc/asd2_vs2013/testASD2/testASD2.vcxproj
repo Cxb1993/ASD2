@@ -138,12 +138,14 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\tests\LargeTests\test_levelset2d_large.cpp" />
     <ClCompile Include="..\..\..\tests\LargeTests\test_mac2d_large.cpp" />
+    <ClCompile Include="..\..\..\tests\LargeTests\test_poisson_large.cpp" />
     <ClCompile Include="..\..\..\tests\tests.cpp" />
     <ClCompile Include="..\..\..\tests\test_common.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\tests\LargeTests\test_levelset2d_large.h" />
     <ClInclude Include="..\..\..\tests\LargeTests\test_mac2d_large.h" />
+    <ClInclude Include="..\..\..\tests\LargeTests\test_poisson_large.h" />
     <ClInclude Include="..\..\..\tests\test_common.h" />
   </ItemGroup>
   <ItemGroup>
