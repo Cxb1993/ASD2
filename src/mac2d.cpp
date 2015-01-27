@@ -948,8 +948,8 @@ int MACSolver2D::SetPoissonSolver(POISSONTYPE type) {
 	return 0;
 }
 
-int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>& div, const std::vector<double>& ls,
-	const std::vector<double>& u, const std::vector<double>& v) {
+int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>& div,
+	const std::vector<double>& ls, const std::vector<double>& u, const std::vector<double>& v) {
 	if (!m_Poisson) {
 		perror("Solver method for Poisson equations are not set. Please add SetPoissonSolver Method to running code");
 	}
@@ -1398,7 +1398,8 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 				aEff = (aM * fabs(lsE) + aE * fabs(lsM)) / (fabs(lsM) + fabs(lsE));
 				rhoEff = kRhoI * kRhoO / (kRhoI * theta + kRhoO * (1 - theta));
 				rhoE = kRhoI * kRhoO * (fabs(lsE) + fabs(lsM)) / (kRhoI * fabs(lsE) + kRhoO * fabs(lsM));
-				iRhoE = 1.0 / (kRhoI * kRhoO) * (fabs(lsE) + fabs(lsM)) / (1.0 / kRhoI * fabs(lsE) + 1.0 / kRhoO * fabs(lsM));
+				iRhoE = 1.0 / (kRhoI * kRhoO)
+					* (fabs(lsE) + fabs(lsM)) / (1.0 / kRhoI * fabs(lsE) + 1.0 / kRhoO * fabs(lsM));
 				FE = -iRhoE * aEff / (kDx * kDx) + iRhoE * b * theta / ((1.0 / kRhoO) * kDx);
 			}
 			else if (lsM < 0 && lsE >= 0) {
@@ -1418,7 +1419,8 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 				aEff = (aM * fabs(lsE) + aE * fabs(lsM)) / (fabs(lsM) + fabs(lsE));
 				rhoEff = kRhoO * kRhoI / (kRhoO * theta + kRhoI * (1 - theta));
 				rhoE = kRhoO * kRhoI * (fabs(lsE) + fabs(lsM)) / (kRhoO * fabs(lsE) + kRhoI * fabs(lsM));
-				iRhoE = 1.0 / (kRhoO * kRhoI) * (fabs(lsE) + fabs(lsM)) / (1.0 / kRhoO * fabs(lsE) + 1.0 / kRhoI * fabs(lsM));
+				iRhoE = 1.0 / (kRhoO * kRhoI)
+					* (fabs(lsE) + fabs(lsM)) / (1.0 / kRhoO * fabs(lsE) + 1.0 / kRhoI * fabs(lsM));
 				FE = iRhoE * aEff / (kDx * kDx) - iRhoE * b * theta / ((1.0 / kRhoI) * kDx);
 			}
 
@@ -1448,7 +1450,8 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 				aEff = (aM * fabs(lsS) + aS * fabs(lsM)) / (fabs(lsM) + fabs(lsS));
 				rhoEff = kRhoI * kRhoO / (kRhoI * theta + kRhoO * (1 - theta));
 				rhoS = kRhoO * kRhoI * (fabs(lsS) + fabs(lsM)) / (kRhoO * fabs(lsS) + kRhoI * fabs(lsM));
-				iRhoS = 1.0 / (kRhoO * kRhoI) * (fabs(lsS) + fabs(lsM)) / (1.0 / kRhoO * fabs(lsS) + 1.0 / kRhoI * fabs(lsM));
+				iRhoS = 1.0 / (kRhoO * kRhoI)
+					* (fabs(lsS) + fabs(lsM)) / (1.0 / kRhoO * fabs(lsS) + 1.0 / kRhoI * fabs(lsM));
 				FS = iRhoS * aEff / (kDy * kDy) - iRhoS * b * theta / ((1.0 / kRhoO) * kDy);
 			}
 			else if (lsM <= 0 && lsS > 0) {
@@ -1468,7 +1471,8 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 				aEff = (aM * fabs(lsS) + aS * fabs(lsM)) / (fabs(lsM) + fabs(lsS));
 				rhoEff = kRhoO * kRhoI / (kRhoO * theta + kRhoI * (1 - theta));
 				rhoS = kRhoI * kRhoO * (fabs(lsS) + fabs(lsM)) / (kRhoI * fabs(lsS) + kRhoO * fabs(lsM));
-				iRhoS = 1.0 / (kRhoI * kRhoO) * (fabs(lsS) + fabs(lsM)) / (1.0 / kRhoI * fabs(lsS) + 1.0 / kRhoO * fabs(lsM));
+				iRhoS = 1.0 / (kRhoI * kRhoO)
+					* (fabs(lsS) + fabs(lsM)) / (1.0 / kRhoI * fabs(lsS) + 1.0 / kRhoO * fabs(lsM));
 				FS = -iRhoS * aEff / (kDy * kDy) + iRhoS * b * theta / ((1.0 / kRhoI) * kDy);
 			}
 
@@ -1498,7 +1502,8 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 				aEff = (aM * fabs(lsN) + aN * fabs(lsM)) / (fabs(lsM) + fabs(lsN));
 				rhoEff = kRhoI * kRhoO / (kRhoI * theta + kRhoO * (1 - theta));
 				rhoN = kRhoI * kRhoO * (fabs(lsN) + fabs(lsM)) / (kRhoI * fabs(lsN) + kRhoO * fabs(lsM));
-				iRhoN = 1.0 / (kRhoI * kRhoO) * (fabs(lsN) + fabs(lsM)) / (1.0 / kRhoI * fabs(lsN) + 1.0 / kRhoO * fabs(lsM));
+				iRhoN = 1.0 / (kRhoI * kRhoO)
+					* (fabs(lsN) + fabs(lsM)) / (1.0 / kRhoI * fabs(lsN) + 1.0 / kRhoO * fabs(lsM));
 				FN = -iRhoN * aEff / (kDx * kDx) + iRhoN * b * theta / ((1.0 / kRhoO) * kDx);
 			}
 			else if (lsM <= 0 && lsN > 0) {
@@ -1518,7 +1523,8 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 				aEff = (aM * fabs(lsN) + aN * fabs(lsM)) / (fabs(lsM) + fabs(lsN));
 				rhoEff = kRhoO * kRhoI / (kRhoO * theta + kRhoI * (1 - theta));
 				rhoN = kRhoO * kRhoI * (fabs(lsN) + fabs(lsM)) / (kRhoO * fabs(lsN) + kRhoI * fabs(lsM));
-				iRhoN = 1.0 / (kRhoO * kRhoI) * (fabs(lsN) + fabs(lsM)) / (1.0 / kRhoO * fabs(lsN) + 1.0 / kRhoI * fabs(lsM));
+				iRhoN = 1.0 / (kRhoO * kRhoI)
+					* (fabs(lsN) + fabs(lsM)) / (1.0 / kRhoO * fabs(lsN) + 1.0 / kRhoI * fabs(lsM));
 				FN = iRhoN * aEff / (kDx * kDx) - iRhoN * b * theta / ((1.0 / kRhoI) * kDx);
 			}
 
