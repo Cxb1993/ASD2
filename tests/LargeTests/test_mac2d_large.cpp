@@ -80,7 +80,7 @@ int MAC2DTest_SmallAirBubble() {
 
 	// prevent dt == 0.0
 	MSolver->m_dt = cfl * std::min(dx, dy) / U;
-	MSolver->OutRes(0, 0.0, fname_vel, fname_div, MSolver->m_u, MSolver->m_v, MSolver->m_ps, ls);
+	// MSolver->OutRes(0, 0.0, fname_vel, fname_div, MSolver->m_u, MSolver->m_v, MSolver->m_ps, ls);
 	
 	std::vector<double> FU((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid)), FV((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid));
 	std::vector<double> uhat((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid)), vhat((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid));
@@ -109,10 +109,11 @@ int MAC2DTest_SmallAirBubble() {
 
 		MSolver->ApplyBC_U_2D(uhat);
 		MSolver->ApplyBC_V_2D(vhat);
-		// MSolver->OutRes(MSolver->m_iter, MSolver->m_totTime, fname_vel, fname_div, uhat, vhat, what, MSolver->m_phi);
+		
 		// From intermediate velocity, get divergence
 		div = MSolver->GetDivergence(uhat, vhat);
-
+		MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
+			MSolver->m_u, MSolver->m_v, MSolver->m_ps, ls);
 		MSolver->ApplyBC_P_2D(MSolver->m_ps);
 		MSolver->ApplyBC_P_2D(div);
 		// Solve Poisson equation

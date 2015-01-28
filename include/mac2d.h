@@ -75,7 +75,7 @@ public:
 	int AllocateVariables();
 
 	// Related to Level Set Related
-	std::vector<double> UpdateKappa(const std::vector<double>& ls);
+	int UpdateKappa(const std::vector<double>& ls);
 	int UpdateJumpCond(const std::vector<double>& u, const std::vector<double>& v, 
 		const std::vector<double>& ls);
 	std::vector<double> UpdateFU(const std::shared_ptr<LevelSetSolver2D>& LSolver,
