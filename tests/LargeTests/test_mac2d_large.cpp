@@ -91,14 +91,14 @@ int MAC2DTest_SmallAirBubble() {
 		// Have to use \phi^{n+1} for rho, mu, kappa
 		LSolver->Solve_LevelSet_2D(ls, MSolver->m_u, MSolver->m_v, MSolver->m_dt);
 		LSolver->Reinit_Sussman_2D(ls);
-
+		LSolver->ApplyBC_P_2D(ls);
 		// Solve Momentum Part
 		// Update Rho, Mu, Kappa
 		if (We != 0.0) {
 			MSolver->UpdateKappa(ls);
 			MSolver->ApplyBC_P_2D(MSolver->m_kappa);
 		}
-
+		MSolver->UpdateJumpCond(MSolver->m_u, MSolver->m_v, ls);
 		// Update F and apply time discretization
 		FU = MSolver->UpdateFU(LSolver, ls, MSolver->m_u, MSolver->m_v);
 		FV = MSolver->UpdateFV(LSolver, ls,	MSolver->m_u, MSolver->m_v);

@@ -58,6 +58,9 @@ public:
 
 	std::vector<double> m_ps, m_p;
 
+	// Jump condition
+	std::vector<double> m_J11, m_J12, m_J21, m_J22;
+
 	MACSolver2D();
 	MACSolver2D(double Re, double We, double Fr,
 		double L, double U, double sigma, double densityRatio, double viscosityRatio, double rhoI, double mu1,
@@ -73,7 +76,8 @@ public:
 
 	// Related to Level Set Related
 	std::vector<double> UpdateKappa(const std::vector<double>& ls);
-	
+	int UpdateJumpCond(const std::vector<double>& u, const std::vector<double>& v, 
+		const std::vector<double>& ls);
 	std::vector<double> UpdateFU(const std::shared_ptr<LevelSetSolver2D>& LSolver,
 		std::vector<double> ls, std::vector<double>u, std::vector<double> v);
 	std::vector<double> UpdateFV(const std::shared_ptr<LevelSetSolver2D>& LSolver,
