@@ -35,10 +35,13 @@ int MAC2DTest_SmallAirBubble() {
 	MSolver->SetBCConstantVS(0.0);
 	MSolver->SetBCConstantVN(0.0);
 	MSolver->SetPLTType(PLTTYPE::BOTH);
-	MSolver->SetPoissonSolver(POISSONTYPE::ICPCG);
+	MSolver->SetPoissonSolver(POISSONTYPE::CG);
 
 	std::shared_ptr<LevelSetSolver2D> LSolver;
 	LSolver = std::make_shared<LevelSetSolver2D>(nx, ny, num_bc_grid, dx, dy);
+	// \phi^n
+	std::vector<double> lsB((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid));
+	// \phi^{n + 1}
 	std::vector<double> ls((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid));
 	// inside value must be positive levelset, otherwise, negative
 
@@ -89,6 +92,7 @@ int MAC2DTest_SmallAirBubble() {
 	while (MSolver->m_curTime < MSolver->kMaxTime && MSolver->m_iter < MSolver->kMaxIter) {
 		// Solver Level set part first
 		// Have to use \phi^{n+1} for rho, mu, kappa
+		lsB = ls;
 		LSolver->Solve_LevelSet_2D(ls, MSolver->m_u, MSolver->m_v, MSolver->m_dt);
 		LSolver->Reinit_Sussman_2D(ls);
 		LSolver->ApplyBC_P_2D(ls);
@@ -98,10 +102,11 @@ int MAC2DTest_SmallAirBubble() {
 			MSolver->UpdateKappa(ls);
 			MSolver->ApplyBC_P_2D(MSolver->m_kappa);
 		}
-		MSolver->UpdateJumpCond(MSolver->m_u, MSolver->m_v, ls);
+
 		// Update F and apply time discretization
-		FU = MSolver->UpdateFU(LSolver, ls, MSolver->m_u, MSolver->m_v);
-		FV = MSolver->UpdateFV(LSolver, ls,	MSolver->m_u, MSolver->m_v);
+		MSolver->UpdateJumpCond(MSolver->m_u, MSolver->m_v, ls);
+		FU = MSolver->UpdateFU(LSolver, lsB, MSolver->m_u, MSolver->m_v);
+		FV = MSolver->UpdateFV(LSolver, lsB, MSolver->m_u, MSolver->m_v);
 
 		// Get intermediate velocity
 		uhat = MSolver->GetUhat(MSolver->m_u, FU);
@@ -118,7 +123,8 @@ int MAC2DTest_SmallAirBubble() {
 		MSolver->ApplyBC_P_2D(div);
 		// Solve Poisson equation
 		// m_phi = pressure * dt / rho
-		stat = MSolver->SolvePoisson(MSolver->m_ps, div, ls, uhat, vhat);
+		
+		stat = MSolver->SolvePoisson(MSolver->m_ps, div, lsB, uhat, vhat);
 		MSolver->ApplyBC_P_2D(MSolver->m_ps);
 
 		stat = MSolver->UpdateVel(MSolver->m_u, MSolver->m_v,

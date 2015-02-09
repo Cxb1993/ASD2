@@ -84,8 +84,8 @@ public:
 		std::vector<double> ls, std::vector<double>u, std::vector<double> v);
 
 	// Convection Term
-	std::vector<double> AddConvectionFU(const std::vector<double>& u, const std::vector<double>& v, const std::vector<double>& ls);
-	std::vector<double> AddConvectionFV(const std::vector<double>& u, const std::vector<double>& v, const std::vector<double>& ls);
+	std::vector<double> AddConvectionFU(const std::vector<double>& u, const std::vector<double>& v);
+	std::vector<double> AddConvectionFV(const std::vector<double>& u, const std::vector<double>& v);
 	int UnitHJWENO5(
 		const std::vector<double> &F, std::vector<double> &FP, std::vector<double> &FM, const double d, const int n);
 

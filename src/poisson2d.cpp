@@ -291,6 +291,8 @@ int PoissonSolver2D::ICPCG_2FUniform_2D(std::vector<double>& ps, const std::vect
 		if (delta_new <= err_tol * err_tol * delta0)
 			isConverged = true;
 		iter++;
+		// if (iter > 3)
+		// 	exit(1);
 	}
 	
 	for (int j = 0; j < kNy; j++)
