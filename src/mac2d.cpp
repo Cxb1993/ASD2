@@ -1508,7 +1508,7 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 					+ (dvdX[idx(i, j)] * nXM + dvdY[idx(i, j)] * nYM) * nYM)
 					+ m_dt * kSigma * m_kappa[idx(i, j)];
 				aE = 2 * m_dt * (kMuO - kMuI)
-					* ((dudX[idx(i + 11, j)] * nXE + dudY[idx(i + 1, j)] * nXE) * nXE
+					* ((dudX[idx(i + 1, j)] * nXE + dudY[idx(i + 1, j)] * nXE) * nXE
 					+ (dvdX[idx(i + 1, j)] * nXE + dvdY[idx(i + 1, j)] * nYE) * nYE)
 					+ m_dt * kSigma * m_kappa[idx(i + 1, j)];
 				aEff = (aM * std::fabs(lsE) + aE * std::fabs(lsM)) / (std::fabs(lsM) + std::fabs(lsE));
@@ -1526,7 +1526,7 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 					+ (dvdX[idx(i, j)] * nXM + dvdY[idx(i, j)] * nYM) * nYM)
 					+ m_dt * kSigma * m_kappa[idx(i, j)];
 				aE = 2 * m_dt * (kMuI - kMuO)
-					* ((dudX[idx(i + 11, j)] * nXE + dudY[idx(i + 1, j)] * nXE) * nXE
+					* ((dudX[idx(i + 1, j)] * nXE + dudY[idx(i + 1, j)] * nXE) * nXE
 					+ (dvdX[idx(i + 1, j)] * nXE + dvdY[idx(i + 1, j)] * nYE) * nYE)
 					+ m_dt * kSigma * m_kappa[idx(i + 1, j)];
 				aEff = (aM * std::fabs(lsE) + aE * std::fabs(lsM)) / (std::fabs(lsM) + std::fabs(lsE));
