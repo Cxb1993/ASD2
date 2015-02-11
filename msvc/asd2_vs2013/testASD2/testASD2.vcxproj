@@ -33,8 +33,8 @@
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>Intel C++ Compiler XE 14.0</PlatformToolset>
-    <CharacterSet>Unicode</CharacterSet>
-    <UseIntelMKL>Sequential</UseIntelMKL>
+    <CharacterSet>MultiByte</CharacterSet>
+    <UseIntelMKL>Parallel</UseIntelMKL>
     <UseILP64Interfaces>true</UseILP64Interfaces>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
@@ -50,6 +50,9 @@
     <PlatformToolset>Intel C++ Compiler XE 14.0</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
+    <InterproceduralOptimization>true</InterproceduralOptimization>
+    <UseIntelMKL>Parallel</UseIntelMKL>
+    <UseILP64Interfaces>true</UseILP64Interfaces>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -71,13 +74,17 @@
     <OutDir>$(SolutionDir)..\..\bin\windows\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)tmp\$(Configuration)\$(ProjectName)\</IntDir>
     <TargetName>testASD2</TargetName>
-    <ExecutablePath>$(HDF5_DIR)\bin;$(ICInstallDir)bin\Intel64;$(ExecutablePath)</ExecutablePath>
-    <IncludePath>$(SolutionDir)..\..\include;$(HDF5_DIR)\include;$(MKLIncludeDir);$(TECPLOT_DIR)\include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)..\..\lib;$(SolutionDir)..\..\lib\windows;$(HDF5_DIR)\lib;$(MKLLibDir);$(TECPLOT_DIR)\szl;$(LibraryPath)</LibraryPath>
+    <ExecutablePath>$(ICInstallDir)bin\Intel64;$(ExecutablePath)</ExecutablePath>
+    <IncludePath>$(SolutionDir)..\..\include;$(MKLIncludeDir);$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)..\..\lib;$(SolutionDir)..\..\lib\windows;$(MKLLibDir);$(LibraryPath)</LibraryPath>
     <SourcePath>$(SolutionDir)..\..\src;$(VC_SourcePath);</SourcePath>
+    <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <TargetName>testASD2</TargetName>
+    <IncludePath>$(SolutionDir)..\..\include;$(MKLIncludeDir);$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)..\..\lib;$(SolutionDir)..\..\lib\windows;$(OmpLibDir);$(LibraryPath)</LibraryPath>
+    <SourcePath>$(SolutionDir)..\..\src;$(VC_SourcePath);</SourcePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -94,17 +101,23 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\..\include;%(HDF5_ROOT)\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(TECPLOT_DIR)\include;$(SolutionDir)..\..\include</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_VARIADIC_MAX=10;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <UseProcessorExtensions>AVX</UseProcessorExtensions>
       <GenerateAlternateCodePaths>AVX</GenerateAlternateCodePaths>
+      <Cpp0xSupport>true</Cpp0xSupport>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)..\..\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>$(SolutionDir)..\..\lib\windows\gtest\gtestd.lib;$(HDF5_DIR)\lib\szip.lib;$(HDF5_DIR)\lib\zlib.lib;$(HDF5_DIR)\lib\hdf5.lib;$(HDF5_DIR)\lib\hdf5_cpp.lib;$(TECPLOT_DIR)\lib\tecio.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(TECPLOT_DIR)\lib;$(SolutionDir)..\..\lib;$(SolutionDir)..\..\lib\windows</AdditionalLibraryDirectories>
+      <AdditionalDependencies>$(SolutionDir)..\..\lib\windows\gtest\gtestd.lib;$(TECPLOT_DIR)\lib\tecio.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Console</SubSystem>
+      <IgnoreAllDefaultLibraries>
+      </IgnoreAllDefaultLibraries>
+      <RandomizedBaseAddress>false</RandomizedBaseAddress>
+      <IgnoreSpecificDefaultLibraries>
+      </IgnoreSpecificDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -125,14 +138,19 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>MaxSpeed</Optimization>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <FunctionLevelLinking>
+      </FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <AdditionalIncludeDirectories>$(TECPLOT_DIR)\include;$(SolutionDir)..\..\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>$(TECPLOT_DIR)\lib;$(SolutionDir)..\..\lib;$(SolutionDir)..\..\lib\windows</AdditionalLibraryDirectories>
+      <AdditionalDependencies>$(TECPLOT_DIR)\lib\tecio.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -151,6 +169,11 @@
   <ItemGroup>
     <ProjectReference Include="..\asd2_vs2013\asd2_vs2013.vcxproj">
       <Project>{fe62585e-3690-4f9e-97ed-a8876f5a2022}</Project>
+      <Private>true</Private>
+      <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
+      <CopyLocalSatelliteAssemblies>false</CopyLocalSatelliteAssemblies>
+      <LinkLibraryDependencies>true</LinkLibraryDependencies>
+      <UseLibraryDependencyInputs>false</UseLibraryDependencyInputs>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

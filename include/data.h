@@ -8,7 +8,6 @@
 #include <iostream>
 #include <string>
 
-#include "hdf5.h"
 #include "../lib/common/jsonxx/jsonxx.h"
 
 using namespace jsonxx;
@@ -50,10 +49,6 @@ public:
 	static int Deallocate3Df(float ***to_deallocate);
 	static int Deallocate3Dd(double ***to_deallocate);
 	static int Deallocate3Dld(long double ***to_deallocate);
-
-	static hid_t OpenHDF5forRead(string file_name);
-	static hid_t OpenHDF5forWrite(string file_fname);
-	static int CloseHDF5(hid_t h5_file);
 
 	static int OpenPLTforWrite(string file_name, std::ofstream& outfile);
 	static int OpenPLTforAppend(string file_name, std::ofstream& outfile);

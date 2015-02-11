@@ -37,6 +37,7 @@
     <CharacterSet>Unicode</CharacterSet>
     <UseIntelMKL>Parallel</UseIntelMKL>
     <UseILP64Interfaces>true</UseILP64Interfaces>
+    <InterproceduralOptimization>false</InterproceduralOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
@@ -51,8 +52,10 @@
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>Intel C++ Compiler XE 14.0</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>MultiByte</CharacterSet>
+    <CharacterSet>Unicode</CharacterSet>
     <UseIntelMKL>Parallel</UseIntelMKL>
+    <InterproceduralOptimization>true</InterproceduralOptimization>
+    <UseILP64Interfaces>true</UseILP64Interfaces>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -81,12 +84,13 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <TargetName>asd2_debug</TargetName>
-    <ExecutablePath>$(HDF5_DIR)\bin;$(ICInstallDir)bin\Intel64;$(ExecutablePath)</ExecutablePath>
-    <IncludePath>$(HDF5_DIR)\include;$(SolutionDir)..\..\include;$(MKLIncludeDir);$(TECPLOT_DIR)\include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)..\..\lib;$(SolutionDir)..\..\lib\windows;$(HDF5_DIR)\lib;$(MKLLibDir);$(TECPLOT_DIR)\szl;$(LibraryPath)</LibraryPath>
+    <ExecutablePath>$(ICInstallDir)bin\Intel64;$(ExecutablePath)</ExecutablePath>
+    <IncludePath>$(SolutionDir)..\..\include;$(MKLIncludeDir);$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)..\..\lib;$(SolutionDir)..\..\lib\windows;$(MKLLibDir);$(LibraryPath)</LibraryPath>
     <SourcePath>$(SolutionDir)..\..\src;$(SourcePath)</SourcePath>
     <OutDir>$(SolutionDir)..\..\lib\</OutDir>
     <TargetExt>.lib</TargetExt>
+    <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(SolutionDir)..\..\lib\</OutDir>
@@ -98,10 +102,11 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <TargetName>asd2</TargetName>
-    <IncludePath>$(HDF5_DIR)\include;$(SolutionDir)..\..\include;$(MKLIncludeDir);$(TECPLOT_DIR)\include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(HDF5_DIR)\lib;$(SolutionDir)..\..\lib\windows;$(MKLLibDir);$(TECPLOT_DIR)\szl;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)..\..\include;$(MKLIncludeDir);$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)..\..\lib\windows;$(MKLLibDir);$(LibraryPath)</LibraryPath>
     <SourcePath>$(SolutionDir)..\..\src;$(SourcePath)</SourcePath>
     <TargetExt>.lib</TargetExt>
+    <OutDir>$(SolutionDir)..\..\lib\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -126,21 +131,27 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>%(HDF5_DIR)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(TECPLOT_DIR)\include;$(SolutionDir)..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_VARIADIC_MAX=10;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <UseProcessorExtensions>AVX</UseProcessorExtensions>
       <GenerateAlternateCodePaths>AVX</GenerateAlternateCodePaths>
+      <Cpp0xSupport>true</Cpp0xSupport>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(HDF5_DIR)\lib\szip.lib;$(HDF5_DIR)\lib\zlib.lib;$(HDF5_DIR)\lib\hdf5.lib;$(HDF5_DIR)\lib\hdf5_cpp.lib;$(TECPLOT_DIR)\lib\tecio.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(TECPLOT_DIR)\lib\tecio.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <SubSystem>Console</SubSystem>
+      <IgnoreSpecificDefaultLibraries>
+      </IgnoreSpecificDefaultLibraries>
+      <LinkStatus>true</LinkStatus>
     </Link>
     <Lib>
-      <AdditionalDependencies>$(HDF5_DIR)\lib\szip.lib;$(HDF5_DIR)\lib\zlib.lib;$(HDF5_DIR)\lib\hdf5.lib;$(HDF5_DIR)\lib\hdf5_cpp.lib;$(TECPLOT_DIR)\lib\tecio.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(TECPLOT_DIR)\lib\tecio.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Lib>
     <Lib>
-      <AdditionalLibraryDirectories>$(SolutionDir)..\..\lib\</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(TECPLOT_DIR)\lib;$(SolutionDir)..\..\lib;$(SolutionDir)..\..\lib\windows;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <LinkTimeCodeGeneration>false</LinkTimeCodeGeneration>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -174,20 +185,21 @@
       </FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>%(HDF5_DIR)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(TECPLOT_DIR)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_VARIADIC_MAX=10;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>$(TECPLOT_DIR)\lib\tecio.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Lib>
-      <AdditionalDependencies>$(HDF5_DIR)\lib\szip.lib;$(HDF5_DIR)\lib\zlib.lib;$(HDF5_DIR)\lib\hdf5.lib;$(HDF5_DIR)\lib\hdf5_cpp.lib;$(TECPLOT_DIR)\lib\tecio.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(TECPLOT_DIR)\lib\tecio.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Lib>
     <Lib>
-      <AdditionalLibraryDirectories>$(SolutionDir)..\..\lib\</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(TECPLOT_DIR)\lib;$(SolutionDir)..\..\lib\</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>

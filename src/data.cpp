@@ -338,30 +338,6 @@ int Data::Deallocate3Dld(long double ***array) {
 	return 0;
 }
 
-hid_t Data::OpenHDF5forRead(string file_name) {
-	hid_t in_hdf5;
-
-    in_hdf5 = H5Fcreate(file_name.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT, H5P_DEFAULT);
-
-	return in_hdf5;
-}
-
-hid_t Data::OpenHDF5forWrite(string file_name) {
-	hid_t in_hdf5;
-
-    in_hdf5 = H5Fcreate(file_name.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
-
-	return in_hdf5;
-}
-
-int Data::CloseHDF5(hid_t h5_file) {
-    herr_t status;
-
-    status = H5Fclose(h5_file);
-
-	return 0;
-}
-
 // see http://stackoverflow.com/questions/12951162/error-stdios-baseios-baseconst-stdios-base-is-private
 // for 'std::ios_base &std::ios_base::operator=(const std::ios_base &)" is inaccessible' error
 int Data::OpenPLTforRead(string file_name, std::ifstream& in_file) {
