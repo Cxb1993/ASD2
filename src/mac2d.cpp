@@ -118,6 +118,8 @@ int MACSolver2D::UpdateJumpCond(const std::vector<double>& u, const std::vector<
 	// jump condition originally defined as J11 = [\mu u_x], J12 = [\mu u_y], J21 = [\mu v_x], J22 = [\mu v_y], 
 	// but skip [\mu], from Kang, Fedkiw, and Liu's work eq. (30).
 	
+	double nxnx = 0.0, nxny = 0.0, nyny = 0.0;
+	double t2xt2x = 0.0, t2xt2y = 0.0, t2yt2y = 0.0;
 	for (int j = kNumBCGrid - 1; j < kNy + kNumBCGrid + 1; j++)
 	for (int i = kNumBCGrid - 1; i < kNx + kNumBCGrid + 1; i++) {
 		dudX = (u[idx(i + 1, j)] - u[idx(i, j)]) / (kDx);
@@ -159,16 +161,26 @@ int MACSolver2D::UpdateJumpCond(const std::vector<double>& u, const std::vector<
 		}
 		t2X = nY * t1Z;
 		t2Y = -nX * t1Z;
+		nxnx = nX * nX;
+		nxny = nX * nY;
+		nyny = nY * nY;
+		t2xt2x = t2X * t2X;
+		t2xt2y = t2Y * t2Y;
+		t2yt2y = t2Y * t2Y;
 
 		// eq. (30) from Kang, Fedkiw, and Liu
-		m_J11[idx(i, j)] = dudX * (t1Z * t1Z) + (nX * nX + nY * nY) * dudX * (nX * nX + nY * nY)
-			- (t1Z * t1Z) * dudX * (nX * nX + nY * nY);
-		m_J12[idx(i, j)] = dudY * (t1Z * t1Z) + (nX * nX + nY * nY) * dudY * (nX * nX + nY * nY)
-			- (t1Z * t1Z) * dvdX * (nX * nX + nY * nY);
-		m_J21[idx(i, j)] = dvdX * (t1Z * t1Z) + (nX * nX + nY * nY) * dvdX * (nX * nX + nY * nY)
-			- (t1Z * t1Z) * dudY * (nX * nX + nY * nY);
-		m_J22[idx(i, j)] = dvdY * (t1Z * t1Z) + (nX * nX + nY * nY) * dvdY * (nX * nX + nY * nY)
-			- (t1Z * t1Z) * dvdY * (nX * nX + nY * nY);
+		m_J11[idx(i, j)] = dudX * t2xt2x + dudY * t2xt2y 
+			+ (dudX * nxnx + dvdX * nxny) * nxnx + (dudY * nxnx + dvdY * nxny) * nxny
+			+ (dudX * nxnx + dudY * nxny) * t2xt2x + (dvdX * nxnx + dvdY * nxny) * t2xt2y;
+		m_J12[idx(i, j)] = dudX * t2xt2y + dudY * t2yt2y
+			+ (dudX * nxnx + dvdX * nxny) * nxny + (dudY * nxnx + dvdY * nxny) * nyny
+			+ (dudX * nxny + dudY * nyny) * t2xt2y + (dvdX * nxny + dvdY * nyny) * t2yt2y;
+		m_J21[idx(i, j)] = dvdX * t2xt2x + dvdY * t2xt2y
+			+ (dudX * nxny + dvdX * nyny) * nxnx + (dudY * nxny + dvdY * nyny) * nxny
+			+ (dudX * nxnx + dudX * nxny) * t2xt2x + (dvdX * nxnx + dvdY * nxny) * t2xt2y;
+		m_J22[idx(i, j)] = dvdX * t2xt2y + dvdY * t2yt2y
+			+ (dudX * nxny + dvdX * nyny) * nxny + (dudY * nxny + dvdY * nyny) * nyny
+			+ (dudX * nxny + dudY * nyny) * t2xt2y + (dvdX * nxny + dvdY * nyny) * t2yt2y;
 
 		if (std::isnan(m_J11[idx(i, j)]) || std::isinf(m_J11[idx(i, j)])) {
 			std::cout << "Jump condition(J11) nan/inf error : " << i << " " << j << " " << m_J11[idx(i, j)] << std::endl;
@@ -585,15 +597,15 @@ std::vector<double> MACSolver2D::AddViscosityFU(const std::vector<double>& u, co
 	double lsW = 0.0, lsE = 0.0, lsS = 0.0, lsN = 0.0, lsM = 0.0;
 	// subcell
 	double theta = 0.0;
-	double muU_X_W = 0.0, muU_X_E = 0.0, muU_Y_S = 0.0, muU_Y_N = 0.0;
-	double rhoU_X_W = 0.0, rhoU_X_E = 0.0, rhoU_Y_S = 0.0, rhoU_Y_N = 0.0;
+	double muU_X_W = 0.0, muU_X_E = 0.0, muU_Y_S = 0.0, muU_Y_N = 0.0, muV_X_W = 0.0, muV_X_E = 0.0;
+	double vW = 0.0, vE = 0.0, vM = 0.0;
 	double visX = 0.0, visY = 0.0;
 
 	// jump condition
 	double JW = 0.0, JE = 0.0, JS = 0.0, JN = 0.0, JM = 0.0;
 	// effective Jump condition, effective u(uEff), and effective mu (muEff)
 	// J is a jump condition and defined at P grid
-	double JEff = 0.0, JO = 0.0, uEff = 0.0, muEff = 0.0, rhoEff = 0.0;
+	double JEff = 0.0, JO = 0.0, uEff = 0.0, vEff = 0.0, muEff = 0.0;
 
 	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
 	for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++) {
@@ -604,12 +616,17 @@ std::vector<double> MACSolver2D::AddViscosityFU(const std::vector<double>& u, co
 		lsM = 0.5 * (ls[idx(i - 1, j)] + ls[idx(i, j)]);
 		lsS = 0.5 * (ls[idx(i - 1, j - 1)] + ls[idx(i, j - 1)]);
 		lsN = 0.5 * (ls[idx(i - 1, j + 1)] + ls[idx(i, j + 1)]);
+		vW = 0.25 * (v[idx(i - 2, j)] + v[idx(i - 1, j)] + v[idx(i - 1, j + 1)], v[idx(i - 2, j + 1)]);
+		vM = 0.25 * (v[idx(i - 1, j)] + v[idx(i, j)] + v[idx(i, j + 1)], v[idx(i - 1, j + 1)]);
+		vE = 0.25 * (v[idx(i, j)] + v[idx(i + 1, j)] + v[idx(i + 1, j + 1)], v[idx(i, j + 1)]);
 		
 		if (lsW >= 0 && lsM >= 0) {
 			muU_X_W = kMuI * (u[idx(i, j)] - u[idx(i - 1, j)]) / kDx;
+			muV_X_W = kMuI * (vM - vW) / kDx;
 		}
 		else if (lsW < 0 && lsM < 0) {
 			muU_X_W = kMuO * (u[idx(i, j)] - u[idx(i - 1, j)]) / kDx;
+			muV_X_W = kMuO * (vM - vW) / kDx;
 		}
 		else if (lsW >= 0 && lsM < 0) {
 			// interface lies between v[i,j] and v[i - 1,j]
@@ -623,8 +640,17 @@ std::vector<double> MACSolver2D::AddViscosityFU(const std::vector<double>& u, co
 				- JEff * theta * (1.0 - theta) * kDx)
 				/ (kMuO * theta + kMuI * (1.0 - theta));
 			muEff = kMuO * kMuI / (kMuO * theta + kMuO * (1.0 - theta));
-			rhoEff = kRhoO * kRhoI / (kRhoO * theta + kRhoI * (1.0 - theta));
 			muU_X_W = muEff * (u[idx(i, j)] - u[idx(i - 1, j)]) / kDx
+				- muEff * JEff * theta / kMuI;
+			
+			JW = (kMuO - kMuI) * m_J21[idx(i - 1, j)];
+			JM = (kMuO - kMuI) * m_J21[idx(i, j)];
+			JEff = theta * JM + (1.0 - theta) * JW;
+			vEff = (kMuO * vM * theta + kMuI * vW * (1.0 - theta)
+				- JEff * theta * (1.0 - theta) * kDx)
+				/ (kMuO * theta + kMuI * (1.0 - theta));
+			muEff = kMuO * kMuI / (kMuO * theta + kMuI * (1.0 - theta));
+			muV_X_W = muEff * (vM - vW) / kDx
 				- muEff * JEff * theta / kMuI;
 		}
 		else if (lsW <= 0 && lsM > 0) {
@@ -639,17 +665,28 @@ std::vector<double> MACSolver2D::AddViscosityFU(const std::vector<double>& u, co
 				- JEff * theta * (1.0 - theta) * kDx)
 				/ (kMuI * theta + kMuO * (1- theta));
 			muEff = kMuI * kMuO / (kMuI * theta + kMuO * (1.0 - theta));
-			rhoEff = kRhoI * kRhoO / (kRhoI * theta + kRhoO * (1.0 - theta));
 			muU_X_W = muEff * (u[idx(i, j)] - u[idx(i - 1,j)]) / kDx
+				+ muEff * JEff * theta / kMuO;
+
+			JW = (kMuI - kMuO) * m_J21[idx(i - 1, j)];
+			JM = (kMuI - kMuO) * m_J21[idx(i, j)];
+			JEff = theta * JM + (1.0 - theta) * JW;
+			vEff = (kMuI * vM * theta + kMuO * vW * (1.0 - theta)
+				- JEff * theta * (1.0 - theta) * kDx)
+				/ (kMuI * theta + kMuO * (1.0 - theta));
+			muEff = kMuI * kMuO / (kMuI * theta + kMuO * (1.0 - theta));
+			muV_X_W = muEff * (vM - vW) / kDx
 				+ muEff * JEff * theta / kMuO;
 		}
 		
 
 		if (lsM >= 0 && lsE >= 0) {
 			muU_X_E = kMuI * (u[idx(i + 1, j)] - u[idx(i, j)]) / kDx;
+			muV_X_E = kMuI * (vE - vM) / kDx;
 		}
 		else if (lsM < 0 && lsE < 0) {
 			muU_X_E = kMuO * (u[idx(i + 1, j)] - u[idx(i, j)]) / kDx;
+			muV_X_E = kMuO * (vE - vM) / kDx;
 		}
 		else if (lsM >= 0 && lsE < 0) {
 			// interface lies between u[i,j] and u[i + 1,j]
@@ -663,10 +700,18 @@ std::vector<double> MACSolver2D::AddViscosityFU(const std::vector<double>& u, co
 				- JEff * theta * (1.0 - theta) * kDx)
 				/ (kMuI * theta + kMuO * (1.0 - theta));
 			muEff = kMuI * kMuO / (kMuI * theta + kMuO * (1.0 - theta));
-			rhoEff = kRhoI * kRhoO / (kRhoI * theta + kRhoO * (1.0 - theta));
-			// muU_X_W = kMuI / kRhoI * (u[idx(i, j)] - u[idx(i - 1, j)]) / kDx;
-			muU_X_E = (muEff) * (u[idx(i + 1, j)] - u[idx(i, j)]) / kDx
-				- (muEff) * JEff * theta / kMuO;
+			muU_X_E = muEff * (u[idx(i + 1, j)] - u[idx(i, j)]) / kDx
+				- muEff * JEff * theta / kMuO;
+
+			JM = (kMuO - kMuI) * m_J21[idx(i, j)];
+			JE = (kMuO - kMuI) * m_J21[idx(i + 1, j)];
+			JEff = theta * JM + (1.0 - theta) * JE;
+			uEff = (kMuI * vM * theta + kMuO * vE * (1.0 - theta)
+				- JEff * theta * (1.0 - theta) * kDx)
+				/ (kMuI * theta + kMuO * (1.0 - theta));
+			muEff = kMuI * kMuO / (kMuI * theta + kMuO * (1.0 - theta));
+			muU_X_E = muEff * (vE - vM) / kDx
+				- muEff * JEff * theta / kMuO;
 		}
 		else if (lsM < 0 && lsE >= 0) {
 			// interface lies between v[i,j] and v[i + 1,j]
@@ -680,9 +725,17 @@ std::vector<double> MACSolver2D::AddViscosityFU(const std::vector<double>& u, co
 				- JEff * theta * (1.0 - theta) * kDx)
 				/ (kMuO * theta + kMuI * (1.0 - theta));
 			muEff = kMuO * kMuI / (kMuO * theta + kMuI * (1.0 - theta));
-			rhoEff = kRhoO * kRhoI / (kRhoO * theta + kRhoI * (1.0 - theta));
-			// muU_X_W = kMuO / kRhoO * (u[idx(i, j)] - u[idx(i - 1, j)]) / kDx;
 			muU_X_E = muEff * (u[idx(i + 1, j)] - u[idx(i, j)]) / kDx
+				- muEff * JEff * theta / kMuI;
+
+			JM = (kMuI - kMuO) * m_J21[idx(i, j)];
+			JE = (kMuI - kMuO) * m_J21[idx(i + 1, j)];
+			JEff = theta * JM + (1.0 - theta) * JE;
+			uEff = (kMuO * vM * theta + kMuI * vE * (1.0 - theta)
+				- JEff * theta * (1.0 - theta) * kDx)
+				/ (kMuO * theta + kMuI * (1.0 - theta));
+			muEff = kMuO * kMuI / (kMuO * theta + kMuI * (1.0 - theta));
+			muU_X_E = muEff * (vE - vM) / kDx
 				- muEff * JEff * theta / kMuI;
 		}
 		
@@ -704,7 +757,6 @@ std::vector<double> MACSolver2D::AddViscosityFU(const std::vector<double>& u, co
 				- JEff * theta * (1.0 - theta) * kDy)
 				/ (kMuO * theta + kMuI * (1.0 - theta));
 			muEff = kMuO * kMuI / (kMuO * theta + kMuO * (1.0 - theta));
-			rhoEff = kRhoO * kRhoI / (kRhoO * theta + kRhoI * (1.0 - theta));
 			muU_Y_S = muEff * (u[idx(i, j)] - u[idx(i, j - 1)]) / kDy
 				- muEff * JEff * theta / kMuI;
 		}
@@ -720,7 +772,6 @@ std::vector<double> MACSolver2D::AddViscosityFU(const std::vector<double>& u, co
 				- JEff * theta * (1.0 - theta) * kDy)
 				/ (kMuI * theta + kMuO * (1.0 - theta));
 			muEff = kMuI * kMuO / (kMuI * theta + kMuO * (1.0 - theta));
-			rhoEff = kRhoI * kRhoO / (kRhoI * theta + kRhoO * (1.0 - theta));
 			muU_Y_S = muEff * (u[idx(i, j)] - u[idx(i, j - 1)]) / kDy
 				+ muEff * JEff * theta / kMuO;
 		}
@@ -743,7 +794,6 @@ std::vector<double> MACSolver2D::AddViscosityFU(const std::vector<double>& u, co
 				- JEff * theta * (1.0 - theta) * kDy)
 				/ (kMuI * theta + kMuO * (1.0 - theta));
 			muEff = kMuI * kMuO / (kMuI * theta + kMuO * (1.0 - theta));
-			rhoEff = kRhoI * kRhoO / (kRhoI * theta + kRhoO * (1.0 - theta));
 			muU_Y_N = muEff * (u[idx(i, j + 1)] - u[idx(i, j)]) / kDy
 				- muEff * JEff * theta / kMuO;
 		}
@@ -759,13 +809,12 @@ std::vector<double> MACSolver2D::AddViscosityFU(const std::vector<double>& u, co
 				- JEff * theta * (1.0 - theta) * kDy)
 				/ (kMuO * theta + kMuI * (1.0 - theta));
 			muEff = kMuO * kMuI / (kMuO * theta + kMuI * (1.0 - theta));
-			rhoEff = kRhoO * kRhoI / (kRhoO * theta + kRhoI * (1.0 - theta));
 			muU_Y_N = muEff * (u[idx(i, j + 1)] - u[idx(i, j)]) / kDy
 				- muEff * JEff * theta / kMuI;
 		}
 		
 		visX = (muU_X_E - muU_X_W) / kDx;
-		visY = (muU_Y_N - muU_Y_S) / kDy;
+		visY = (muU_Y_N - muU_Y_S) / kDy + (muV_X_E - muV_X_W) / kDy;
 		
 		dU[idx(i, j)] = visX + visY;
 		
@@ -797,11 +846,11 @@ std::vector<double> MACSolver2D::AddViscosityFV(const std::vector<double>& u, co
 	// jump condition
 	double JW = 0.0, JE = 0.0, JS = 0.0, JN = 0.0, JM = 0.0;
 	double theta = 0.0;
-	double muV_X_W = 0.0, muV_X_E = 0.0, muV_Y_S = 0.0, muV_Y_N = 0.0;
-	double rhoV_X_W = 0.0, rhoV_X_E = 0.0, rhoV_Y_S = 0.0, rhoV_Y_N = 0.0;
+	double muV_X_W = 0.0, muV_X_E = 0.0, muV_Y_S = 0.0, muV_Y_N = 0.0, muU_Y_S = 0.0, muU_Y_N = 0.0;
+	double uS = 0.0, uM = 0.0, uN = 0.0;
 	double visX = 0.0, visY = 0.0;
 	// effective Jump condition, effective v (vEff), and effective mu (muEff)
-	double JEff = 0.0, JO = 0.0, vEff = 0.0, muEff = 0.0, rhoEff = 0.0;
+	double JEff = 0.0, JO = 0.0, vEff = 0.0, uEff = 0.0, muEff = 0.0;
 	for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++)
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++) {
 		muV_X_W = 0.0; muV_X_E = 0.0; muV_Y_S = 0.0; muV_Y_N = 0.0;
@@ -811,6 +860,9 @@ std::vector<double> MACSolver2D::AddViscosityFV(const std::vector<double>& u, co
 		lsM = 0.5 * (ls[idx(i, j - 1)] + ls[idx(i, j)]);
 		lsS = 0.5 * (ls[idx(i, j - 2)] + ls[idx(i, j - 1)]);
 		lsN = 0.5 * (ls[idx(i, j)] + ls[idx(i, j + 1)]);
+		uS = 0.25 * (u[idx(i, j - 1)] + u[idx(i + 1, j - 1)] + u[idx(i + 1, j - 2)] + u[idx(i, j - 1)]);
+		uM = 0.25 * (u[idx(i, j)] + u[idx(i + 1, j)] + u[idx(i + 1, j - 1)] + u[idx(i, j - 1)]);
+		uN = 0.25 * (u[idx(i, j + 1)] + u[idx(i + 1, j + 1)] + u[idx(i + 1, j)] + u[idx(i, j)]);
 
 		if (lsW >= 0 && lsM >= 0) {
 			muV_X_W = kMuI * (v[idx(i, j)] - v[idx(i - 1, j)]) / kDx;
@@ -830,7 +882,6 @@ std::vector<double> MACSolver2D::AddViscosityFV(const std::vector<double>& u, co
 				- JEff * theta * (1.0 - theta) * kDx)
 				/ (kMuO * theta + kMuI * (1.0 - theta));
 			muEff = kMuO * kMuI / (kMuO * theta + kMuO * (1.0 - theta));
-			rhoEff = kRhoO * kRhoI / (kRhoO * theta + kRhoI * (1.0 - theta));
 			muV_X_W = muEff * (v[idx(i, j)] - v[idx(i - 1, j)]) / kDx
 				- muEff * JEff * theta / kMuI;
 		}
@@ -846,7 +897,6 @@ std::vector<double> MACSolver2D::AddViscosityFV(const std::vector<double>& u, co
 				- JEff * theta * (1.0 - theta) * kDx)
 				/ (kMuI * theta + kMuO * (1.0 - theta));
 			muEff = kMuI * kMuO / (kMuI * theta + kMuO * (1.0 - theta));
-			rhoEff = kRhoI * kRhoO / (kRhoI * theta + kRhoO * (1.0 - theta));
 			muV_X_W = muEff * (v[idx(i, j)] - v[idx(i - 1, j)]) / kDx
 				+ muEff * JEff * theta / kMuO;
 		}
@@ -869,7 +919,6 @@ std::vector<double> MACSolver2D::AddViscosityFV(const std::vector<double>& u, co
 				- JEff * theta * (1.0 - theta) * kDx)
 				/ (kMuI * theta + kMuO * (1.0 - theta));
 			muEff = kMuI * kMuO / (kMuI * theta + kMuO * (1.0 - theta));
-			rhoEff = kRhoI * kRhoO / (kRhoI * theta + kRhoO * (1.0 - theta));
 			muV_X_E = muEff * (v[idx(i + 1, j)] - v[idx(i, j)]) / kDx
 				- muEff * JEff * theta / kMuO;
 		}
@@ -885,16 +934,17 @@ std::vector<double> MACSolver2D::AddViscosityFV(const std::vector<double>& u, co
 				- JEff * theta * (1.0 - theta) * kDx)
 				/ (kMuO * theta + kMuI * (1.0 - theta));
 			muEff = kMuO * kMuI / (kMuO * theta + kMuI * (1.0 - theta));
-			rhoEff = kRhoO * kRhoI / (kRhoO * theta + kRhoI * (1.0 - theta));
 			muV_X_E = muEff * (v[idx(i + 1, j)] - v[idx(i, j)]) / kDx
 				- muEff * JEff * theta / kMuI;
 		}
 		
 		if (lsS >= 0 && lsM >= 0) {
 			muV_Y_S = kMuI * (v[idx(i, j)] - v[idx(i, j - 1)]) / kDy;
+			muU_Y_S = kMuI * (uM - uS) / kDy;
 		}
 		else if (lsS < 0 && lsM < 0) {
 			muV_Y_S = kMuO * (v[idx(i, j)] - v[idx(i, j - 1)]) / kDy;
+			muU_Y_S = kMuO * (uM - uS) / kDy;
 		}
 		else if (lsS >= 0 && lsM < 0) {
 			// interface lies between v[i,j] and v[i,j - 1]
@@ -908,8 +958,17 @@ std::vector<double> MACSolver2D::AddViscosityFV(const std::vector<double>& u, co
 				- JEff * theta * (1.0 - theta) * kDy)
 				/ (kMuI * theta + kMuO * (1.0 - theta));
 			muEff = kMuI * kMuO / (kMuI * theta + kMuO * (1.0 - theta));
-			rhoEff = kRhoI * kRhoO / (kRhoI * theta + kRhoO * (1.0 - theta));
 			muV_Y_S = muEff * (v[idx(i, j)] - v[idx(i, j - 1)]) / kDy
+				+ muEff * JEff * theta / kMuO;
+
+			JS = (kMuO - kMuI) * m_J12[idx(i, j - 1)];
+			JM = (kMuO - kMuI) * m_J12[idx(i, j)];
+			JEff = theta * JM + (1.0 - theta) * JS;
+			uEff = (kMuI * uM * theta + kMuO * uS * (1.0 - theta)
+				- JEff * theta * (1.0 - theta) * kDy)
+				/ (kMuI * theta + kMuO * (1.0 - theta));
+			muEff = kMuI * kMuO / (kMuI * theta + kMuO * (1.0 - theta));
+			muU_Y_S = muEff * (uM - uS) / kDy
 				+ muEff * JEff * theta / kMuO;
 		}
 		else if (lsS < 0 && lsM >= 0) {
@@ -924,16 +983,27 @@ std::vector<double> MACSolver2D::AddViscosityFV(const std::vector<double>& u, co
 				- JEff * theta * (1.0 - theta) * kDy)
 				/ (kMuO * theta + kMuI * (1.0 - theta));
 			muEff = kMuO * kMuI / (kMuO * theta + kMuO * (1.0 - theta));
-			rhoEff = kRhoO * kRhoI / (kRhoO * theta + kRhoI * (1.0 - theta));
 			muV_Y_S = muEff * (v[idx(i, j)] - v[idx(i, j - 1)]) / kDy
+				- muEff * JEff * theta / kMuI;
+
+			JS = (kMuI - kMuO) * m_J12[idx(i, j - 1)];
+			JM = (kMuI - kMuO) * m_J12[idx(i, j)];
+			JEff = theta * JM + (1.0 - theta) * JS;
+			vEff = (kMuO * uM * theta + kMuI * uS * (1.0 - theta)
+				- JEff * theta * (1.0 - theta) * kDy)
+				/ (kMuO * theta + kMuI * (1.0 - theta));
+			muEff = kMuO * kMuI / (kMuO * theta + kMuO * (1.0 - theta));
+			muU_Y_S = muEff * (uM - uS) / kDy
 				- muEff * JEff * theta / kMuI;
 		}
 		
 		if (lsM >= 0 && lsN >= 0) {
 			muV_Y_N = kMuI * (v[idx(i, j + 1)] - v[idx(i, j)]) / kDy;
+			muU_Y_N = kMuI * (uN - uM) / kDy;
 		}
 		else if (lsM < 0 && lsN < 0) {
 			muV_Y_N = kMuO * (v[idx(i, j + 1)] - v[idx(i, j)]) / kDy;
+			muU_Y_N = kMuO * (uN - uM) / kDy;
 		}
 		else if (lsM >= 0 && lsN < 0) {
 			// interface lies between v[i,j] and v[i,j + 1]
@@ -947,8 +1017,17 @@ std::vector<double> MACSolver2D::AddViscosityFV(const std::vector<double>& u, co
 				- JEff * theta * (1.0 - theta) * kDy)
 				/ (kMuI * theta + kMuO * (1.0 - theta));
 			muEff = kMuI * kMuO / (kMuI * theta + kMuO * (1.0 - theta));
-			rhoEff = kRhoI * kRhoO / (kRhoI * theta + kRhoO * (1.0 - theta));
 			muV_Y_N = muEff * (v[idx(i, j + 1)] - v[idx(i, j)]) / kDy
+				- muEff * JEff * theta / kMuO;
+
+			JM = (kMuO - kMuI) * m_J12[idx(i, j)];
+			JN = (kMuO - kMuI) * m_J12[idx(i, j + 1)];
+			JEff = theta * JM + (1.0 - theta) * JN;
+			vEff = (kMuI * uM * theta + kMuO * uN * (1.0 - theta)
+				- JEff * theta * (1.0 - theta) * kDy)
+				/ (kMuI * theta + kMuO * (1.0 - theta));
+			muEff = kMuI * kMuO / (kMuI * theta + kMuO * (1.0 - theta));
+			muU_Y_N = muEff * (uN - uM) / kDy
 				- muEff * JEff * theta / kMuO;
 		}
 		else if (lsM < 0 && lsN >= 0) {
@@ -963,13 +1042,22 @@ std::vector<double> MACSolver2D::AddViscosityFV(const std::vector<double>& u, co
 					- JEff * theta * (1.0 - theta) * kDy)
 				/ (kMuO * theta + kMuI * (1.0 - theta));
 			muEff = kMuO * kMuI / (kMuO * theta + kMuI * (1.0 - theta));
-			rhoEff = kRhoO * kRhoI / (kRhoO * theta + kRhoI * (1.0 - theta));
 			muV_Y_N = muEff * (v[idx(i, j + 1)] - v[idx(i, j)]) / kDy
+				- muEff * JEff * theta / kMuI;
+
+			JM = (kMuI - kMuO) * m_J21[idx(i, j)];
+			JN = (kMuI - kMuO) * m_J21[idx(i, j + 1)];
+			JEff = theta * JM + (1.0 - theta) * JN;
+			vEff = (kMuO * uM * theta + kMuI * uN * (1.0 - theta)
+				- JEff * theta * (1.0 - theta) * kDy)
+				/ (kMuO * theta + kMuI * (1.0 - theta));
+			muEff = kMuO * kMuI / (kMuO * theta + kMuI * (1.0 - theta));
+			muU_Y_N = muEff * (uN - uM) / kDy
 				- muEff * JEff * theta / kMuI;
 		}
 		
 		visX = (muV_X_E - muV_X_W) / kDx;
-		visY = (muV_Y_N - muV_Y_S) / kDy;
+		visY = (muV_Y_N - muV_Y_S) / kDy + (muU_Y_N - muU_Y_S) / kDy;
 
 		dV[idx(i, j)] = visX + visY;
 
