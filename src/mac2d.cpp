@@ -255,7 +255,7 @@ std::vector<double> MACSolver2D::UpdateFU(const std::shared_ptr<LevelSetSolver2D
 			rhoEff = kRhoI * kRhoO / (kRhoI * theta + kRhoO * (1.0 - theta));
 		}
 		// std::cout << i << " " << j << " " << cU[idx(i, j)] << " " << vU[idx(i, j)] << " " << gU[idx(i, j)] << " " << rhoEff << std::endl;
-		rhsU[idx(i, j)] = (-cU[idx(i, j)] + vU[idx(i, j)] + gU[idx(i, j)]) * m_dt / rhoEff;
+		rhsU[idx(i, j)] = (-cU[idx(i, j)] + vU[idx(i, j)] / rhoEff + gU[idx(i, j)]) * m_dt;
 	}
 
 	return rhsU;
@@ -308,7 +308,7 @@ std::vector<double> MACSolver2D::UpdateFV(const std::shared_ptr<LevelSetSolver2D
 			rhoEff = kRhoI * kRhoO / (kRhoI * theta + kRhoO * (1.0 - theta));
 		}
 		
-		rhsV[idx(i, j)] = (-cV[idx(i, j)] + vV[idx(i, j)] + gV[idx(i, j)]) * m_dt / rhoEff;
+		rhsV[idx(i, j)] = (-cV[idx(i, j)] + vV[idx(i, j)] / rhoEff + gV[idx(i, j)]) * m_dt;
 	}
 	
 	return rhsV;
