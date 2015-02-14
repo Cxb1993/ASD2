@@ -1743,7 +1743,7 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 		}
 
 		ARowIdx.push_back(rowIdx);
-		m_Poisson->ICPCG_2FUniform_2D(ps, rhs, AVals, ACols, ARowIdx, kLenX, kLenY, kDx, kDy, m_BC);
+		m_Poisson->CG_2FUniform_2D(ps, rhs, AVals, ACols, ARowIdx, kLenX, kLenY, kDx, kDy, m_BC);
 	}
 	else if (m_PoissonSolverType == POISSONTYPE::GS) {
 		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)

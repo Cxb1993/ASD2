@@ -192,7 +192,7 @@ int PoissonSolver2D::MKL_2FUniform_2D(std::vector<double>& ps, const std::vector
 	return 0;
 }
 
-int PoissonSolver2D::ICPCG_2FUniform_2D(std::vector<double>& ps, const std::vector<double>& rhs,
+int PoissonSolver2D::CG_2FUniform_2D(std::vector<double>& ps, const std::vector<double>& rhs,
 	std::vector<double>& AVals, std::vector<MKL_INT>& ACols, std::vector<MKL_INT>& ARowIdx,
 	double lenX, double lenY, double dx, double dy, std::shared_ptr<BoundaryCondition2D> PBC) {
 	
