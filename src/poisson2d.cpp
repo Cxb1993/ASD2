@@ -255,7 +255,13 @@ int PoissonSolver2D::ICPCG_2FUniform_2D(std::vector<double>& ps, const std::vect
 		// get alpha (r^T_k * r_k) / (d^T_k q) (= (r^T_k * r_k) / (d^T_k A d_k))
 		// https://software.intel.com/en-us/node/468398#D4E53C70-D8FA-4095-A800-4203CAFE64FE
 		alpha = delta_new / (cblas_ddot(size, d, 1, q, 1) + err_tol * err_tol);
-		std::cout << "Alpha : "<< delta_new << " " << cblas_ddot(size, q, 1, q, 1) << " " <<alpha << " " <<std::endl;
+		for (int j = 0; j < kNy; j++)
+		for (int i = 0; i < kNx; i++) {
+			// if (q[i + j * kNx] > 100.0)
+			// 	std::cout << i << " " << j << " " << q[i + j * kNx] << std::endl;
+		}
+
+		std::cout << "Alpha : "<< delta_new << " " << cblas_ddot(size, d, 1, q, 1) << " " <<alpha << " " <<std::endl;
 		
 		// x_k+1 = x_k + alpha * d_k
 		// https://software.intel.com/en-us/node/468394
@@ -291,7 +297,7 @@ int PoissonSolver2D::ICPCG_2FUniform_2D(std::vector<double>& ps, const std::vect
 		if (delta_new <= err_tol * err_tol * delta0)
 			isConverged = true;
 		iter++;
-		if (iter > 3)
+		if (iter > 0)
 			exit(1);
 	}
 	

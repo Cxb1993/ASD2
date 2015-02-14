@@ -102,7 +102,7 @@ public:
 	std::vector<double> GetVhat(const std::vector<double>& v, const std::vector<double>& rhsv);
 	// Poisson 
 	int SetPoissonSolver(POISSONTYPE type);
-	int SolvePoisson(std::vector<double>& ps, const std::vector<double>& div, const std::vector<double>& ls,
+	int SolvePoisson(std::vector<double>& ps, const std::vector<double>& div, const std::vector<double>& lsB, const std::vector<double>& ls,
 		const std::vector<double>& u, const std::vector<double>& v);
 
 	// update velocity using projection

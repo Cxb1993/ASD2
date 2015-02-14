@@ -124,7 +124,7 @@ int MAC2DTest_SmallAirBubble() {
 		// Solve Poisson equation
 		// m_phi = pressure * dt / rho
 		
-		stat = MSolver->SolvePoisson(MSolver->m_ps, div, lsB, uhat, vhat);
+		stat = MSolver->SolvePoisson(MSolver->m_ps, div, lsB, ls, uhat, vhat);
 		MSolver->ApplyBC_P_2D(MSolver->m_ps);
 
 		stat = MSolver->UpdateVel(MSolver->m_u, MSolver->m_v,

@@ -46,6 +46,9 @@ int main(int argc, char *argv[]) {
 
 	std::shared_ptr<LevelSetSolver2D> LSolver;
 	LSolver = std::make_shared<LevelSetSolver2D>(nx, ny, num_bc_grid, dx, dy);
+	// \phi^n
+	std::vector<double> lsB((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid));
+	// \phi^{n + 1}
 	std::vector<double> ls((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid));
 	// inside value must be positive levelset, otherwise, negative
 
@@ -96,6 +99,7 @@ int main(int argc, char *argv[]) {
 	while (MSolver->m_curTime < MSolver->kMaxTime && MSolver->m_iter < MSolver->kMaxIter) {
 		// Solver Level set part first
 		// Have to use \phi^{n+1} for rho, mu, kappa
+		lsB = ls;
 		LSolver->Solve_LevelSet_2D(ls, MSolver->m_u, MSolver->m_v, MSolver->m_dt);
 		LSolver->Reinit_Sussman_2D(ls);
 
@@ -125,7 +129,7 @@ int main(int argc, char *argv[]) {
 		MSolver->ApplyBC_P_2D(div);
 		// Solve Poisson equation
 		// m_phi = pressure * dt / rho
-		stat = MSolver->SolvePoisson(MSolver->m_ps, div, ls, uhat, vhat);
+		stat = MSolver->SolvePoisson(MSolver->m_ps, div, lsB, ls, uhat, vhat);
 		MSolver->ApplyBC_P_2D(MSolver->m_ps);
 
 		stat = MSolver->UpdateVel(MSolver->m_u, MSolver->m_v,
