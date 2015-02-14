@@ -83,6 +83,7 @@ int MAC2DTest_SmallAirBubble() {
 
 	// prevent dt == 0.0
 	MSolver->m_dt = cfl * std::min(dx, dy) / U;
+	std::cout << " dt : " << MSolver->m_dt << std::endl;
 	// MSolver->OutRes(0, 0.0, fname_vel, fname_div, MSolver->m_u, MSolver->m_v, MSolver->m_ps, ls);
 	
 	std::vector<double> FU((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid)), FV((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid));

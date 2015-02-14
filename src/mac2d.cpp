@@ -1292,16 +1292,16 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 			FN = 0.0;
 
 			// normal vector = (\nabla \phi) / |\nabla \phi|
-			nXW = dldX[idx(i - 1, j)] / (std::fabs(dldX[idx(i - 1, j)]) + 1.0e-100);
-			nYW = dldY[idx(i - 1, j)] / (std::fabs(dldY[idx(i - 1, j)]) + 1.0e-100);
-			nXE = dldX[idx(i + 1, j)] / (std::fabs(dldX[idx(i + 1, j)]) + 1.0e-100);
-			nYE = dldY[idx(i + 1, j)] / (std::fabs(dldY[idx(i + 1, j)]) + 1.0e-100);
-			nXS = dldX[idx(i, j - 1)] / (std::fabs(dldX[idx(i, j - 1)]) + 1.0e-100);
-			nYS = dldY[idx(i, j - 1)] / (std::fabs(dldY[idx(i, j - 1)]) + 1.0e-100);
-			nXN = dldX[idx(i, j + 1)] / (std::fabs(dldX[idx(i, j + 1)]) + 1.0e-100);
-			nYN = dldY[idx(i, j + 1)] / (std::fabs(dldY[idx(i, j + 1)]) + 1.0e-100);
-			nXM = dldX[idx(i, j)] / (std::fabs(dldX[idx(i, j)]) + 1.0e-100);
-			nYM = dldY[idx(i, j)] / (std::fabs(dldY[idx(i, j)]) + 1.0e-100);
+			nXW = dldX[idx(i - 1, j)] / (std::sqrt(std::pow(dldX[idx(i - 1, j)], 2.0) + std::pow(dldY[idx(i - 1, j)], 2.0)) + 1.0e-100);
+			nYW = dldY[idx(i - 1, j)] / (std::sqrt(std::pow(dldX[idx(i - 1, j)], 2.0) + std::pow(dldY[idx(i - 1, j)], 2.0)) + 1.0e-100); 
+			nXE = dldX[idx(i + 1, j)] / (std::sqrt(std::pow(dldX[idx(i + 1, j)], 2.0) + std::pow(dldY[idx(i + 1, j)], 2.0)) + 1.0e-100);
+			nYE = dldY[idx(i + 1, j)] / (std::sqrt(std::pow(dldX[idx(i + 1, j)], 2.0) + std::pow(dldY[idx(i + 1, j)], 2.0)) + 1.0e-100);
+			nXS = dldX[idx(i, j - 1)] / (std::sqrt(std::pow(dldX[idx(i, j - 1)], 2.0) + std::pow(dldY[idx(i, j - 1)], 2.0)) + 1.0e-100);
+			nYS = dldY[idx(i, j - 1)] / (std::sqrt(std::pow(dldX[idx(i, j - 1)], 2.0) + std::pow(dldY[idx(i, j - 1)], 2.0)) + 1.0e-100);
+			nXN = dldX[idx(i, j + 1)] / (std::sqrt(std::pow(dldX[idx(i, j + 1)], 2.0) + std::pow(dldY[idx(i, j + 1)], 2.0)) + 1.0e-100);
+			nYN = dldY[idx(i, j + 1)] / (std::sqrt(std::pow(dldX[idx(i, j + 1)], 2.0) + std::pow(dldY[idx(i, j + 1)], 2.0)) + 1.0e-100);
+			nXM = dldX[idx(i, j)] / (std::sqrt(std::pow(dldX[idx(i, j)], 2.0) + std::pow(dldY[idx(i, j)], 2.0)) + 1.0e-100);
+			nYM = dldY[idx(i, j)] / (std::sqrt(std::pow(dldX[idx(i, j)], 2.0) + std::pow(dldY[idx(i, j)], 2.0)) + 1.0e-100);
 			
 			/*
 			// [p^*] = 2 dt[mu](\del u \cdot n, \del v \cdot n) \cdot N + dt \sigma \kappa
@@ -1332,7 +1332,7 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 					+ m_dt * kSigma * m_kappa[idx(i, j)];
 				aEff = (aM * std::fabs(lsW) + aW * std::fabs(lsM)) / (std::fabs(lsW) + std::fabs(lsM));
 				iRhoW = 1.0 / (kRhoO * kRhoI) * (std::fabs(lsW) + std::fabs(lsM))
-					/ (1.0 / kRhoO * theta + 1.0 / kRhoI * (1.0 - theta));
+					/ (1.0 / kRhoO * std::fabs(lsW) + 1.0 / kRhoI * std::fabs(lsM));
 				FW = iRhoW * aEff / (kDx * kDx) - iRhoW * b * theta / ((1.0 / kRhoI) * kDx);
 			}
 			else if (lsW < 0 && lsM >= 0) {
@@ -1351,7 +1351,7 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 					+ m_dt * kSigma * m_kappa[idx(i, j)];
 				aEff = (aM * std::fabs(lsW) + aW * std::fabs(lsM)) / (std::fabs(lsW) + std::fabs(lsM));
 				iRhoW = 1.0 / (kRhoI * kRhoO) * (std::fabs(lsW) + std::fabs(lsM))
-					/ (1.0 / kRhoI * theta + 1.0 / kRhoO * (1.0 - theta));
+					/ (1.0 / kRhoI * std::fabs(lsW) + 1.0 / kRhoO * std::fabs(lsM));
 				FW = -iRhoW * aEff / (kDx * kDx) + iRhoW * b * theta / ((1.0 / kRhoO) * kDx);
 			}
 
@@ -1377,7 +1377,7 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 					+ m_dt * kSigma * m_kappa[idx(i + 1, j)];
 				aEff = (aM * std::fabs(lsE) + aE * std::fabs(lsM)) / (std::fabs(lsM) + std::fabs(lsE));
 				1.0 / (kRhoI * kRhoO) * (std::fabs(lsM) + std::fabs(lsE))
-					/ (1.0 / kRhoI * theta + 1.0 / kRhoO * (1.0 - theta));
+					/ (1.0 / kRhoI * std::fabs(lsE) + 1.0 / kRhoO * std::fabs(lsM));
 				FE = -iRhoE * aEff / (kDx * kDx) - iRhoE * b * theta / ((1.0 / kRhoO) * kDx);
 			}
 			else if (lsM < 0 && lsE >= 0) {
@@ -1396,7 +1396,7 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 					+ m_dt * kSigma * m_kappa[idx(i + 1, j)];
 				aEff = (aM * std::fabs(lsE) + aE * std::fabs(lsM)) / (std::fabs(lsM) + std::fabs(lsE));
 				iRhoE = 1.0 / (kRhoO * kRhoI) * (std::fabs(lsM) + std::fabs(lsE))
-					/ (1.0 / kRhoO * theta + 1.0 / kRhoI * (1.0 - theta));
+					/ (1.0 / kRhoO * std::fabs(lsE) + 1.0 / kRhoI * std::fabs(lsM));
 				FE = iRhoE * aEff / (kDx * kDx) + iRhoE * b * theta / ((1.0 / kRhoI) * kDx);
 			}
 
@@ -1421,7 +1421,7 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 					+ m_dt * kSigma * m_kappa[idx(i, j)];
 				aEff = (aM * std::fabs(lsS) + aS * std::fabs(lsM)) / (std::fabs(lsM) + std::fabs(lsS));
 				iRhoS = 1.0 / (kRhoO * kRhoI) * (std::fabs(lsS) + std::fabs(lsM))
-					/ (1.0 / kRhoO * theta + 1.0 / kRhoI * (1.0 - theta));
+					/ (1.0 / kRhoO * std::fabs(lsS) + 1.0 / kRhoI * std::fabs(lsM));
 				FS = iRhoS * aEff / (kDy * kDy) - iRhoS * b * theta / ((1.0 / kRhoI) * kDy);
 			}
 			else if (lsS < 0 && lsM >= 0) {
@@ -1440,7 +1440,7 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 					+ m_dt * kSigma * m_kappa[idx(i, j)];
 				aEff = (aM * std::fabs(lsS) + aS * std::fabs(lsM)) / (std::fabs(lsM) + std::fabs(lsS));
 				iRhoS = 1.0 / (kRhoI * kRhoO) * (std::fabs(lsS) + std::fabs(lsM))
-					/ (1.0 / kRhoI * theta + 1.0 / kRhoO * (1.0 - theta));
+					/ (1.0 / kRhoI * std::fabs(lsS) + 1.0 / kRhoO * std::fabs(lsM));
 				FS = -iRhoS * aEff / (kDy * kDy) + iRhoS * b * theta / ((1.0 / kRhoO) * kDy);
 			}
 			
@@ -1466,7 +1466,7 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 					+ m_dt * kSigma * m_kappa[idx(i, j + 1)];
 				aEff = (aM * std::fabs(lsN) + aN * std::fabs(lsM)) / (std::fabs(lsM) + std::fabs(lsN));
 				iRhoN = 1.0 / (kRhoI * kRhoO) * (std::fabs(lsM) + std::fabs(lsN))
-					/ (1.0 / kRhoI * theta + 1.0 / kRhoO * (1.0 - theta));
+					/ (1.0 / kRhoI * std::fabs(lsN) + 1.0 / kRhoO * std::fabs(lsM));
 				FN = -iRhoN * aEff / (kDy * kDy) - iRhoN * b * theta / ((1.0 / kRhoO) * kDy);
 			}
 			else if (lsM < 0 && lsN >= 0) {
@@ -1485,12 +1485,14 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 					+ m_dt * kSigma * m_kappa[idx(i, j + 1)];
 				aEff = (aM * std::fabs(lsN) + aN * std::fabs(lsM)) / (std::fabs(lsM) + std::fabs(lsN));
 				iRhoN = 1.0 / (kRhoO * kRhoI) * (std::fabs(lsM) + std::fabs(lsN))
-					/ (1.0 / kRhoO * theta + 1.0 / kRhoI * (1.0 - theta));
+					/ (1.0 / kRhoO * std::fabs(lsN) + 1.0 / kRhoI * std::fabs(lsM));
 				FN = iRhoN * aEff / (kDy * kDy) + iRhoN * b * theta / ((1.0 / kRhoI) * kDy);
 			}
 
 			// initially set variable coef. considered RHS
 			rhs[idx(i, j)] = FW + FE + FS + FN;
+			if (rhs[idx(i, j)] != 0.0)
+				std::cout << i << " " << j << " " << FW << " " << FE << " " << FS << " " << FN << std::endl;
 
 			assert(rhs[idx(i, j)] == rhs[idx(i, j)]);
 			if (std::isnan(rhs[idx(i, j)]) || std::isinf(rhs[idx(i, j)])) {
