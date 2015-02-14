@@ -40,7 +40,7 @@ int MAC2DTest_SmallAirBubble() {
 	MSolver->SetBCConstantVS(0.0);
 	MSolver->SetBCConstantVN(0.0);
 	MSolver->SetPLTType(PLTTYPE::BOTH);
-	MSolver->SetPoissonSolver(POISSONTYPE::BICGSTAB);
+	MSolver->SetPoissonSolver(POISSONTYPE::GS);
 
 	std::shared_ptr<LevelSetSolver2D> LSolver;
 	LSolver = std::make_shared<LevelSetSolver2D>(nx, ny, num_bc_grid, dx, dy);

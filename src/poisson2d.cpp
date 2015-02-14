@@ -5,48 +5,70 @@ PoissonSolver2D::PoissonSolver2D(int nx, int ny, int num_bc_grid) :
 }
 
 int PoissonSolver2D::GS_2FUniform_2D(std::vector<double>& ps, const std::vector<double>& rhs,
-	double dx, double dy, std::shared_ptr<BoundaryCondition2D> PBC) {
-	std::vector<double> oldPs((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
-	std::vector<double> tmpPs((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
+	std::vector<double>& AVals, std::vector<MKL_INT>& ACols, std::vector<MKL_INT>& ARowIdx,
+	double lenX, double lenY, double dx, double dy, std::shared_ptr<BoundaryCondition2D> PBC) {
+	
+	MKL_INT Anrows = kNx * kNy, Ancols = kNx * kNy;
+	MKL_INT size = kNx * kNy;
+
+	std::vector<double> oldPs(size, 0.0);
+	std::vector<double> tmpPs(size, 0.0);
+	std::vector<double> b(size, 0.0);
+
 	const double eps = 1.0e-6, omega = 1.5;
 	double err = 1.0, err_upper = 0.0, err_lower = 0.0;
 
-	std::copy(ps.begin(), ps.end(), oldPs.begin());
-	std::copy(ps.begin(), ps.end(), tmpPs.begin());
+	for (int j = 0; j < kNy; j++)
+	for (int i = 0; i < kNx; i++) {
+		b[i + j * kNx] = rhs[idx(i + kNumBCGrid, j + kNumBCGrid)];
+		oldPs[i + j * kNx] = ps[idx(i + kNumBCGrid, j + kNumBCGrid)];
+		tmpPs[i + j * kNx] = ps[idx(i + kNumBCGrid, j + kNumBCGrid)];
+	}
 
-	double d = std::min(dx, dy);
+	long int j = 0;
+	double diag = 0.0;
+	int iter = 0, maxIter = 10000;
+	while (err > eps && iter < maxIter) {
+		for (long int i = 0; i < size; i++) {
+			tmpPs[i] = b[i];
 
-	while (err > eps) {
-		PBC->ApplyBC_P_2D(tmpPs);
+			for (long int p = ARowIdx[i]; p < ARowIdx[i + 1]; p++) {
+				j = ACols[p];
+				if (i == j)
+					diag = AVals[p];
+				else
+					tmpPs[i] -= AVals[p] * tmpPs[j];
+			}
 
-		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
-		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
-			tmpPs[idx(i, j)] = 0.25
-					* (tmpPs[idx(i - 1, j)] + tmpPs[idx(i + 1, j)] + tmpPs[idx(i, j - 1)] + tmpPs[idx(i, j + 1)]
-					- d * d * rhs[idx(i, j)]);
+			tmpPs[i] /= diag;
 		}
 
-		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
-		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
-			tmpPs[idx(i, j)] = oldPs[idx(i, j)] + omega * (tmpPs[idx(i, j)] - oldPs[idx(i, j)]);
+		for (long int i = 0; i < size; i++) {
+			tmpPs[i] = oldPs[i] + omega * (tmpPs[i] - oldPs[i]);
 		}
-
-		PBC->ApplyBC_P_2D(tmpPs);
 
 		err_upper = 0.0;
 		err_lower = 0.0;
-		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
-		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
-			err_upper += (tmpPs[idx(i, j)] - oldPs[idx(i, j)]) * (tmpPs[idx(i, j)] - oldPs[idx(i, j)]);
-			err_lower += oldPs[idx(i, j)] * oldPs[idx(i, j)];
+		for (long int i = 0; i < size; i++) {
+			err_upper += (tmpPs[i] - oldPs[i]) * (tmpPs[i] - oldPs[i]);
+			err_lower += oldPs[i] * oldPs[i];
+			oldPs[i] = tmpPs[i];
 		}
 
-		err = err_upper / (err_lower + 1.0e-40);
+		err = err_upper / (err_lower + 1.0e-100);
 		err = std::sqrt(err);
+		iter++;
+
+		std::cout << "It : " << iter << " " << err << std::endl;
 		
 		std::copy(tmpPs.begin(), tmpPs.end(), oldPs.begin());
 	}
 
+	for (int j = 0; j < kNy; j++)
+	for (int i = 0; i < kNx; i++) {
+		ps[idx(i + kNumBCGrid, j + kNumBCGrid)] = tmpPs[i + j * kNx];
+	}
+	
 	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 		if (std::isnan(ps[idx(i, j)]) || std::isinf(ps[idx(i, j)]))
@@ -217,7 +239,7 @@ int PoissonSolver2D::CG_2FUniform_2D(std::vector<double>& ps, const std::vector<
 
 	for (int j = 0; j < kNy; j++)
 	for (int i = 0; i < kNx; i++) {
-		b[i + j * kNx] = rhs[idx(i, j)];
+		b[i + j * kNx] = rhs[idx(i + kNumBCGrid, j + kNumBCGrid)];
 		x[i + j * kNx] = 0.0;
 		dTmp[i + j * kNx] = 0.0;
 		d[i + j * kNx] = 0.0;
@@ -267,7 +289,7 @@ int PoissonSolver2D::CG_2FUniform_2D(std::vector<double>& ps, const std::vector<
 			// 	std::cout << i << " " << j << " " << q[i + j * kNx] << std::endl;
 		}
 
-		std::cout << "Alpha : "<< delta_new << " " << cblas_ddot(size, d, 1, q, 1) << " " <<alpha << " " <<std::endl;
+		// std::cout << "Alpha : "<< delta_new << " " << cblas_ddot(size, d, 1, q, 1) << " " <<alpha << " " <<std::endl;
 		
 		// x_k+1 = x_k + alpha * d_k
 		// https://software.intel.com/en-us/node/468394
@@ -286,7 +308,7 @@ int PoissonSolver2D::CG_2FUniform_2D(std::vector<double>& ps, const std::vector<
 		delta_new = cblas_ddot(size, r, 1, r, 1);
 
 		beta = delta_new / (delta_old + err_tol * err_tol);
-		std::cout << "Beta : " << delta_new << " " << delta_old << std::endl;
+		// std::cout << "Beta : " << delta_new << " " << delta_old << std::endl;
 		if (std::isnan(beta) || std::isinf(beta)) {
 			std::cout << "poisson equation nan/inf error(beta) : " << iter << " " << beta << std::endl;
 			exit(1);
@@ -312,7 +334,7 @@ int PoissonSolver2D::CG_2FUniform_2D(std::vector<double>& ps, const std::vector<
 	
 	for (int j = 0; j < kNy; j++)
 	for (int i = 0; i < kNx; i++) {
-		ps[idx(i, j)] = d[i + j * kNx];
+		ps[idx(i + kNumBCGrid, j + kNumBCGrid)] = d[i + j * kNx];
 		assert(AVals[idx(i, j)] == AVals[idx(i, j)]);
 		assert(ACols[idx(i, j)] == ACols[idx(i, j)]);
 		assert(ps[idx(i, j)] == ps[idx(i, j)]);
@@ -356,7 +378,7 @@ int PoissonSolver2D::BiCGStab_2FUniform_2D(std::vector<double>& ps, const std::v
 
 	for (int j = 0; j < kNy; j++)
 	for (int i = 0; i < kNx; i++) {
-		b[i + j * kNx] = rhs[idx(i, j)];
+		b[i + j * kNx] = rhs[idx(i + kNumBCGrid, j + kNumBCGrid)];
 		Ax[i + j * kNx] = 0.0;
 		x[i + j * kNx] = 0.0;
 		r[i + j * kNx] = 0.0;
@@ -367,8 +389,7 @@ int PoissonSolver2D::BiCGStab_2FUniform_2D(std::vector<double>& ps, const std::v
 		s[i + j * kNx] = 0.0;
 		t[i + j * kNx] = 0.0;
 	}
-
-	bnorm2 = cblas_dnrm2(size, b, 1);
+	
 	// get Ax(=A*x), using upper triangular matrix (Sparse BLAS)
 	// https://software.intel.com/en-us/node/468560
 	char transa = 'n';
@@ -381,14 +402,17 @@ int PoissonSolver2D::BiCGStab_2FUniform_2D(std::vector<double>& ps, const std::v
 	// https://software.intel.com/en-us/node/468394
 	cblas_daxpy(size, -1.0, Ax, 1, r, 1);
 
-	// d_0 = r
+	// r_0 = r
 	cblas_dcopy(size, r, 1, r0, 1);
 	
+	// norm of b matrix
+	bnorm2 = cblas_dnrm2(size, b, 1);
+
 	// declare coefficients
 	double alpha = 1.0, beta = 1.0;
 	double rho = 1.0, rhoPrev = 1.0, omega = 1.0, omegaPrev = 1.0;
 	
-	const int maxiter = 200;
+	const int maxiter = 250;
 	const double err_tol = 1.0e-6;
 	int iter = 0;
 	bool isConverged = false;
@@ -405,7 +429,7 @@ int PoissonSolver2D::BiCGStab_2FUniform_2D(std::vector<double>& ps, const std::v
 		// pTmp = p_i
 		cblas_dcopy(size, p, 1, pTmp, 1);
 		// pTmp = pTmp - \omega_{i - 1}v_{i -  1} = p - \omega_{i - 1}v_{i -  1}
-		cblas_daxpy(size, -omegaPrev, nu, 1, pTmp, 1);
+		cblas_daxpy(size, -omega, nu, 1, pTmp, 1);
 		// pTmp = (beta - 1.0) * pTmp + pTmp = beta * pTmp
 		cblas_daxpy(size, beta - 1.0, pTmp, 1, pTmp, 1);
 		// p = pTmp
@@ -416,7 +440,7 @@ int PoissonSolver2D::BiCGStab_2FUniform_2D(std::vector<double>& ps, const std::v
 		// \nu  = A * p_i
 		// https://software.intel.com/en-us/node/468560
 		mkl_cspblas_dcsrgemv(&transa, &Anrows, AVals.data(), ARowIdx.data(), ACols.data(), p, nu);
-
+		
 		// \nu = rho_i / (r0, \nu)
 		alpha = rho / cblas_ddot(size, r0, 1, nu, 1);
 
@@ -446,13 +470,16 @@ int PoissonSolver2D::BiCGStab_2FUniform_2D(std::vector<double>& ps, const std::v
 
 		if (rnorm2 / bnorm2 <= err_tol)
 			isConverged = true;
-		std::cout << "Norm : " << rnorm2 << " Alpha : " << alpha << " Beta : " << beta << std::endl;
+		std::cout << iter << " Norm : " << rnorm2 << " Alpha : " << alpha << " Beta : " << beta << std::endl;
 		iter++;
+
+		// if (iter > 10)
+		// 	exit(1);
 	}
 	
 	for (int j = 0; j < kNy; j++)
 	for (int i = 0; i < kNx; i++) {
-		ps[idx(i, j)] = x[i + j * kNx];
+		ps[idx(i + kNumBCGrid, j + kNumBCGrid)] = x[i + j * kNx];
 		assert(AVals[idx(i, j)] == AVals[idx(i, j)]);
 		assert(ACols[idx(i, j)] == ACols[idx(i, j)]);
 		assert(ps[idx(i, j)] == ps[idx(i, j)]);
@@ -475,6 +502,7 @@ int PoissonSolver2D::BiCGStab_2FUniform_2D(std::vector<double>& ps, const std::v
 
 	return 0;
 }
+
 inline int PoissonSolver2D::idx(int i, int j) {
 	return i + (kNx + 2 * kNumBCGrid) * j;
 }

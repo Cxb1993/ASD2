@@ -1740,17 +1740,16 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 
 	}
 	else if (m_PoissonSolverType == POISSONTYPE::CG) {
+		std::cout << "Poisson : CG" << std::endl;
 		m_Poisson->CG_2FUniform_2D(ps, rhs, AVals, ACols, ARowIdx, kLenX, kLenY, kDx, kDy, m_BC);
 	}
 	else if (m_PoissonSolverType == POISSONTYPE::BICGSTAB) {
+		std::cout << "Poisson : BiCG" << std::endl;
 		m_Poisson->BiCGStab_2FUniform_2D(ps, rhs, AVals, ACols, ARowIdx, kLenX, kLenY, kDx, kDy, m_BC);
 	}
 	else if (m_PoissonSolverType == POISSONTYPE::GS) {
-		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
-			rhs[idx(i, j)] *= -1;
-
-		m_Poisson->GS_2FUniform_2D(ps, rhs, kDx, kDy, m_BC);
+		std::cout << "Poisson : GS" << std::endl;
+		m_Poisson->GS_2FUniform_2D(ps, rhs, AVals, ACols, ARowIdx, kLenX, kLenY, kDx, kDy, m_BC);
 	}
 
 	return 0;
