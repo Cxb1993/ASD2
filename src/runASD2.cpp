@@ -12,7 +12,8 @@ int main(int argc, char *argv[]) {
 	const double gConstant = -9.81;
 	// # of cells
 	const int nx = 80, ny = 120;
-	const double baseX = -0.01, baseY = -0.01, lenX = 0.02, lenY = 0.03, cfl = 0.5;
+	// const double baseX = -0.01, baseY = -0.01, lenX = 0.02, lenY = 0.03, cfl = 0.5;
+	const double baseX = -1.0, baseY = -1.0, lenX = 2.0, lenY = 3.0, cfl = 0.5;
 	const int maxtime = 2.0, maxiter = 30, niterskip = 1, num_bc_grid = 3;
 	const bool writeVTK = false;
 	// length of each cell

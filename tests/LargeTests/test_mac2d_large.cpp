@@ -9,7 +9,12 @@ int MAC2DTest_SmallAirBubble() {
 	const double gConstant = -9.81;
 	// # of cells
 	const int nx = 80, ny = 120;
+	// related to initialize level set
 	const double baseX = -0.01, baseY = -0.01, lenX = 0.02, lenY = 0.03, cfl = 0.5;
+	double radius = 1.0 / 300.0, x = 0.0, y = 0.0, d = 0.0;
+	// const double baseX = -1.0, baseY = -1.0, lenX = 2.0, lenY = 3.0, cfl = 0.5;
+	// double radius = 1.0 / 3.0, x = 0.0, y = 0.0, d = 0.0;
+
 	const int maxtime = 2.0, maxiter = 5, niterskip = 1, num_bc_grid = 3;
 	const bool writeVTK = false;
 	// length of each cell
@@ -35,7 +40,7 @@ int MAC2DTest_SmallAirBubble() {
 	MSolver->SetBCConstantVS(0.0);
 	MSolver->SetBCConstantVN(0.0);
 	MSolver->SetPLTType(PLTTYPE::BOTH);
-	MSolver->SetPoissonSolver(POISSONTYPE::CG);
+	MSolver->SetPoissonSolver(POISSONTYPE::BICGSTAB);
 
 	std::shared_ptr<LevelSetSolver2D> LSolver;
 	LSolver = std::make_shared<LevelSetSolver2D>(nx, ny, num_bc_grid, dx, dy);
@@ -44,9 +49,6 @@ int MAC2DTest_SmallAirBubble() {
 	// \phi^{n + 1}
 	std::vector<double> ls((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid));
 	// inside value must be positive levelset, otherwise, negative
-
-	// init level set
-	double radius = 1.0 / 300.0, x = 0.0, y = 0.0, d = 0.0;
 
 	LSolver->SetBC_P_2D("neumann", "neumann", "neumann", "neumann");
 	LSolver->ApplyBC_P_2D(ls);
