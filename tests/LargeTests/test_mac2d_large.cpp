@@ -40,7 +40,7 @@ int MAC2DTest_SmallAirBubble() {
 	MSolver->SetBCConstantVS(0.0);
 	MSolver->SetBCConstantVN(0.0);
 	MSolver->SetPLTType(PLTTYPE::BOTH);
-	MSolver->SetPoissonSolver(POISSONTYPE::GS);
+	MSolver->SetPoissonSolver(POISSONTYPE::BICGSTAB);
 
 	std::shared_ptr<LevelSetSolver2D> LSolver;
 	LSolver = std::make_shared<LevelSetSolver2D>(nx, ny, num_bc_grid, dx, dy);
@@ -105,7 +105,7 @@ int MAC2DTest_SmallAirBubble() {
 			MSolver->UpdateKappa(ls);
 			MSolver->ApplyBC_P_2D(MSolver->m_kappa);
 		}
-
+		
 		// Update F and apply time discretization
 		MSolver->UpdateJumpCond(MSolver->m_u, MSolver->m_v, ls);
 		FU = MSolver->UpdateFU(LSolver, lsB, MSolver->m_u, MSolver->m_v);
@@ -114,10 +114,15 @@ int MAC2DTest_SmallAirBubble() {
 		// Get intermediate velocity
 		uhat = MSolver->GetUhat(MSolver->m_u, FU);
 		vhat = MSolver->GetVhat(MSolver->m_v, FV);
-
+		
 		MSolver->ApplyBC_U_2D(uhat);
 		MSolver->ApplyBC_V_2D(vhat);
 		
+		MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
+			uhat, vhat, MSolver->m_ps, ls);
+		if (MSolver->m_iter > 1)
+			exit(1);
+
 		// From intermediate velocity, get divergence
 		div = MSolver->GetDivergence(uhat, vhat);
 		MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
@@ -144,8 +149,8 @@ int MAC2DTest_SmallAirBubble() {
 			std::cout << "Bubble : " << MSolver->m_iter << " " << MSolver->m_curTime << " " << MSolver->m_dt << std::endl;
 			// MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
 			// 	FU, FV, MSolver->m_ps, ls);
-			MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
-				MSolver->m_u, MSolver->m_v, MSolver->m_ps, ls);
+			// MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
+			// 	MSolver->m_u, MSolver->m_v, MSolver->m_ps, ls);
 		}
 	}
 

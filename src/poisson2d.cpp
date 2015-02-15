@@ -15,7 +15,7 @@ int PoissonSolver2D::GS_2FUniform_2D(std::vector<double>& ps, const std::vector<
 	std::vector<double> tmpPs(size, 0.0);
 	std::vector<double> b(size, 0.0);
 
-	const double eps = 1.0e-6, omega = 1.5;
+	const double eps = 1.0e-6, omega = 1.0;
 	double err = 1.0, err_upper = 0.0, err_lower = 0.0;
 
 	for (int j = 0; j < kNy; j++)
@@ -27,11 +27,14 @@ int PoissonSolver2D::GS_2FUniform_2D(std::vector<double>& ps, const std::vector<
 
 	long int j = 0;
 	double diag = 0.0;
-	int iter = 0, maxIter = 10000;
+	int iter = 0, maxIter = 30000;
 	while (err > eps && iter < maxIter) {
+		// i varies from 0 to kNx * kNy
 		for (long int i = 0; i < size; i++) {
 			tmpPs[i] = b[i];
 
+			// p is a index in AVals and ACols
+			// ARowIdx[i] is the where ACols and AVals start, (i, ACols[p]) location of matrix
 			for (long int p = ARowIdx[i]; p < ARowIdx[i + 1]; p++) {
 				j = ACols[p];
 				if (i == j)

@@ -27,7 +27,7 @@
     <ClCompile Include="..\..\..\tests\LargeTests\test_mac2d_large.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\tests\LargeTests\test_poisson_large.cpp">
+    <ClCompile Include="..\..\..\tests\LargeTests\test_poisson2d_large.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -41,7 +41,7 @@
     <ClInclude Include="..\..\..\tests\LargeTests\test_mac2d_large.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\tests\LargeTests\test_poisson_large.h">
+    <ClInclude Include="..\..\..\tests\LargeTests\test_poisson2d_large.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
