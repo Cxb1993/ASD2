@@ -67,27 +67,28 @@ int MACSolver2D::UpdateKappa(const std::vector<double>& ls) {
 	std::vector<double> dLSdY((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
 	std::vector<double> LSSize((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
 	
-	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++) {
+	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
 		dLSdX[idx(i, j)] = (ls[idx(i + 1, j)] - ls[idx(i - 1, j)]) / (2.0 * kDx);
 		dLSdY[idx(i, j)] = (ls[idx(i, j + 1)] - ls[idx(i, j - 1)]) / (2.0 * kDy);
 		
 		LSSize[idx(i, j)] = std::sqrt(dLSdX[idx(i, j)] * dLSdX[idx(i, j)] + dLSdY[idx(i, j)] * dLSdY[idx(i, j)]);
-	}
 
-	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++) {
-		if (LSSize[idx(i, j)] == 0.0) {
+		// if size is zero, use forward or backward differencing rather than central differencing
+		if (LSSize[idx(i, j)] < 1.0e-100) {
 			dLSdX[idx(i, j)] = (ls[idx(i + 1, j)] - ls[idx(i, j)]) / kDx;
 			LSSize[idx(i, j)] = std::sqrt(dLSdX[idx(i, j)] * dLSdX[idx(i, j)] + dLSdY[idx(i, j)] * dLSdY[idx(i, j)]);
-			if (LSSize[idx(i, j)] == 0.0) {
+			if (LSSize[idx(i, j)] < 1.0e-100) {
 				dLSdY[idx(i, j)] = (ls[idx(i, j + 1)] - ls[idx(i, j)]) / kDy;
 				LSSize[idx(i, j)] = std::sqrt(dLSdX[idx(i, j)] * dLSdX[idx(i, j)] + dLSdY[idx(i, j)] * dLSdY[idx(i, j)]);
 			}
 		}
-		if (LSSize[idx(i, j)] == 0.0)
+		if (LSSize[idx(i, j)] < 1.0e-100)
 			perror("Div/0 Err in computing kappa");
+	}
 
+	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
 		m_kappa[idx(i, j)]
 			= -(dLSdX[idx(i, j)] * dLSdX[idx(i, j)] * (ls[idx(i, j - 1)] - 2.0 * ls[idx(i, j)] + ls[idx(i, j + 1)]) / (kDy * kDy) // phi^2_x \phi_yy
 			- 2.0 * dLSdX[idx(i, j)] * dLSdY[idx(i, j)] * (dLSdX[idx(i, j + 1)] - dLSdX[idx(i, j - 1)]) / (2.0 * kDy) //2 \phi_x \phi_y \phi_xy
@@ -120,24 +121,24 @@ int MACSolver2D::UpdateJumpCond(const std::vector<double>& u, const std::vector<
 	
 	double nxnx = 0.0, nxny = 0.0, nyny = 0.0;
 	double t2xt2x = 0.0, t2xt2y = 0.0, t2yt2y = 0.0;
-	for (int j = kNumBCGrid - 1; j < kNy + kNumBCGrid + 1; j++)
-	for (int i = kNumBCGrid - 1; i < kNx + kNumBCGrid + 1; i++) {
-		dudX = (u[idx(i + 1, j)] - u[idx(i, j)]) / (kDx);
+	for (int i = kNumBCGrid - 1; i < kNx + kNumBCGrid + 1; i++)
+	for (int j = kNumBCGrid - 1; j < kNy + kNumBCGrid + 1; j++) {
+		dudX = (u[idx(i + 1, j)] - u[idx(i, j)]) / kDx;
 		dudY = (0.5 * (u[idx(i, j + 1)] + u[idx(i + 1, j + 1)])
 			- 0.5 * (u[idx(i, j - 1)] + u[idx(i + 1, j - 1)])) / (2.0 * kDy);
 		dvdX = (0.5 * (v[idx(i + 1, j)] + v[idx(i + 1, j + 1)])
 			- 0.5 * (v[idx(i - 1, j)] + v[idx(i - 1, j + 1)])) / (2.0 * kDx);
-		dvdY = (v[idx(i, j + 1)] - v[idx(i, j)]) / (2.0 * kDy);
+		dvdY = (v[idx(i, j + 1)] - v[idx(i, j)]) / kDy;
 		dldX = (ls[idx(i + 1, j)] - ls[idx(i - 1, j)]) / (2.0 * kDx);
 		dldY = (ls[idx(i, j + 1)] - ls[idx(i, j - 1)]) / (2.0 * kDy);
-		if (std::fabs(dldX) < 1.0e-40) {
+		if (std::fabs(dldX) < 1.0e-100) {
 			dldX = (ls[idx(i + 1, j)] - ls[idx(i, j)]) / kDx;
-			if (dldX == 0.0)
+			if (dldX < 1.0e-100)
 				dldX = (ls[idx(i, j)] - ls[idx(i - 1, j)]) / kDx;
 		}
-		if (std::fabs(dldX) < 1.0e-40) {
+		if (std::fabs(dldX) < 1.0e-100) {
 			dldY = (ls[idx(i, j + 1)] - ls[idx(i, j)]) / kDy;
-			if (dldY == 0.0)
+			if (dldY < 1.0e-100)
 				dldY = (ls[idx(i, j)] - ls[idx(i, j - 1)]) / kDy;
 		}
 
@@ -150,14 +151,14 @@ int MACSolver2D::UpdateJumpCond(const std::vector<double>& u, const std::vector<
 			// T1 = N X (1, 0) / |N X (1, 0)|
 			// T1 = N X (1, 0) = (nX, nY) X (1, 0) = -nY \hat{k} / |nY| = (0, 0, t1Z)
 			// T2 = N X T1 = (nX, nY, 0) X (0, 0, t1Z) = nY * t1Z \hat{i} - nX * t1Z \hat{j} 
-			t1Z = -nY / std::fabs(nY);
+			t1Z = -nY / (std::fabs(nY) + 1.0e-40);
 		}
 		else {
 			// smallest magnitude determine what to be performed cross product
 			// T1 = N X (0, 1) / |N X (0, 1)|
 			// T1 = N X (0, 1) = (nX, nY) X (0, 1) = nX \hat{k} / |nX| = (0, 0, t1Z)
 			// T2 = N X T1= (nX, nY, 0) X (0, 0, t1Z) = nY * t1Z \hat{i} - nX * t1Z \hat{j} 
-			t1Z = nX / std::fabs(nX);
+			t1Z = nX / (std::fabs(nX) + 1.0e-40);
 		}
 		t2X = nY * t1Z;
 		t2Y = -nX * t1Z;
@@ -229,8 +230,8 @@ std::vector<double> MACSolver2D::UpdateFU(const std::shared_ptr<LevelSetSolver2D
 		// level set
 	double lsW = 0.0, lsE = 0.0, lsS = 0.0, lsN = 0.0, lsM = 0.0;
 	double theta = 0.0, rhoEff = 0.0;
-	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-	for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++) {
+	for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
+	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
 		lsW = ls[idx(i - 1, j)];
 		lsM = ls[idx(i, j)];
 		
@@ -282,8 +283,8 @@ std::vector<double> MACSolver2D::UpdateFV(const std::shared_ptr<LevelSetSolver2D
 	// level set
 	double lsW = 0.0, lsE = 0.0, lsS = 0.0, lsN = 0.0, lsM = 0.0;
 	double theta = 0.0, rhoEff = 0.0;
-	for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++)
-	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++) {
+	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+	for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++) {
 		lsM = ls[idx(i, j)];
 		lsS = ls[idx(i, j - 1)];
 		
@@ -371,8 +372,8 @@ std::vector<double> MACSolver2D::AddConvectionFU(const std::vector<double>& u, c
 	// combine together with Local Lax-Friedrichs Scheme
 	double alphaX = 0.0, alphaY = 0.0, rhoEff = 0.0;
 
-	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-	for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++) {
+	for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
+	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
 		alphaX = u[idx(i, j)];
 		alphaY = tmpV[idx(i, j)];
 		
@@ -454,8 +455,8 @@ std::vector<double> MACSolver2D::AddConvectionFV(const std::vector<double>& u, c
 	// combine together with Local Lax-Friedrichs Scheme
 	double alphaX = 0.0, alphaY = 0.0;
 
-	for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++)
-	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++) {
+	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+	for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++) {
 		alphaX = tmpU[idx(i, j)];
 		alphaY = v[idx(i, j)];
 		
@@ -607,8 +608,8 @@ std::vector<double> MACSolver2D::AddViscosityFU(const std::vector<double>& u, co
 	// J is a jump condition and defined at P grid
 	double JEff = 0.0, JO = 0.0, uEff = 0.0, vEff = 0.0, muEff = 0.0;
 
-	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-	for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++) {
+	for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
+	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
 		visX = 0.0, visY = 0.0;
 		muU_X_W = 0.0; muU_X_E = 0.0; muU_Y_S = 0.0; muU_Y_N = 0.0;
 		lsW = 0.5 * (ls[idx(i - 2, j)] + ls[idx(i - 1, j)]);
@@ -851,8 +852,8 @@ std::vector<double> MACSolver2D::AddViscosityFV(const std::vector<double>& u, co
 	double visX = 0.0, visY = 0.0;
 	// effective Jump condition, effective v (vEff), and effective mu (muEff)
 	double JEff = 0.0, JO = 0.0, vEff = 0.0, uEff = 0.0, muEff = 0.0;
-	for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++)
-	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++) {
+	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+	for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++) {
 		muV_X_W = 0.0; muV_X_E = 0.0; muV_Y_S = 0.0; muV_Y_N = 0.0;
 		visX = 0.0, visY = 0.0;
 		lsW = 0.5 * (ls[idx(i - 1, j - 1)] + ls[idx(i - 1, j)]);
@@ -1075,14 +1076,14 @@ std::vector<double> MACSolver2D::AddGravityFU() {
 	std::vector<double> gU((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
 
 	if (kFr == 0) {
-		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-		for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++) {
+		for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
+		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
 				gU[idx(i, j)] = 0.0;
 		}
 	}
 	else {
-		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-		for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++) {
+		for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
+		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
 			gU[idx(i, j)] = -1.0 / kFr;
 		}
 	}
@@ -1094,14 +1095,14 @@ std::vector<double> MACSolver2D::AddGravityFV() {
 	std::vector<double> gV((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
 
 	if (kFr == 0) {
-		for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++)
-		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++) {
+		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+		for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++) {
 			gV[idx(i, j)] = 0.0;
 		}
 	}
 	else {
-		for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++)
-		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++) {
+		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+		for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++) {
 			gV[idx(i, j)] = -1.0 / kFr;
 		}
 	}
@@ -1113,8 +1114,8 @@ std::vector<double> MACSolver2D::GetUhat(const std::vector<double>& u, const std
 	std::vector<double> uhat((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
 
 	// Update rhs
-	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-	for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++) {
+	for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
+	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
 		uhat[idx(i, j)] = u[idx(i, j)] + m_dt * rhsu[idx(i, j)];
 		if (std::isnan(uhat[idx(i, j)]) || std::isinf(uhat[idx(i, j)])) {
 			std::cout << "Uhat term nan/inf error : " << i << " " << j << " " << uhat[idx(i, j)] << std::endl;
@@ -1129,8 +1130,8 @@ std::vector<double> MACSolver2D::GetVhat(const std::vector<double>& v, const std
 	std::vector<double> vhat((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
 
 	// Update rhs
-	for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++)
-	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++) {
+	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+	for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++) {
 		vhat[idx(i, j)] = v[idx(i, j)] + m_dt * rhsv[idx(i, j)];
 		if (std::isnan(vhat[idx(i, j)]) || std::isinf(vhat[idx(i, j)])) {
 			std::cout << "Vhat term nan/inf error : " << i << " " << j << " " << vhat[idx(i, j)] << std::endl;
@@ -1210,8 +1211,8 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 	std::map<std::string, double> AValsDic;
 	std::map<std::string, MKL_INT> AColsDic;
 
-	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++) {
+	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
 		lsW = lsB[idx(i - 1, j)];
 		lsE = lsB[idx(i + 1, j)];
 		lsM = lsB[idx(i, j)];
@@ -1224,7 +1225,7 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 
 		dvdX[idx(i, j)] = (0.5 * (v[idx(i + 1, j)] + v[idx(i + 1, j + 1)])
 			- 0.5 * (v[idx(i - 1, j)] + v[idx(i - 1, j + 1)])) / (2.0 * kDx);
-		dvdY[idx(i, j)] = (v[idx(i, j + 1)] - v[idx(i, j)]) / (2.0 * kDy);
+		dvdY[idx(i, j)] = (v[idx(i, j + 1)] - v[idx(i, j)]) / (kDy);
 
 		dldX[idx(i, j)] = (lsE - lsW) / (2.0 * kDx);
 		dldY[idx(i, j)] = (lsN - lsS) / (2.0 * kDy);
@@ -1240,13 +1241,13 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 		}
 	}
 
-	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++) {
-		lsW = lsB[idx(i - 1, j)];
-		lsE = lsB[idx(i + 1, j)];
-		lsM = lsB[idx(i, j)];
-		lsS = lsB[idx(i, j - 1)];
-		lsN = lsB[idx(i, j + 1)];
+	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
+		lsW = ls[idx(i - 1, j)];
+		lsE = ls[idx(i + 1, j)];
+		lsM = ls[idx(i, j)];
+		lsS = ls[idx(i, j - 1)];
+		lsN = ls[idx(i, j + 1)];
 
 		FW = 0.0;
 		FE = 0.0;
@@ -1273,7 +1274,7 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 		// P_W = P_M -(2 dt[mu](\del u \cdot n, \del v \cdot n) \cdot N + dt \sigma \kappa)
 		*/
 		// FW
-		if (lsW * lsM >= 0) {
+		if (lsW * lsM > 0) {
 			// one fluid, x direction
 			FW = 0.0;
 		}
@@ -1319,7 +1320,7 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 
 		// FE
 		// p_E - p_M = 2 dt[mu](\del u \cdot n, \del v \cdot n) \cdot N + dt \kSigma \kappa
-		if (lsM * lsE >= 0) {
+		if (lsM * lsE > 0) {
 			// one fluid, x direction
 			FE = 0.0;
 		}
@@ -1363,7 +1364,7 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 		}
 
 		// FS
-		if (lsS * lsM >= 0) {
+		if (lsS * lsM > 0) {
 			// one fluid, y direction
 			FS = 0.0;
 		}
@@ -1407,7 +1408,7 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 		}
 
 		// FN
-		if (lsM * lsN >= 0) {
+		if (lsM * lsN > 0) {
 			// one fluid, y direction
 			FN = 0.0;
 		}
@@ -1451,7 +1452,9 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 		}
 
 		// initially set variable coef. considered RHS
-		rhs[idx(i, j)] = FW + FE + FS + FN;
+		// matrix start row from above, but we didn't do that way in CFD
+		// However, Poisosn equation needs matrix form.
+		rhs[idx(i, j)] -= FW + FE + FS + FN;
 		
 		assert(rhs[idx(i, j)] == rhs[idx(i, j)]);
 		if (std::isnan(rhs[idx(i, j)]) || std::isinf(rhs[idx(i, j)])) {
@@ -1461,13 +1464,14 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 	}
 
 	// Original value of RHS
-	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)	
 		rhs[idx(i, j)] += -div[idx(i, j)];
 
-	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++) {
-		lsW = lsB[idx(i - 1, j)];
+	// An order of A matrix coef. is very important, hence reverse j order
+	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
+		lsW = lsB[idx(i - 1, j)];	
 		lsE = lsB[idx(i + 1, j)];
 		lsM = lsB[idx(i, j)];
 		lsS = lsB[idx(i, j - 1)];
@@ -1581,16 +1585,17 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 
 		// Set default values, if a current pointer is in interior, it will not be changed.
 		AValsDic["S"] = -iRhoS / (kDy * kDy);
-		AColsDic["S"] = (i - kNumBCGrid) + (j - 1 - kNumBCGrid) * kNx;
+		AColsDic["S"] = (j - 1 - kNumBCGrid) + (i - kNumBCGrid) * kNy;
 		AValsDic["W"] = -iRhoW / (kDx * kDx);
-		AColsDic["W"] = (i - 1 - kNumBCGrid) + (j - kNumBCGrid) * kNx;
+		AColsDic["W"] = (j - kNumBCGrid) + (i - 1 - kNumBCGrid) * kNy;
 		AValsDic["C"] = (iRhoW + iRhoE) / (kDx * kDx) + (iRhoS + iRhoN) / (kDy * kDy);
-		AColsDic["C"] = (i - kNumBCGrid) + (j - kNumBCGrid) * kNx;
+		AColsDic["C"] = (j - kNumBCGrid) + (i - kNumBCGrid) * kNy;
 		AValsDic["E"] = -iRhoE / (kDx * kDx);
-		AColsDic["E"] = (i + 1 - kNumBCGrid) + (j - kNumBCGrid) * kNx;
+		AColsDic["E"] = (j - kNumBCGrid) + (i + 1 - kNumBCGrid) * kNy;
 		AValsDic["N"] = -iRhoN / (kDy * kDy);
-		AColsDic["N"] = (i - kNumBCGrid) + (j + 1 - kNumBCGrid) * kNx;
-
+		AColsDic["N"] = (j + 1 - kNumBCGrid) + (i - kNumBCGrid) * kNy;
+		
+		/*
 		// West boundary
 		if (i == kNumBCGrid && m_BC->m_BC_PW == BC::NEUMANN) {
 			AValsDic["W"] = 0.0;
@@ -1607,6 +1612,7 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 				AColsDic["N"] = -1;
 				AValsDic["C"] -= iRhoN / (kDy * kDy);
 			}
+			
 		}
 		// East boundary
 		else if (i == kNumBCGrid + kNx - 1 && m_BC->m_BC_PE == BC::NEUMANN) {
@@ -1659,7 +1665,54 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 				AValsDic["C"] -= iRhoE / (kDx * kDx);
 			}
 		}
+		*/
 
+		if (i == kNumBCGrid && m_BC->m_BC_PW == BC::NEUMANN) {
+			AValsDic["W"] = 0.0;
+			AColsDic["W"] = -1;
+			AValsDic["C"] -= iRhoW / (kDx * kDx);
+		}
+		else if (i == kNumBCGrid && m_BC->m_BC_PW == BC::DIRICHLET) {
+			AValsDic["W"] = 0.0;
+			AColsDic["W"] = -1;
+			rhs[idx(i, j)] -= iRhoW / (kDx * kDx) * (2.0 * m_BC->m_BC_DirichletConstantPW - rhs[idx(i, j)]);
+		}
+		
+		// East boundary
+		if (i == kNumBCGrid + kNx - 1 && m_BC->m_BC_PE == BC::NEUMANN) {
+			AValsDic["E"] = 0.0;
+			AColsDic["E"] = -1;
+			AValsDic["C"] -= iRhoE / (kDx * kDx);
+		}
+		else if (i == kNumBCGrid + kNx - 1 && m_BC->m_BC_PE == BC::DIRICHLET) {
+			AValsDic["E"] = 0.0;
+			AColsDic["E"] = -1;
+			rhs[idx(i, j)] -= iRhoE / (kDx * kDx) * (2.0 * m_BC->m_BC_DirichletConstantPE - rhs[idx(i, j)]);
+		}
+
+		if (j == kNumBCGrid && m_BC->m_BC_PS == BC::NEUMANN) {
+			AValsDic["S"] = 0.0;
+			AColsDic["S"] = -1;
+			AValsDic["C"] -= iRhoS / (kDy * kDy);
+			//if (i == kNumBCGrid && m_BC->m_BC_PW == BC::NEUMANN)
+			//	rhs[idx(i, j)] = 0.0;
+		}
+		else if (j == kNumBCGrid && m_BC->m_BC_PS == BC::DIRICHLET) {
+			AValsDic["S"] = 0.0;
+			AColsDic["S"] = -1;
+			rhs[idx(i, j)] -= iRhoS / (kDy * kDy) * (2.0 * m_BC->m_BC_DirichletConstantPS - rhs[idx(i, j)]);
+		}
+		
+		if (j == kNumBCGrid + kNy - 1 && m_BC->m_BC_PN == BC::NEUMANN) {
+			AValsDic["N"] = 0.0;
+			AColsDic["N"] = -1;
+			AValsDic["C"] -= iRhoN / (kDy * kDy);
+		}
+		else if (j == kNumBCGrid + kNy - 1 && m_BC->m_BC_PN == BC::DIRICHLET) {
+			AValsDic["N"] = 0.0;
+			AColsDic["N"] = -1;
+			rhs[idx(i, j)] -= iRhoN / (kDy * kDy) * (2.0 * m_BC->m_BC_DirichletConstantPN - rhs[idx(i, j)]);
+		}
 		// add non zero values to AVals and ACols
 		// KEEP ORDER OF PUSH_BACK!!
 		if (AColsDic["S"] >= 0) {
@@ -1724,10 +1777,9 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 
 		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
 		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
-			rhs[idx(i, j)] = -div[idx(i, j)];
+			rhs[idx(i, j)] += -div[idx(i, j)];
 		
-		m_Poisson->MKL_2FUniform_2D(ps, rhs,
-			kLenX, kLenY, kDx, kDy, m_BC);
+		m_Poisson->MKL_2FUniform_2D(ps, rhs, kLenX, kLenY, kDx, kDy, m_BC);
 		
 		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
 		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
@@ -1742,14 +1794,29 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 	else if (m_PoissonSolverType == POISSONTYPE::CG) {
 		std::cout << "Poisson : CG" << std::endl;
 		m_Poisson->CG_2FUniform_2D(ps, rhs, AVals, ACols, ARowIdx, kLenX, kLenY, kDx, kDy, m_BC);
+
+		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
+		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+			if (std::isnan(ps[idx(i, j)]) || std::isinf(ps[idx(i, j)]))
+				std::cout << "Pseudo-p nan/inf error : " << i << " " << j << " " << ps[idx(i, j)] << std::endl;
 	}
 	else if (m_PoissonSolverType == POISSONTYPE::BICGSTAB) {
 		std::cout << "Poisson : BiCG" << std::endl;
 		m_Poisson->BiCGStab_2FUniform_2D(ps, rhs, AVals, ACols, ARowIdx, kLenX, kLenY, kDx, kDy, m_BC);
+
+		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
+		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+			if (std::isnan(ps[idx(i, j)]) || std::isinf(ps[idx(i, j)]))
+				std::cout << "Pseudo-p nan/inf error : " << i << " " << j << " " << ps[idx(i, j)] << std::endl;
 	}
 	else if (m_PoissonSolverType == POISSONTYPE::GS) {
 		std::cout << "Poisson : GS" << std::endl;
 		m_Poisson->GS_2FUniform_2D(ps, rhs, AVals, ACols, ARowIdx, kLenX, kLenY, kDx, kDy, m_BC);
+
+		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
+		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+			if (std::isnan(ps[idx(i, j)]) || std::isinf(ps[idx(i, j)]))
+				std::cout << "Pseudo-p nan/inf error : " << i << " " << j << " " << ps[idx(i, j)] << std::endl;
 	}
 
 	return 0;
@@ -1758,8 +1825,8 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 std::vector<double> MACSolver2D::GetDivergence(const std::vector<double>& u, const std::vector<double>& v) {
 	std::vector<double> div((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
 
-	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
 		div[idx(i, j)] = (u[idx(i + 1, j)] - u[idx(i, j)]) / kDx
 						+ (v[idx(i, j + 1)] - v[idx(i, j)]) / kDy;
 	
@@ -1772,8 +1839,8 @@ int MACSolver2D::UpdateVel(std::vector<double>& u, std::vector<double>& v,
 	// velocity update after solving poisson equation
 	// ps = p * dt
 	double lsW = 0.0, lsM = 0.0, lsS = 0.0, rhoEff = 0.0, theta = 0.0;
-	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-	for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++) {
+	for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
+	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
 		lsW = ls[idx(i - 1, j)];
 		lsM = ls[idx(i, j)];
 
@@ -1800,8 +1867,8 @@ int MACSolver2D::UpdateVel(std::vector<double>& u, std::vector<double>& v,
 		u[idx(i, j)] = us[idx(i, j)] - (ps[idx(i, j)] - ps[idx(i - 1, j)]) / (kDx * rhoEff);
 	}
 
-	for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++)
-	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++) {
+	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+	for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++) {
 		lsM = ls[idx(i, j)];
 		lsS = ls[idx(i, j - 1)];
 
@@ -1838,8 +1905,8 @@ double MACSolver2D::UpdateDt(const std::vector<double>& u, const std::vector<dou
 	double Cefl = 0.0, Vefl = 0.0, Gefl = 0.0;
 	double dt = std::numeric_limits<double>::max();
 
-	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++) {
+	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
 		uAMax = std::max(uAMax, std::fabs((u[idx(i + 1, j)] * u[idx(i, j)]) * 0.5));
 		vAMax = std::max(vAMax, std::fabs((v[idx(i, j + 1)] * v[idx(i, j)]) * 0.5));
 	}
@@ -1954,7 +2021,7 @@ void MACSolver2D::SetBCConstantPN(double BC_ConstantN) {
 }
 
 inline int MACSolver2D::idx(int i, int j) {
-	return i + (kNx + 2 * kNumBCGrid) * j;
+	return (j + (kNy + 2 * kNumBCGrid) * (i));
 }
 
 int MACSolver2D::SetPLTType(PLTTYPE type) {
@@ -1965,7 +2032,7 @@ int MACSolver2D::SetPLTType(PLTTYPE type) {
 
 int MACSolver2D::OutRes(int iter, double curTime, const std::string fname_vel_base, const std::string fname_div_base,
 	const std::vector<double>& u, const std::vector<double>& v,
-	const std::vector<double>& phi, const std::vector<double>& ls) {
+	const std::vector<double>& ps, const std::vector<double>& ls) {
 	if (m_PLTType == PLTTYPE::ASCII || m_PLTType == PLTTYPE::BOTH) {
 		std::ofstream outF;
 		std::string fname_vel(fname_vel_base + "_ASCII.plt");
@@ -1989,19 +2056,18 @@ int MACSolver2D::OutRes(int iter, double curTime, const std::string fname_vel_ba
 
 		std::vector<double> resDiv = GetDivergence(u, v);
 		
-		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
 		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
 			resU[idx(i, j)] = (u[idx(i, j)] + u[idx(i + 1, j)]) * 0.5;
 
-		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
 		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
 			resV[idx(i, j)] = (v[idx(i, j)] + v[idx(i, j + 1)]) * 0.5;
 
 		outF.open(fname_vel.c_str(), std::ios::app);
 		
 		outF << std::string("ZONE T=\"") << iter
 			<< std::string("\", I=") << kNx << std::string(", J=") << kNy
-			<< std::string(", DATAPACKING=POINT")
 			<< std::string(", SOLUTIONTIME=") << curTime
 			<< std::string(", STRANDID=") << iter + 1
 			<< std::endl;
@@ -2013,7 +2079,7 @@ int MACSolver2D::OutRes(int iter, double curTime, const std::string fname_vel_ba
 				<< static_cast<double>(resU[idx(i, j)]) << std::string(",")
 				<< static_cast<double>(resV[idx(i, j)]) << std::string(",")
 				<< static_cast<double>(ls[idx(i, j)]) << std::string(",")
-				<< static_cast<double>(phi[idx(i, j)]) << std::endl;
+				<< static_cast<double>(ps[idx(i, j)]) << std::endl;
 
 		outF.close();
 
@@ -2021,7 +2087,6 @@ int MACSolver2D::OutRes(int iter, double curTime, const std::string fname_vel_ba
 
 		outF << std::string("ZONE T=\"") << iter
 			<< std::string("\", I=") << kNx << std::string(", J=") << kNy
-			<< std::string(", DATAPACKING=POINT")
 			<< std::string(", SOLUTIONTIME=") << curTime
 			<< std::string(", STRANDID=") << iter + 1
 			<< std::endl;
@@ -2031,8 +2096,8 @@ int MACSolver2D::OutRes(int iter, double curTime, const std::string fname_vel_ba
 			outF << kBaseX + static_cast<double>(i + 0.5 - kNumBCGrid) * kDx << std::string(",")
 				<< kBaseY + static_cast<double>(j + 0.5 - kNumBCGrid) * kDy << std::string(",")
 				<< static_cast<double>(ls[idx(i, j)]) << std::string(",")
-				<< static_cast<double>(m_kappa[idx(i, j)]) << std::string(",")
-				<< static_cast<double>(phi[idx(i, j)]) << std::endl;
+				<< static_cast<double>(resDiv[idx(i, j)]) << std::string(",")
+				<< static_cast<double>(ps[idx(i, j)]) << std::endl;
 
 		outF.close();
 	}
@@ -2048,18 +2113,18 @@ int MACSolver2D::OutRes(int iter, double curTime, const std::string fname_vel_ba
 			resU(kNx * kNy, 0.0),
 			resV(kNx * kNy, 0.0),
 			resLS(kNx * kNy, 0.0),
-			resPhi(kNx * kNy, 0.0);
+			resPs(kNx * kNy, 0.0);
 
 		std::vector<double> resDiv = GetDivergence(u, v);
 		
-		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++) {
+		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)	 {
 			resX[(i - kNumBCGrid) + kNx * (j - kNumBCGrid)] = kBaseX + (i + 0.5 - kNumBCGrid) * kDx;
 			resY[(i - kNumBCGrid) + kNx * (j - kNumBCGrid)] = kBaseY + (j + 0.5 - kNumBCGrid) * kDy;
 			resU[(i - kNumBCGrid) + kNx * (j - kNumBCGrid)] = (u[idx(i, j)] + u[idx(i + 1, j)]) * 0.5;
 			resV[(i - kNumBCGrid) + kNx * (j - kNumBCGrid)] = (v[idx(i, j)] + v[idx(i, j + 1)]) * 0.5;
 			resLS[(i - kNumBCGrid) + kNx * (j - kNumBCGrid)] = ls[idx(i, j)];
-			resPhi[(i - kNumBCGrid) + kNx * (j - kNumBCGrid)] = phi[idx(i, j)];
+			resPs[(i - kNumBCGrid) + kNx * (j - kNumBCGrid)] = ps[idx(i, j)];
 		}
 
 		INTEGER4 Debug = 1;
@@ -2126,7 +2191,7 @@ int MACSolver2D::OutRes(int iter, double curTime, const std::string fname_vel_ba
 		stat = TECDAT142(&ARRSIZEVAL, resU.data(), &DIsDouble);
 		stat = TECDAT142(&ARRSIZEVAL, resV.data(), &DIsDouble);
 		stat = TECDAT142(&ARRSIZEVAL, resLS.data(), &DIsDouble);
-		stat = TECDAT142(&ARRSIZEVAL, resPhi.data(), &DIsDouble);
+		stat = TECDAT142(&ARRSIZEVAL, resPs.data(), &DIsDouble);
 
 		if (m_iter == 0) {
 			stat = TECINI142(const_cast<char *>(std::string("DIVERGENCE").c_str()),  /* Name of the entire dataset.  */
@@ -2153,7 +2218,7 @@ int MACSolver2D::OutRes(int iter, double curTime, const std::string fname_vel_ba
 		stat = TECDAT142(&ARRSIZEVAL, resY.data(), &DIsDouble);
 		stat = TECDAT142(&ARRSIZEVAL, resLS.data(), &DIsDouble);
 		stat = TECDAT142(&ARRSIZEVAL, resDiv.data(), &DIsDouble);
-		stat = TECDAT142(&ARRSIZEVAL, resPhi.data(), &DIsDouble);
+		stat = TECDAT142(&ARRSIZEVAL, resPs.data(), &DIsDouble);
 	}
 
 	return 0;

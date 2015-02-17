@@ -1,7 +1,7 @@
 #include "test_common.h"
 
-inline int idx3(int nx, int i, int j) {
-	return i + (nx + 2 * NBC3) * j;
+inline int idx3(int ny, int i, int j) {
+	return (j + (ny + 2 * NBC3) * (i));
 }
 
 int OutRes(int iter, double curTime, const std::string fname_vel_base, const std::string fname_div_base,

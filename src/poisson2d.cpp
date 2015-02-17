@@ -15,11 +15,11 @@ int PoissonSolver2D::GS_2FUniform_2D(std::vector<double>& ps, const std::vector<
 	std::vector<double> tmpPs(size, 0.0);
 	std::vector<double> b(size, 0.0);
 
-	const double eps = 1.0e-6, omega = 1.0;
+	const double eps = 1.0e-6, omega = 1.2;
 	double err = 1.0, err_upper = 0.0, err_lower = 0.0;
 
-	for (int j = 0; j < kNy; j++)
-	for (int i = 0; i < kNx; i++) {
+	for (int i = 0; i < kNx; i++)
+	for (int j = 0; j < kNy; j++) {
 		b[i + j * kNx] = rhs[idx(i + kNumBCGrid, j + kNumBCGrid)];
 		oldPs[i + j * kNx] = ps[idx(i + kNumBCGrid, j + kNumBCGrid)];
 		tmpPs[i + j * kNx] = ps[idx(i + kNumBCGrid, j + kNumBCGrid)];
@@ -27,20 +27,26 @@ int PoissonSolver2D::GS_2FUniform_2D(std::vector<double>& ps, const std::vector<
 
 	long int j = 0;
 	double diag = 0.0;
-	int iter = 0, maxIter = 30000;
+	int iter = 0, maxIter = 20000;
 	while (err > eps && iter < maxIter) {
 		// i varies from 0 to kNx * kNy
 		for (long int i = 0; i < size; i++) {
 			tmpPs[i] = b[i];
 
-			// p is a index in AVals and ACols
-			// ARowIdx[i] is the where ACols and AVals start, (i, ACols[p]) location of matrix
+			// p is a index of AVals(size x size) and ACols(size x size) size = kNx * kNy
+			// ARowIdx[i] is the where ACols and AVals start, (i, ACols[p]) element location of A matrix
+			// tmpPs[j] get values from ith row
 			for (long int p = ARowIdx[i]; p < ARowIdx[i + 1]; p++) {
 				j = ACols[p];
+
 				if (i == j)
 					diag = AVals[p];
 				else
 					tmpPs[i] -= AVals[p] * tmpPs[j];
+			}
+			
+			if (diag == 0.0) {
+				perror("zero diagonal term in Gauss Seidel Method");
 			}
 
 			tmpPs[i] /= diag;
@@ -61,23 +67,20 @@ int PoissonSolver2D::GS_2FUniform_2D(std::vector<double>& ps, const std::vector<
 		err = err_upper / (err_lower + 1.0e-100);
 		err = std::sqrt(err);
 		iter++;
-
-		std::cout << "It : " << iter << " " << err << std::endl;
-		
-		std::copy(tmpPs.begin(), tmpPs.end(), oldPs.begin());
 	}
 
-	for (int j = 0; j < kNy; j++)
-	for (int i = 0; i < kNx; i++) {
+	double rnorm2 = cblas_dnrm2(size, tmpPs.data(), 1);
+	std::cout << iter << " GS Norm : " << rnorm2 << std::endl;
+
+	for (int i = 0; i < kNx; i++)
+	for (int j = 0; j < kNy; j++) {
 		ps[idx(i + kNumBCGrid, j + kNumBCGrid)] = tmpPs[i + j * kNx];
 	}
 	
-	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
 		if (std::isnan(ps[idx(i, j)]) || std::isinf(ps[idx(i, j)]))
 			std::cout << "Pseudo-p nan/inf error : " << i << " " << j << " " << ps[idx(i, j)] << std::endl;
-
-	std::copy(tmpPs.begin(), tmpPs.end(), ps.begin());
 	
 	return 0;
 }
@@ -507,5 +510,5 @@ int PoissonSolver2D::BiCGStab_2FUniform_2D(std::vector<double>& ps, const std::v
 }
 
 inline int PoissonSolver2D::idx(int i, int j) {
-	return i + (kNx + 2 * kNumBCGrid) * j;
+	return (j + (kNy + 2 * kNumBCGrid) * (i));
 }

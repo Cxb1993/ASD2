@@ -50,52 +50,58 @@ int MAC2DTest_SmallAirBubble() {
 	std::vector<double> ls((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid));
 	// inside value must be positive levelset, otherwise, negative
 
-	LSolver->SetBC_P_2D("neumann", "neumann", "neumann", "neumann");
-	LSolver->ApplyBC_P_2D(ls);
-	for (int i = num_bc_grid; i < nx + num_bc_grid; i++)
-	for (int j = num_bc_grid; j < ny + num_bc_grid; j++) {
-		// positive : inside, negative : outside
-		x = baseX + (i - num_bc_grid) * dx;
-		y = baseY + (j - num_bc_grid) * dy;
-		d = std::sqrt(x * x + y * y) - radius;
-
-		ls[idx3(nx, i, j)] = -d;
-	}
-	LSolver->m_signedInitLS = LSolver->GetSignedLSNormalized(ls);
-	LSolver->Reinit_Sussman_2D(ls);
-
-	LSolver->SetBC_P_2D("neumann", "neumann", "neumann", "neumann");
-	LSolver->ApplyBC_P_2D(ls);
-
 	// init velocity and pseudo-pressure
 	MSolver->AllocateVariables();
 
 	for (int i = 0; i < nx + 2 * num_bc_grid; i++)
 	for (int j = 0; j < ny + 2 * num_bc_grid; j++) {
-		MSolver->m_u[idx3(nx, i, j)] = 0.0;
-		MSolver->m_v[idx3(nx, i, j)] = 0.0;
-		MSolver->m_p[idx3(nx, i, j)] = 0.0;
-		MSolver->m_ps[idx3(nx, i, j)] = 0.0;
+		MSolver->m_u[idx3(ny, i, j)] = 0.0;
+		MSolver->m_v[idx3(ny, i, j)] = 0.0;
+		MSolver->m_p[idx3(ny, i, j)] = 0.0;
+		MSolver->m_ps[idx3(ny, i, j)] = 0.0;
 	}
-
+	
 	MSolver->ApplyBC_U_2D(MSolver->m_u);
 	MSolver->ApplyBC_V_2D(MSolver->m_v);
 	MSolver->ApplyBC_P_2D(MSolver->m_ps);
 	MSolver->ApplyBC_P_2D(MSolver->m_p);
+	MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
+		MSolver->m_u, MSolver->m_v, MSolver->m_ps, ls);
 
+	LSolver->SetBC_P_2D("neumann", "neumann", "neumann", "neumann");
+	
+	for (int j = num_bc_grid; j < ny + num_bc_grid; j++)
+	for (int i = num_bc_grid; i < nx + num_bc_grid; i++) {
+		// positive : inside, negative : outside
+		x = baseX + (i + 0.5 - num_bc_grid) * dx;
+		y = baseY + (j + 0.5 - num_bc_grid) * dy;
+		
+		d = std::sqrt(x * x + y * y) - radius;
+		
+		ls[idx3(ny, i, j)] = -d;
+	}
+	
+	LSolver->m_signedInitLS = LSolver->GetSignedLSNormalized(ls);
+	LSolver->Reinit_Sussman_2D(ls);
+	// MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
+	// 	MSolver->m_u, MSolver->m_v, MSolver->m_ps, ls);
+
+	LSolver->SetBC_P_2D("neumann", "neumann", "neumann", "neumann");
+	LSolver->ApplyBC_P_2D(ls);
+	
 	// prevent dt == 0.0
 	MSolver->m_dt = cfl * std::min(dx, dy) / U;
 	std::cout << " dt : " << MSolver->m_dt << std::endl;
-	// MSolver->OutRes(0, 0.0, fname_vel, fname_div, MSolver->m_u, MSolver->m_v, MSolver->m_ps, ls);
 	
 	std::vector<double> FU((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid)), FV((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid));
 	std::vector<double> uhat((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid)), vhat((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid));
 	std::vector<double> div((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid));
-
+	
 	while (MSolver->m_curTime < MSolver->kMaxTime && MSolver->m_iter < MSolver->kMaxIter) {
 		// Solver Level set part first
 		// Have to use \phi^{n+1} for rho, mu, kappa
 		lsB = ls;
+		
 		LSolver->Solve_LevelSet_2D(ls, MSolver->m_u, MSolver->m_v, MSolver->m_dt);
 		LSolver->Reinit_Sussman_2D(ls);
 		LSolver->ApplyBC_P_2D(ls);
@@ -118,15 +124,11 @@ int MAC2DTest_SmallAirBubble() {
 		MSolver->ApplyBC_U_2D(uhat);
 		MSolver->ApplyBC_V_2D(vhat);
 		
-		MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
-			uhat, vhat, MSolver->m_ps, ls);
-		if (MSolver->m_iter > 1)
+		if (MSolver->m_iter > 3)
 			exit(1);
 
 		// From intermediate velocity, get divergence
 		div = MSolver->GetDivergence(uhat, vhat);
-		MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
-			MSolver->m_u, MSolver->m_v, MSolver->m_ps, ls);
 		MSolver->ApplyBC_P_2D(MSolver->m_ps);
 		MSolver->ApplyBC_P_2D(div);
 		// Solve Poisson equation
@@ -149,6 +151,8 @@ int MAC2DTest_SmallAirBubble() {
 			std::cout << "Bubble : " << MSolver->m_iter << " " << MSolver->m_curTime << " " << MSolver->m_dt << std::endl;
 			// MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
 			// 	FU, FV, MSolver->m_ps, ls);
+			// MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
+			// 	uhat, vhat, MSolver->m_ps, ls);
 			// MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
 			// 	MSolver->m_u, MSolver->m_v, MSolver->m_ps, ls);
 		}

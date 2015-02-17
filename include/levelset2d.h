@@ -25,7 +25,7 @@ public:
 
 	int Reinit_Original_2D(std::vector<double>& ls);
 	int Reinit_Sussman_2D(std::vector<double>& ls);
-	std::vector<double> HJENO_Abs_2D(std::vector<double>& ls);
+	std::vector<double> HJENO_ReinitABS_2D(std::vector<double>& ls);
 
 	int sign(const double& val);
 	std::vector<int> GetSignedLSNormalized(const std::vector<double>& ls);
@@ -64,7 +64,8 @@ public:
 	std::vector<int> m_signedInitLS;
 
 	// artificial dt for reinitialization only 
-	double m_adt, m_atime;
+	double m_atime;
+	const double kAdt;
 
 	std::shared_ptr<BoundaryCondition2D> m_BC;
 };

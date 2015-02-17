@@ -12,5 +12,4 @@ int main(int argc, char *argv[]) {
 	// test_poisson_BiCGStab();
 	MAC2DTest_SmallAirBubble();
 	
-
 }

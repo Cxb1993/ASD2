@@ -33,6 +33,7 @@ public:
 	double m_BC_DirichletConstantVW, m_BC_DirichletConstantVE, m_BC_DirichletConstantVS, m_BC_DirichletConstantVN;
 	double m_BC_DirichletConstantPW, m_BC_DirichletConstantPE, m_BC_DirichletConstantPS, m_BC_DirichletConstantPN;
 
+	inline int idx(int i, int j);
 	// BC
 	/*
 	For staggered grid
