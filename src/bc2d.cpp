@@ -295,28 +295,24 @@ void BoundaryCondition2D::BC_PN(std::vector<double>& arr) {
 void BoundaryCondition2D::BC_PeriodicUW(std::vector<double>& arr) {
 	for (int i = 0; i <= kNumBCGrid; i++)
 		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-			// arr[i + (kNx + 2 * kNumBCGrid) * j] = arr[kNx - 1 + i + (kNx + 2 * kNumBCGrid) * j];
 			arr[idx(i, j)] = arr[idx(kNx - 1 + i, j)];
 }
 
 void BoundaryCondition2D::BC_PeriodicUE(std::vector<double>& arr) {
 	for (int i = 0; i < kNumBCGrid; i++)
 		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-			// arr[kNx + i + kNumBCGrid + (kNx + 2 * kNumBCGrid) * j] = arr[i + kNumBCGrid + 1 + (kNx + 2 * kNumBCGrid) * j];
 			arr[idx(i, j)] = arr[idx(kNx - 1 + i, j)];
 }
 
 void BoundaryCondition2D::BC_PeriodicUS(std::vector<double>& arr) {
 	for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
 		for (int j = 0; j < kNumBCGrid; j++)
-			// arr[i + (kNx + 2 * kNumBCGrid) * j] = arr[i + (kNx + 2 * kNumBCGrid) * (kNy + j)];
 			arr[idx(i, j)] = arr[idx(i, kNy + j)];
 }
 
 void BoundaryCondition2D::BC_PeriodicUN(std::vector<double>& arr) {
 	for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
 		for (int j = 0; j < kNumBCGrid; j++)
-			//arr[i + (kNx + 2 * kNumBCGrid) * (kNy + j + kNumBCGrid)] = arr[i + (kNx + 2 * kNumBCGrid) * (j + kNumBCGrid)];
 			arr[idx(i, kNy + j + kNumBCGrid)] = arr[idx(i, j + kNumBCGrid)];
 }
 
@@ -336,21 +332,18 @@ void BoundaryCondition2D::BC_NeumannUE(std::vector<double>& arr) {
 
 	for (int i = 1; i < kNumBCGrid; i++)
 		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-			// arr[kNx + kNumBCGrid * 2 - i - 1 + (kNx + 2 * kNumBCGrid) * j] = arr[kNx + i + (kNx + 2 * kNumBCGrid) * j];
 			arr[idx(kNx + kNumBCGrid * 2 - i, j)] = arr[idx(kNx + i, j)];
 }
 
 void BoundaryCondition2D::BC_NeumannUS(std::vector<double>& arr) {
 	for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
 		for (int j = 0; j < kNumBCGrid; j++)
-			// arr[i + (kNx + 2 * kNumBCGrid) * j] = arr[i + (kNx + 2 * kNumBCGrid) * (kNumBCGrid * 2 - j - 1)];
 			arr[idx(i, j)] = arr[idx(i, kNumBCGrid * 2 - j - 1)];
 }
 
 void BoundaryCondition2D::BC_NeumannUN(std::vector<double>& arr) {
 	for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
 		for (int j = 0; j < kNumBCGrid; j++)
-			// arr[i + (kNx + 2 * kNumBCGrid) * (kNy + kNumBCGrid * 2 - j - 1)] = arr[i + (kNx + 2 * kNumBCGrid) * (kNy + j)];
 			arr[idx(i, kNy + kNumBCGrid - j - 1)] = arr[idx(i, kNy + j)];
 }
 
@@ -373,83 +366,69 @@ void BoundaryCondition2D::SetBCConstantUN(double BC_ConstantN) {
 
 void BoundaryCondition2D::BC_DirichletUW(std::vector<double>& arr) {
 	for (int j = 0; j < kNy + 2 * kNumBCGrid; j++)
-		// arr[kNumBCGrid + (kNx + 2 * kNumBCGrid) * j] = m_BC_DirichletConstantUW;
 		arr[idx(kNumBCGrid, j)] = m_BC_DirichletConstantUW;
 
 	for (int i = 0; i < kNumBCGrid; i++)
 		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-			// arr[i + (kNx + 2 * kNumBCGrid) * j] = -arr[kNumBCGrid * 2 - i + (kNx + 2 * kNumBCGrid) * j]
-			// + 2.0 * m_BC_DirichletConstantUW;
 			arr[idx(i, j)] = -arr[idx(kNumBCGrid * 2 - i, j)] + 2.0 * m_BC_DirichletConstantUW;
 }
 
 void BoundaryCondition2D::BC_DirichletUE(std::vector<double>& arr) {
 	for (int j = 0; j < kNy + 2 * kNumBCGrid; j++)
-		// arr[kNx + kNumBCGrid + (kNx + 2 * kNumBCGrid) * j] = m_BC_DirichletConstantUE;
 		arr[idx(kNx + kNumBCGrid, j)] = m_BC_DirichletConstantUE;
 
 	for (int i = 1; i < kNumBCGrid; i++)
 		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-			// arr[kNx + kNumBCGrid * 2 - i + (kNx + 2 * kNumBCGrid) * j] = -arr[kNx + i + (kNx + 2 * kNumBCGrid) * j]
-			// 	+ 2.0 * m_BC_DirichletConstantUE;
 			arr[idx(kNx + kNumBCGrid * 2 - i, j)] = -arr[idx(kNx + i, j)] + 2.0 * m_BC_DirichletConstantUE;
 }
 
 void BoundaryCondition2D::BC_DirichletUS(std::vector<double>& arr) {
-	for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
+	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 		for (int j = 0; j < kNumBCGrid; j++)
-			// arr[i + (kNx + 2 * kNumBCGrid) * j] = -arr[i + (kNx + 2 * kNumBCGrid) * (kNumBCGrid * 2 - j - 1)]
-			// 	+ 2.0 * m_BC_DirichletConstantUS;
-			arr[idx(i, j)] = -arr[idx(i, kNumBCGrid * 2 - j - 1)] + 2.0 * m_BC_DirichletConstantUS;
+			arr[idx(i, j)] = -arr[idx(i, kNumBCGrid * 2 - j - 1)]
+				+ 2.0 * m_BC_DirichletConstantUS;
 }
 
 void BoundaryCondition2D::BC_DirichletUN(std::vector<double>& arr) {
-	for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
+	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 		for (int j = 0; j < kNumBCGrid; j++)
-			// arr[i + (kNx + 2 * kNumBCGrid) * (kNy + kNumBCGrid * 2 - j - 1)] = -arr[i + (kNx + 2 * kNumBCGrid) * (kNy + j)]
-			// 	+ 2.0 * m_BC_DirichletConstantUN;
-			arr[idx(i, kNy + kNumBCGrid * 2 - j - 1)] = -arr[idx(i, kNy + j)] + 2.0 * m_BC_DirichletConstantUN;
+			arr[idx(i, kNy + kNumBCGrid * 2 - j - 1)] = -arr[idx(i, kNy + j)]
+				+ 2.0 * m_BC_DirichletConstantUN;
 }
 
 void BoundaryCondition2D::BC_PeriodicVW(std::vector<double>& arr) {
 	for (int i = 0; i < kNumBCGrid; i++)
 		for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++)
-			// arr[i + (kNx + 2 * kNumBCGrid) * j] = arr[kNx + i + (kNx + 2 * kNumBCGrid) * j];
 			arr[idx(i, j)] = arr[idx(kNx + i, j)];
 }
 
 void BoundaryCondition2D::BC_PeriodicVE(std::vector<double>& arr) {
 	for (int i = 0; i < kNumBCGrid; i++)
 		for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++)
-			// arr[kNx + i + kNumBCGrid + (kNx + 2 * kNumBCGrid) * j] = arr[i + kNumBCGrid + (kNx + 2 * kNumBCGrid) * j];
 			arr[idx(kNx + i + kNumBCGrid, j)] = arr[idx(i + kNumBCGrid, j)];
 }
 
 void BoundaryCondition2D::BC_PeriodicVS(std::vector<double>& arr) {
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 		for (int j = 0; j <= kNumBCGrid; j++)
-			// arr[i + (kNx + 2 * kNumBCGrid) * j] = arr[i + (kNx + 2 * kNumBCGrid) * (kNy - 1 + j)];
 			arr[idx(i, j)] = arr[idx(kNx + i, j)];
 }
 
 void BoundaryCondition2D::BC_PeriodicVN(std::vector<double>& arr) {
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 		for (int j = 0; j < kNumBCGrid; j++)
-			// arr[i + (kNx + 2 * kNumBCGrid) * (kNy + j + kNumBCGrid)] = arr[i + (kNx + 2 * kNumBCGrid) * (j + kNumBCGrid + 1)];
 			arr[idx(i, kNy + j + kNumBCGrid)] = arr[idx(i, j + kNumBCGrid + 1)];
 }
 
 void BoundaryCondition2D::BC_NeumannVW(std::vector<double>& arr) {
 	for (int i = 0; i < kNumBCGrid; i++)
 		for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++)
-			// arr[i + (kNx + 2 * kNumBCGrid) * j] = arr[kNumBCGrid * 2 - i - 1 + (kNx + 2 * kNumBCGrid) * j];
 			arr[idx(i, j)] = arr[idx(kNumBCGrid * 2 - i - 1, j)];
 }
 
 void BoundaryCondition2D::BC_NeumannVE(std::vector<double>& arr) {
 	for (int i = 0; i < kNumBCGrid; i++)
 		for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++)
-			// arr[kNx + kNumBCGrid * 2 - i - 1 + (kNx + 2 * kNumBCGrid) * j] = arr[kNx + i + (kNx + 2 * kNumBCGrid) * j];
 			arr[idx(kNx + kNumBCGrid * 2 - i - 1, j)] = arr[idx(kNx + i, j)];
 }
 
@@ -459,7 +438,6 @@ void BoundaryCondition2D::BC_NeumannVS(std::vector<double>& arr) {
 	
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 		for (int j = 0; j < kNumBCGrid; j++)
-			// arr[i + (kNx + 2 * kNumBCGrid) * j] = arr[i + (kNx + 2 * kNumBCGrid) * (kNumBCGrid * 2 + 1 - j)];
 			arr[idx(i, j)] = arr[idx(i, kNumBCGrid * 2 - j)];
 }
 
@@ -492,96 +470,79 @@ void BoundaryCondition2D::SetBCConstantVN(double BC_ConstantN) {
 void BoundaryCondition2D::BC_DirichletVW(std::vector<double>& arr) {
 	for (int i = 0; i < kNumBCGrid; i++)
 		for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++)
-			//arr[i + (kNx + 2 * kNumBCGrid) * j] = -arr[kNumBCGrid * 2 - i - 1 + (kNx + 2 * kNumBCGrid) * j]
-			//	+ 2.0 * m_BC_DirichletConstantVW;
 			arr[idx(i, j)] = -arr[idx(kNumBCGrid * 2 - i - 1, j)] + 2.0 * m_BC_DirichletConstantVW;
 }
 
 void BoundaryCondition2D::BC_DirichletVE(std::vector<double>& arr) {
 	for (int i = 0; i < kNumBCGrid; i++)
 		for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++)
-			// arr[kNx + kNumBCGrid * 2 - i - 1 + (kNx + 2 * kNumBCGrid) * j] = -arr[kNx + i + (kNx + 2 * kNumBCGrid) * j]
-			// 	+ 2.0 * m_BC_DirichletConstantVE;
 			arr[idx(kNx + kNumBCGrid * 2 - i - 1, j)] = -arr[idx(kNx + i, j)] + 2.0 * m_BC_DirichletConstantVE;
 }
 
 void BoundaryCondition2D::BC_DirichletVS(std::vector<double>& arr) {
 	for (int i = 0; i < kNx + 2 * kNumBCGrid; i++)
-		// arr[i + (kNx + 2 * kNumBCGrid) * kNumBCGrid] = m_BC_DirichletConstantVS;
 		arr[idx(i, kNumBCGrid)] = m_BC_DirichletConstantVS;
 
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 		for (int j = 0; j < kNumBCGrid; j++)
-			// arr[i + (kNx + 2 * kNumBCGrid) * j] = -arr[i + (kNx + 2 * kNumBCGrid) * (kNumBCGrid * 2 - j)]
-			// 		+ 2.0 * m_BC_DirichletConstantVS;
 			arr[idx(i, j)] = -arr[idx(i, kNumBCGrid * 2 - j)] + 2.0 * m_BC_DirichletConstantVS;
 }
 
 void BoundaryCondition2D::BC_DirichletVN(std::vector<double>& arr) {
 	for (int i = 0; i < kNx + 2 * kNumBCGrid; i++)
-		// arr[i + (kNx + 2 * kNumBCGrid) * (kNy + kNumBCGrid)] = m_BC_DirichletConstantVN;
 		arr[idx(i, kNy + kNumBCGrid)] = m_BC_DirichletConstantVN;
 
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 		for (int j = 1; j < kNumBCGrid; j++)
-			// arr[i + (kNx + 2 * kNumBCGrid) * (kNy + kNumBCGrid * 2 - j)] = -arr[i + (kNx + 2 * kNumBCGrid) * (kNy + j)]
-			// 	+ 2.0 * m_BC_DirichletConstantVN;
 			arr[idx(i, kNy + kNumBCGrid * 2 - j)] = -arr[idx(i, kNy + j)] + 2.0 * m_BC_DirichletConstantVN;
+			
 }
 
 void BoundaryCondition2D::BC_PeriodicPW(std::vector<double>& arr) {
 	for (int i = 0; i < kNumBCGrid; i++)
 		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-			// arr[i + (kNx + 2 * kNumBCGrid) * j] = arr[kNx + i + (kNx + 2 * kNumBCGrid) * j];
 			arr[idx(i, j)] = arr[idx(kNx + i, j)];
 }
 
 void BoundaryCondition2D::BC_PeriodicPE(std::vector<double>& arr) {
 	for (int i = 0; i < kNumBCGrid; i++)
 		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-			// arr[kNx + i + kNumBCGrid + (kNx + 2 * kNumBCGrid) * j] = arr[i + kNumBCGrid + (kNx + 2 * kNumBCGrid) * j];
 			arr[idx(kNx + i, j)] = arr[idx(i + kNumBCGrid, j)];
 }
 
 void BoundaryCondition2D::BC_PeriodicPS(std::vector<double>& arr) {
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 		for (int j = 0; j < kNumBCGrid; j++)
-			// arr[i + (kNx + 2 * kNumBCGrid) * j] = arr[i + (kNx + 2 * kNumBCGrid) * (kNy + j)];
 			arr[idx(i, j)] = arr[idx(i, kNy + j)];
 }
 
 void BoundaryCondition2D::BC_PeriodicPN(std::vector<double>& arr) {
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 		for (int j = 0; j < kNumBCGrid; j++)
-			// arr[i + (kNx + 2 * kNumBCGrid) * (kNy + j + kNumBCGrid)] = arr[i + (kNx + 2 * kNumBCGrid) * (j + kNumBCGrid)];
 			arr[idx(i, kNy + j + kNumBCGrid)] = arr[idx(i, j + kNumBCGrid)];
 }
 
 void BoundaryCondition2D::BC_NeumannPW(std::vector<double>& arr) {
 	for (int i = 0; i < kNumBCGrid; i++)
 		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-			// arr[i + (kNx + 2 * kNumBCGrid) * j] = arr[kNumBCGrid * 2 - i - 1 + (kNx + 2 * kNumBCGrid) * j];
 			arr[idx(i, j)] = arr[idx(kNumBCGrid * 2 - i - 1, j)];
 }
 
 void BoundaryCondition2D::BC_NeumannPE(std::vector<double>& arr) {
 	for (int i = 0; i < kNumBCGrid; i++)
 		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-			// arr[kNx + kNumBCGrid * 2 - i - 1 + (kNx + 2 * kNumBCGrid) * j] = arr[kNx + i + (kNx + 2 * kNumBCGrid) * j];
 			arr[idx(kNx + kNumBCGrid * 2 - i - 1, j)] = arr[idx(kNx + i, j)];
 }
 
 void BoundaryCondition2D::BC_NeumannPS(std::vector<double>& arr) {
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 		for (int j = 0; j < kNumBCGrid; j++)
-			// arr[i + (kNx + 2 * kNumBCGrid) * j] = arr[i + (kNx + 2 * kNumBCGrid) * (kNumBCGrid * 2 - j - 1)];
 			arr[idx(i, j)] = arr[idx(i, kNumBCGrid * 2 - j - 1)];
 }
 
 void BoundaryCondition2D::BC_NeumannPN(std::vector<double>& arr) {
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 		for (int j = 0; j < kNumBCGrid; j++)
-			// arr[i + (kNx + 2 * kNumBCGrid) * (kNy + kNumBCGrid * 2 - j - 1)] = arr[i + (kNx + 2 * kNumBCGrid) * (kNy + j)];
 			arr[idx(i, kNy + kNumBCGrid * 2 - j - 1)] = arr[idx(i, kNy + j)];
 }
 
@@ -605,31 +566,23 @@ void BoundaryCondition2D::SetBCConstantPN(double BC_ConstantN) {
 void BoundaryCondition2D::BC_DirichletPW(std::vector<double>& arr) {
 	for (int i = 0; i < kNumBCGrid; i++)
 		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-			// arr[i + (kNx + 2 * kNumBCGrid) * j] = -arr[kNumBCGrid * 2 - i - 1 + (kNx + 2 * kNumBCGrid) * j]
-			// 	+ 2.0 * m_BC_DirichletConstantPW;
 			arr[idx(i, j)] = -arr[idx(kNumBCGrid * 2 - i - 1, j)] + 2.0 * m_BC_DirichletConstantPW;
 }
 
 void BoundaryCondition2D::BC_DirichletPE(std::vector<double>& arr) {
 	for (int i = 0; i < kNumBCGrid; i++)
 		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-			// arr[kNx + kNumBCGrid * 2 - i - 1 + (kNx + 2 * kNumBCGrid) * j] = -arr[kNx + i + (kNx + 2 * kNumBCGrid) * j]
-			// 	+ 2.0 * m_BC_DirichletConstantPE;
 			arr[idx(kNx + kNumBCGrid * 2 - i - 1, j)] = -arr[idx(kNx + i, j)] + 2.0 * m_BC_DirichletConstantPE;
 }
 
 void BoundaryCondition2D::BC_DirichletPS(std::vector<double>& arr) {
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 		for (int j = 0; j < kNumBCGrid; j++)
-			// arr[i + (kNx + 2 * kNumBCGrid) * j] = -arr[i + (kNx + 2 * kNumBCGrid) * (kNumBCGrid * 2 - j - 1)]
-			// 	+ 2.0 * m_BC_DirichletConstantPS;
 			arr[idx(i, j)] = -arr[idx(i, kNumBCGrid * 2 - j - 1)] + 2.0 * m_BC_DirichletConstantPS;
 }
 
 void BoundaryCondition2D::BC_DirichletPN(std::vector<double>& arr) {
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 		for (int j = 0; j < kNumBCGrid; j++)
-			// arr[i + (kNx + 2 * kNumBCGrid) * (kNy + kNumBCGrid * 2 - j - 1)] = -arr[i + (kNx + 2 * kNumBCGrid) * (kNy + j)]
-			// 	+ 2.0 * m_BC_DirichletConstantPN;
 			arr[idx(i, kNy + kNumBCGrid * 2 - j - 1)] = -arr[idx(i, kNy + j)] + 2.0 * m_BC_DirichletConstantPN;
 }

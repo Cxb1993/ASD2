@@ -6,7 +6,8 @@ PoissonSolver2D::PoissonSolver2D(int nx, int ny, int num_bc_grid) :
 
 int PoissonSolver2D::GS_2FUniform_2D(std::vector<double>& ps, const std::vector<double>& rhs,
 	std::vector<double>& AVals, std::vector<MKL_INT>& ACols, std::vector<MKL_INT>& ARowIdx,
-	double lenX, double lenY, double dx, double dy, std::shared_ptr<BoundaryCondition2D> PBC) {
+	const double lenX, const double lenY, const double dx, const double dy,
+	const std::shared_ptr<BoundaryCondition2D>& PBC, const int maxIter) {
 	
 	MKL_INT Anrows = kNx * kNy, Ancols = kNx * kNy;
 	MKL_INT size = kNx * kNy;
@@ -27,7 +28,7 @@ int PoissonSolver2D::GS_2FUniform_2D(std::vector<double>& ps, const std::vector<
 
 	long int j = 0;
 	double diag = 0.0;
-	int iter = 0, maxIter = 20000;
+	int iter = 0;
 	while (err > eps && iter < maxIter) {
 		// i varies from 0 to kNx * kNy
 		for (long int i = 0; i < size; i++) {
@@ -70,7 +71,7 @@ int PoissonSolver2D::GS_2FUniform_2D(std::vector<double>& ps, const std::vector<
 	}
 
 	double rnorm2 = cblas_dnrm2(size, tmpPs.data(), 1);
-	std::cout << iter << " GS Norm : " << rnorm2 << std::endl;
+	// std::cout << iter << " GS Norm : " << rnorm2 << std::endl;
 
 	for (int i = 0; i < kNx; i++)
 	for (int j = 0; j < kNy; j++) {
@@ -79,6 +80,7 @@ int PoissonSolver2D::GS_2FUniform_2D(std::vector<double>& ps, const std::vector<
 	
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
+
 		if (std::isnan(ps[idx(i, j)]) || std::isinf(ps[idx(i, j)]))
 			std::cout << "Pseudo-p nan/inf error : " << i << " " << j << " " << ps[idx(i, j)] << std::endl;
 	
@@ -227,7 +229,8 @@ int PoissonSolver2D::MKL_2FUniform_2D(std::vector<double>& ps, const std::vector
 
 int PoissonSolver2D::CG_2FUniform_2D(std::vector<double>& ps, const std::vector<double>& rhs,
 	std::vector<double>& AVals, std::vector<MKL_INT>& ACols, std::vector<MKL_INT>& ARowIdx,
-	double lenX, double lenY, double dx, double dy, std::shared_ptr<BoundaryCondition2D> PBC) {
+	const double lenX, const double lenY, const double dx, const double dy,
+	const std::shared_ptr<BoundaryCondition2D>& PBC, const int maxIter) {
 	
 	MKL_INT Anrows = kNx * kNy, Ancols = kNx * kNy;
 	MKL_INT size = kNx * kNy;
@@ -235,8 +238,7 @@ int PoissonSolver2D::CG_2FUniform_2D(std::vector<double>& ps, const std::vector<
 	double *x = Data::Allocate1Dd(size);
 	double *Ax = Data::Allocate1Dd(size); 
 	double *r = Data::Allocate1Dd(size);
-	double *dTmp = Data::Allocate1Dd(size);
-	double *d = Data::Allocate1Dd(size);
+	double *p = Data::Allocate1Dd(size);
 	double *q = Data::Allocate1Dd(size);
 
 	// check values
@@ -247,12 +249,11 @@ int PoissonSolver2D::CG_2FUniform_2D(std::vector<double>& ps, const std::vector<
 	for (int i = 0; i < kNx; i++) {
 		b[i + j * kNx] = rhs[idx(i + kNumBCGrid, j + kNumBCGrid)];
 		x[i + j * kNx] = 0.0;
-		dTmp[i + j * kNx] = 0.0;
-		d[i + j * kNx] = 0.0;
+		p[i + j * kNx] = 0.0;
 		r[i + j * kNx] = 0.0;
 		q[i + j * kNx] = 0.0;
 	}
-
+	
 	// get Ax(=A*x), using upper triangular matrix (Sparse BLAS)
 	// https://software.intel.com/en-us/node/468560
 	char transa = 'n';
@@ -265,8 +266,8 @@ int PoissonSolver2D::CG_2FUniform_2D(std::vector<double>& ps, const std::vector<
 	// https://software.intel.com/en-us/node/468394
 	cblas_daxpy(size, -1.0, Ax, 1, r, 1);
 
-	// d_0 = r_0
-	cblas_dcopy(size, r, 1, d, 1);
+	// p_0 = r_0
+	cblas_dcopy(size, r, 1, p, 1);
 	// declare coefficients
 	double alpha = 0.0, alpha1 = 0.0, beta = 0.0, beta1 = 0.0;
 	double delta_new = 0.0, delta_old = 0.0, delta0;
@@ -274,78 +275,65 @@ int PoissonSolver2D::CG_2FUniform_2D(std::vector<double>& ps, const std::vector<
 
 	// delta = r * r^T
 	delta_old = cblas_ddot(size, r, 1, r, 1);
-	delta0 = delta_old;
-	delta_new = delta_old;
+	delta_new = 0.0;
 	// std::cout << delta0 << std::endl;
-	const int maxiter = 200;
 	const double err_tol = 1.0e-6;
 	int iter = 0;
 	bool isConverged = false;
-
-	while (iter < maxiter && isConverged == false) {
-		// q = A * d_k, will be resued below
+	
+	while (iter < maxIter && isConverged == false) {
+		// q = A * p_k, will be resued below
 		// https://software.intel.com/en-us/node/468560
-		mkl_cspblas_dcsrgemv(&transa, &Anrows, AVals.data(), ARowIdx.data(), ACols.data(), d, q);
+		mkl_cspblas_dcsrgemv(&transa, &Anrows, AVals.data(), ARowIdx.data(), ACols.data(), p, q);
 		// get alpha (r^T_k * r_k) / (d^T_k q) (= (r^T_k * r_k) / (d^T_k A d_k))
 		// https://software.intel.com/en-us/node/468398#D4E53C70-D8FA-4095-A800-4203CAFE64FE
-		alpha = delta_new / (cblas_ddot(size, d, 1, q, 1) + err_tol * err_tol);
-		for (int j = 0; j < kNy; j++)
-		for (int i = 0; i < kNx; i++) {
-			// if (q[i + j * kNx] > 100.0)
-			// 	std::cout << i << " " << j << " " << q[i + j * kNx] << std::endl;
-		}
-
-		// std::cout << "Alpha : "<< delta_new << " " << cblas_ddot(size, d, 1, q, 1) << " " <<alpha << " " <<std::endl;
+		alpha = delta_old / (cblas_ddot(size, p, 1, q, 1) + err_tol * err_tol);
 		
-		// x_k+1 = x_k + alpha * d_k
+		// x_k+1 = x_k + alpha * p_k
 		// https://software.intel.com/en-us/node/468394
-		cblas_daxpy(size, alpha, d, 1, x, 1);
+		cblas_daxpy(size, alpha, p, 1, x, 1);
 		if (std::isnan(alpha) || std::isinf(alpha)) {
 			std::cout << "poisson equation nan/inf error(alpha) : " << iter << " " << alpha << std::endl;
 			exit(1);
 		}
 		assert(alpha == alpha);
 
-		// r_k+1 = r_k -alpha * A * d_k
+		// Update r
+		// r_k+1 = -alpha * A * p_k + r_k = -alpha * q + r_k
 		cblas_daxpy(size, -alpha, q, 1, r, 1);
-		// delta_old = delta_new
-		delta_old = delta_new;
-		// delta_mew = r^T r
+		
+		// delta_new = r_k+1^T r_k+1
 		delta_new = cblas_ddot(size, r, 1, r, 1);
+		
+		if (delta_new <= err_tol)
+			isConverged = true;
 
 		beta = delta_new / (delta_old + err_tol * err_tol);
-		// std::cout << "Beta : " << delta_new << " " << delta_old << std::endl;
 		if (std::isnan(beta) || std::isinf(beta)) {
 			std::cout << "poisson equation nan/inf error(beta) : " << iter << " " << beta << std::endl;
 			exit(1);
 		}
 		assert(beta == beta);
 		
-		// d_k+1 = r_k+1 + beta * d_k
-		// dTmp = d
-		cblas_dcopy(size, d, 1, dTmp, 1);
-		// d = d + dTmp * beta = 
-		cblas_daxpy(size, beta - 1.0, dTmp, 1, d, 1);
-		// d = d + r_k+1
-		cblas_daxpy(size, 1.0, r, 1, d, 1);
+		// p_k+1 = r_k+1 + beta * p_k
+		// p_k = p_k * beta
+		cblas_dscal(size, beta, p, 1);
+		// p = 1.0 * r_k+1 + p_k = r_k+1 + (beta * p_k)
+		cblas_daxpy(size, 1.0, r, 1, p, 1);
 
-		rnorm2 = cblas_dnrm2(size, r, 1);
+		delta_old = delta_new;
 
-		if (delta_new <= err_tol * err_tol * delta0)
-			isConverged = true;
-
-		std::cout << " rnorm : " << rnorm2 << " alpha : " << alpha << " " << " beta : " << beta << std::endl;
 		iter++;
 	}
-	
+
+	// std::cout << "CG : " << iter << " " << maxIter << " Err : " << delta_new << std::endl;
 	for (int j = 0; j < kNy; j++)
 	for (int i = 0; i < kNx; i++) {
-		ps[idx(i + kNumBCGrid, j + kNumBCGrid)] = d[i + j * kNx];
-		assert(AVals[idx(i, j)] == AVals[idx(i, j)]);
-		assert(ACols[idx(i, j)] == ACols[idx(i, j)]);
-		assert(ps[idx(i, j)] == ps[idx(i, j)]);
-		if (std::isnan(ps[idx(i, j)]) || std::isinf(ps[idx(i, j)])) {
-			std::cout << "poisson equation nan/inf error : " << i << " " << j << " " << ps[idx(i, j)] << std::endl;
+		ps[idx(i + kNumBCGrid, j + kNumBCGrid)] = x[i + j * kNx];
+		assert(ps[idx(i + kNumBCGrid, j + kNumBCGrid)] == ps[idx(i + kNumBCGrid, j + kNumBCGrid)]);
+		if (std::isnan(ps[idx(i + kNumBCGrid, j + kNumBCGrid)]) || std::isinf(ps[idx(i + kNumBCGrid, j + kNumBCGrid)])) {
+			std::cout << "poisson equation nan/inf error : " << i + kNumBCGrid << " " << j + kNumBCGrid
+				 << " " << ps[idx(i + kNumBCGrid, j + kNumBCGrid)] << std::endl;
 			exit(1);
 		}
 	}
@@ -354,8 +342,7 @@ int PoissonSolver2D::CG_2FUniform_2D(std::vector<double>& ps, const std::vector<
 	Data::Deallocate1Dd(x);
 	Data::Deallocate1Dd(Ax);
 	Data::Deallocate1Dd(r);
-	Data::Deallocate1Dd(d);
-	Data::Deallocate1Dd(dTmp);
+	Data::Deallocate1Dd(p);
 	Data::Deallocate1Dd(q);
 
 	return 0;
@@ -363,7 +350,8 @@ int PoissonSolver2D::CG_2FUniform_2D(std::vector<double>& ps, const std::vector<
 
 int PoissonSolver2D::BiCGStab_2FUniform_2D(std::vector<double>& ps, const std::vector<double>& rhs,
 	std::vector<double>& AVals, std::vector<MKL_INT>& ACols, std::vector<MKL_INT>& ARowIdx,
-	double lenX, double lenY, double dx, double dy, std::shared_ptr<BoundaryCondition2D> PBC) {
+	const double lenX, const double lenY, const double dx, const double dy,
+	const std::shared_ptr<BoundaryCondition2D>& PBC, const int maxIter) {
 
 	MKL_INT Anrows = kNx * kNy, Ancols = kNx * kNy;
 	MKL_INT size = kNx * kNy;
@@ -417,13 +405,12 @@ int PoissonSolver2D::BiCGStab_2FUniform_2D(std::vector<double>& ps, const std::v
 	// declare coefficients
 	double alpha = 1.0, beta = 1.0;
 	double rho = 1.0, rhoPrev = 1.0, omega = 1.0, omegaPrev = 1.0;
-	
-	const int maxiter = 250;
+
 	const double err_tol = 1.0e-6;
 	int iter = 0;
 	bool isConverged = false;
 
-	while (iter < maxiter && isConverged == false) {
+	while (iter < maxIter && isConverged == false) {
 		// direction vector
 		// rho_i = (\hat{r0}, r_(i-1))
 		rho = cblas_ddot(size, r0, 1, r, 1);
@@ -476,21 +463,18 @@ int PoissonSolver2D::BiCGStab_2FUniform_2D(std::vector<double>& ps, const std::v
 
 		if (rnorm2 / bnorm2 <= err_tol)
 			isConverged = true;
-		std::cout << iter << " Norm : " << rnorm2 << " Alpha : " << alpha << " Beta : " << beta << std::endl;
-		iter++;
 
-		// if (iter > 10)
-		// 	exit(1);
+		iter++;
 	}
 	
+	std::cout << "BiCG : " << iter << " " << maxIter << " Err : " << rnorm2 / bnorm2 << std::endl;
 	for (int j = 0; j < kNy; j++)
 	for (int i = 0; i < kNx; i++) {
 		ps[idx(i + kNumBCGrid, j + kNumBCGrid)] = x[i + j * kNx];
-		assert(AVals[idx(i, j)] == AVals[idx(i, j)]);
-		assert(ACols[idx(i, j)] == ACols[idx(i, j)]);
-		assert(ps[idx(i, j)] == ps[idx(i, j)]);
-		if (std::isnan(ps[idx(i, j)]) || std::isinf(ps[idx(i, j)])) {
-			std::cout << "poisson equation nan/inf error : " << i << " " << j << " " << ps[idx(i, j)] << std::endl;
+		assert(ps[idx(i + kNumBCGrid, j + kNumBCGrid)] == ps[idx(i + kNumBCGrid, j + kNumBCGrid)]);
+		if (std::isnan(ps[idx(i + kNumBCGrid, j + kNumBCGrid)]) || std::isinf(ps[idx(i + kNumBCGrid, j + kNumBCGrid)])) {
+			std::cout << "poisson equation nan/inf error : " << i + kNumBCGrid << " " << j + kNumBCGrid 
+				<< " " << ps[idx(i + kNumBCGrid, j + kNumBCGrid)] << std::endl;
 			exit(1);
 		}
 	}

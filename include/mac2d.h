@@ -79,9 +79,9 @@ public:
 	int UpdateJumpCond(const std::vector<double>& u, const std::vector<double>& v, 
 		const std::vector<double>& ls);
 	std::vector<double> UpdateFU(const std::shared_ptr<LevelSetSolver2D>& LSolver,
-		std::vector<double> ls, std::vector<double>u, std::vector<double> v);
+		const std::vector<double>& ls, const std::vector<double>& u, const std::vector<double>& v);
 	std::vector<double> UpdateFV(const std::shared_ptr<LevelSetSolver2D>& LSolver,
-		std::vector<double> ls, std::vector<double>u, std::vector<double> v);
+		const std::vector<double>& ls, const std::vector<double>& u, const std::vector<double>& v);
 
 	// Convection Term
 	std::vector<double> AddConvectionFU(const std::vector<double>& u, const std::vector<double>& v);
@@ -103,7 +103,7 @@ public:
 	// Poisson 
 	int SetPoissonSolver(POISSONTYPE type);
 	int SolvePoisson(std::vector<double>& ps, const std::vector<double>& div, const std::vector<double>& lsB, const std::vector<double>& ls,
-		const std::vector<double>& u, const std::vector<double>& v);
+		const std::vector<double>& u, const std::vector<double>& v, const int maxiter);
 
 	// update velocity using projection
 	std::vector<double> GetDivergence(const std::vector<double>& u, const std::vector<double>& v);
@@ -133,7 +133,7 @@ public:
 
 	void TDMA(double* a, double* b, double* c, double* d, int n);
 	int SetPLTType(PLTTYPE type);
-	int OutRes(int iter, double curTime, const std::string fname_vel_base, const std::string fname_div_base,
+	int OutRes(const int iter, const double curTime, const std::string fname_vel_base, const std::string fname_div_base,
 		const std::vector<double>& u, const std::vector<double>& v,
 		const std::vector<double>& ps, const std::vector<double>& ls);
 	int OutResClose();

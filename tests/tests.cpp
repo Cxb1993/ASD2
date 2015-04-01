@@ -8,8 +8,9 @@ int main(int argc, char *argv[]) {
 	// LevelSetTest_2D_ReinitOnly();
 	// LevelSetTest_2D_Sussman621_ReinitSussman();
 	// test_poisson_GuassSeidel();
+	// test_VBC();
 	// test_poisson_CG();
 	// test_poisson_BiCGStab();
-	MAC2DTest_SmallAirBubble();
-	
+	MAC2DTest_CavityFlow();
+	// MAC2DTest_SmallAirBubbleRising();
 }

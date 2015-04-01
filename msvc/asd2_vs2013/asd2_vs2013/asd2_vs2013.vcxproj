@@ -53,7 +53,7 @@
     <PlatformToolset>Intel C++ Compiler XE 14.0</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
-    <UseIntelMKL>Parallel</UseIntelMKL>
+    <UseIntelMKL>Sequential</UseIntelMKL>
     <InterproceduralOptimization>true</InterproceduralOptimization>
     <UseILP64Interfaces>true</UseILP64Interfaces>
   </PropertyGroup>

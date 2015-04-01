@@ -35,15 +35,18 @@ public:
 
 	int GS_2FUniform_2D(std::vector<double>& ps, const std::vector<double>& rhs,
 		std::vector<double>& AVals, std::vector<MKL_INT>& ACols, std::vector<MKL_INT>& ARowIdx,
-		double lenX, double lenY, double dx, double dy, std::shared_ptr<BoundaryCondition2D> PBC);
+		const double lenX, const double lenY, const double dx, const double dy,
+		const std::shared_ptr<BoundaryCondition2D>& PBC, const int maxiter);
 	int MKL_2FUniform_2D(std::vector<double>& phi, const std::vector<double>& rhs,
 		double lenX, double lenY, double dx, double dy, std::shared_ptr<BoundaryCondition2D> PBC);
 	int CG_2FUniform_2D(std::vector<double>& ps, const std::vector<double>& rhs,
 		std::vector<double>& AVals, std::vector<MKL_INT>& ACols, std::vector<MKL_INT>& ARowIdx,
-		double lenX, double lenY, double dx, double dy, std::shared_ptr<BoundaryCondition2D> PBC);
+		const double lenX, const double lenY, const double dx, const double dy,
+		const std::shared_ptr<BoundaryCondition2D>& PBC, const int maxiter);
 	int BiCGStab_2FUniform_2D(std::vector<double>& ps, const std::vector<double>& rhs,
 		std::vector<double>& AVals, std::vector<MKL_INT>& ACols, std::vector<MKL_INT>& ARowIdx,
-		double lenX, double lenY, double dx, double dy, std::shared_ptr<BoundaryCondition2D> PBC);
+		const double lenX, const double lenY, const double dx, const double dy,
+		const std::shared_ptr<BoundaryCondition2D>& PBC, const int maxiter);
 
 	int idx(int i, int j);
 };
