@@ -38,6 +38,7 @@ public:
 	const double kMuI, kMuO, kMuRatio;
 
 	const int kMaxIter, kNIterSkip;
+	const TimeOrderEnum kTimeOrder;
 	const double kCFL, kMaxTime;
 	const bool kWriteVTK;
 	POISSONTYPE m_PoissonSolverType;
@@ -64,12 +65,14 @@ public:
 	MACSolver2D();
 	MACSolver2D(double Re, double We, double Fr,
 		double L, double U, double sigma, double densityRatio, double viscosityRatio, double rhoI, double mu1,
-		int nx, int ny, double baseX, double baseY, double lenX, double lenY, double cfl,
-		int maxtime, int maxiter, int niterskip, int num_bc_grid, bool writeVTK);
+		int nx, int ny, double baseX, double baseY, double lenX, double lenY, 
+		TimeOrderEnum RKOrder, double cfl, int maxtime, int maxiter, int niterskip,
+		int num_bc_grid, bool writeVTK);
 	MACSolver2D(double rhoI, double rhoO, double muI, double muO, double gConstant,
 		double L, double U, double sigma,
-		int nx, int ny, double baseX, double baseY, double lenX, double lenY, double cfl,
-		int maxtime, int maxiter, int niterskip, int num_bc_grid, bool writeVTK);
+		int nx, int ny, double baseX, double baseY, double lenX, double lenY, 
+		TimeOrderEnum RKOrder, double cfl, int maxtime, int maxiter, int niterskip,
+		int num_bc_grid, bool writeVTK);
 	~MACSolver2D();
 
 	int AllocateVariables();
@@ -98,8 +101,12 @@ public:
 	// Gravity Term
 	std::vector<double> AddGravityFU();
 	std::vector<double> AddGravityFV();
-	std::vector<double> GetUhat(const std::vector<double>& u, const std::vector<double>& rhsu);
-	std::vector<double> GetVhat(const std::vector<double>& v, const std::vector<double>& rhsv);
+	
+	// Intermediate Velocity
+	int GetIntermediateVel(const std::shared_ptr<LevelSetSolver2D>& LSolver,
+		const std::vector<double>& lsB, const std::vector<double>& u, const std::vector<double>& v,
+		std::vector<double>& uhat, std::vector<double>& vhat);
+	
 	// Poisson 
 	int SetPoissonSolver(POISSONTYPE type);
 	int SolvePoisson(std::vector<double>& ps, const std::vector<double>& div, const std::vector<double>& lsB, const std::vector<double>& ls,

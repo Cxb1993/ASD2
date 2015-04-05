@@ -3,7 +3,7 @@
 MACSolver2D::MACSolver2D(double Re, double We, double Fr,
 	double L, double U, double sigma, double densityRatio, double viscosityRatio, double rhoI, double muI,
 	int nx, int ny, double baseX, double baseY, double lenX, double lenY,
-	double cfl,	int maxtime, int maxIter, int niterskip, int num_bc_grid,
+	TimeOrderEnum timeOrder, double cfl, int maxtime, int maxIter, int niterskip, int num_bc_grid,
 	bool writeVTK) :
 	kRe(Re), kWe(We), kFr(Fr),
 	kLScale(L), kUScale(U), kSigma(sigma),
@@ -12,8 +12,8 @@ MACSolver2D::MACSolver2D(double Re, double We, double Fr,
 	kMuI(muI), kMuO(muI * viscosityRatio), kMuRatio(viscosityRatio),
 	kNx(nx), kNy(ny), kBaseX(baseX), kBaseY(baseY), kLenX(lenX), kLenY(lenY),
 	kDx(lenX / static_cast<double>(nx)), kDy(lenY / static_cast<double>(ny)),
-	kCFL(cfl), kMaxTime(maxtime), kMaxIter(maxIter), kNIterSkip(niterskip), kNumBCGrid(num_bc_grid),
-	kWriteVTK(writeVTK) {
+	kTimeOrder(timeOrder), kCFL(cfl), kMaxTime(maxtime), kMaxIter(maxIter), kNIterSkip(niterskip),
+	kNumBCGrid(num_bc_grid), kWriteVTK(writeVTK) {
 
 	m_iter = 0;
 	m_curTime = 0.0;
@@ -22,15 +22,15 @@ MACSolver2D::MACSolver2D(double Re, double We, double Fr,
 
 MACSolver2D::MACSolver2D(double rhoI, double rhoO, double muI, double muO, double gConstant,
 	double L, double U, double sigma, int nx, int ny, double baseX, double baseY, double lenX, double lenY,
-	double cfl, int maxtime, int maxIter, int niterskip, int num_bc_grid,
+	TimeOrderEnum timeOrder, double cfl, int maxtime, int maxIter, int niterskip, int num_bc_grid,
 	bool writeVTK) :
 	kRhoScale(rhoI), kMuScale(muI), kG(gConstant), kLScale(L), kUScale(U), kSigma(sigma),
 	kRhoI(rhoI), kRhoO(rhoO), kMuI(muI), kMuO(muO), kRhoRatio(rhoI / rhoO), kMuRatio(muI / muO),
 	kRe(rhoI * L * U / muI), kWe(rhoI * L * U * U / sigma), kFr(U * U / (gConstant * L)),
 	kNx(nx), kNy(ny), kBaseX(baseX), kBaseY(baseY), kLenX(lenX), kLenY(lenY),
 	kDx(lenX / static_cast<double>(nx)), kDy(lenY / static_cast<double>(ny)),
-	kCFL(cfl), kMaxTime(maxtime), kMaxIter(maxIter), kNIterSkip(niterskip), kNumBCGrid(num_bc_grid),
-	kWriteVTK(writeVTK) {
+	kTimeOrder(timeOrder), kCFL(cfl), kMaxTime(maxtime), kMaxIter(maxIter), kNIterSkip(niterskip),
+	kNumBCGrid(num_bc_grid), kWriteVTK(writeVTK) {
 
 	m_iter = 0;
 	m_curTime = 0.0;
@@ -984,6 +984,7 @@ std::vector<double> MACSolver2D::AddViscosityFV(const std::vector<double>& u, co
 		visY = 2.0 * (muV_Y_N - muV_Y_S) / kDy;
 		// visX = (muV_X_E - muV_X_W) / kDx;
 		// visY = (muV_Y_N - muV_Y_S) / kDy;
+
 		dV[idx(i, j)] = visX + visY;
 		// if (j == kNy + kNumBCGrid - 1)
 		// 	std::cout << i << " " << j << " " << visX + visY << " " << (muU_Y_N - muU_Y_S) / kDx + (muV_Y_N - muV_Y_S) / kDy << " " << (muV_X_E - muV_X_W) / kDx + (muV_Y_N - muV_Y_S) / kDy << std::endl;
@@ -1035,36 +1036,168 @@ std::vector<double> MACSolver2D::AddGravityFV() {
 	return gV;
 }
 
-std::vector<double> MACSolver2D::GetUhat(const std::vector<double>& u, const std::vector<double>& rhsu) {
-	std::vector<double> uhat((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
-
+int MACSolver2D::GetIntermediateVel(const std::shared_ptr<LevelSetSolver2D>& LSolver,
+	const std::vector<double>& lsB, const std::vector<double>& u, const std::vector<double>& v,
+	std::vector<double>& uhat, std::vector<double>& vhat) {
+		
 	// Update rhs
+	if (kTimeOrder == TimeOrderEnum::RK1) {
+		std::vector<double> FU1((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
+		std::vector<double> FV1((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
+
+		FU1 = UpdateFU(LSolver, lsB, u, v);
+		FV1 = UpdateFV(LSolver, lsB, u, v);
+		
+		for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
+		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
+			uhat[idx(i, j)] = u[idx(i, j)] + m_dt * FU1[idx(i, j)];
+		}
+		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+		for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++) {
+			vhat[idx(i, j)] = v[idx(i, j)] + m_dt * FV1[idx(i, j)];
+		}
+	}
+	else if (kTimeOrder == TimeOrderEnum::RK2) {
+		std::vector<double> FU1((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0),
+			FV1((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0),
+			FU2((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0),
+			FV2((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
+
+		// FU1 & FV1 : L(u^(0))
+		// FU2 & FV2 : u^(1)
+		FU1 = UpdateFU(LSolver, lsB, u, v);
+		FV1 = UpdateFV(LSolver, lsB, u, v);
+		for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
+		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
+			FU2[idx(i, j)] = u[idx(i, j)] + m_dt * FU1[idx(i, j)];
+		}
+		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+		for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++) {
+			FV2[idx(i, j)] = v[idx(i, j)] + m_dt * FV1[idx(i, j)];
+		}
+		std::fill(FU1.begin(), FU1.end(), 0.0);
+		std::fill(FV1.begin(), FV1.end(), 0.0);
+		
+		// FU1 & FV1 : L(u^(1))
+		// FU2 & FV2 : u^(2)
+		ApplyBC_U_2D(FU2);
+		ApplyBC_V_2D(FV2);
+		FU1 = UpdateFU(LSolver, lsB, FU2, FV2);
+		FV1 = UpdateFV(LSolver, lsB, FU2, FV2);
+		for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
+		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
+			FU2[idx(i, j)] = FU2[idx(i, j)] + m_dt * FU1[idx(i, j)];
+		}
+		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+		for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++) {
+			FV2[idx(i, j)] = FV2[idx(i, j)] + m_dt * FV1[idx(i, j)];
+		}
+		
+		for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
+		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
+			uhat[idx(i, j)] = 0.5 * u[idx(i, j)] + 0.5 * FU2[idx(i, j)];
+		}
+		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+		for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++) {
+			vhat[idx(i, j)] = 0.5 * v[idx(i, j)] + 0.5 * FV2[idx(i, j)];
+		}
+	}
+	else if (kTimeOrder == TimeOrderEnum::RK3) {
+		std::vector<double> FU1((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0),
+			FV1((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0),
+			FU2((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0),
+			FV2((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
+
+		// FU1 & FV1 : L(u^(0))
+		// FU2 & FV2 : u^(1)
+		FU1 = UpdateFU(LSolver, lsB, u, v);
+		FV1 = UpdateFV(LSolver, lsB, u, v);
+		for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
+		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
+			FU2[idx(i, j)] = u[idx(i, j)] + m_dt * FU1[idx(i, j)];
+		}
+		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+		for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++) {
+			FV2[idx(i, j)] = v[idx(i, j)] + m_dt * FV1[idx(i, j)];
+		}
+		std::fill(FU1.begin(), FU1.end(), 0.0);
+		std::fill(FV1.begin(), FV1.end(), 0.0);
+		
+		// FU1 & FV1 : L(u^(1))
+		// FU2 & FV2 : u^(1) + \delta t L (u^(1))
+		ApplyBC_U_2D(FU2);
+		ApplyBC_V_2D(FV2);
+		FU1 = UpdateFU(LSolver, lsB, FU2, FV2);
+		FV1 = UpdateFV(LSolver, lsB, FU2, FV2);
+		for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
+		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
+			FU2[idx(i, j)] = FU2[idx(i, j)] + m_dt * FU1[idx(i, j)];
+		}
+		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+		for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++) {
+			FV2[idx(i, j)] = FV2[idx(i, j)] + m_dt * FV1[idx(i, j)];
+		}
+		std::fill(FU1.begin(), FU1.end(), 0.0);
+		std::fill(FV1.begin(), FV1.end(), 0.0);
+		
+		// FU1 & FV1 : u^(2)
+		for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
+		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
+			FU1[idx(i, j)] = 0.75 * u[idx(i, j)] + 0.25 * FU2[idx(i, j)];
+		}
+		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+		for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++) {
+			FV1[idx(i, j)] = 0.75 * v[idx(i, j)] + 0.25 * FV2[idx(i, j)];
+		}
+		std::fill(FU2.begin(), FU2.end(), 0.0);
+		std::fill(FV2.begin(), FV2.end(), 0.0);
+
+		// FU2 & FV2 : L(u^(2))
+		// FU1 & FV1 : u^(2) + \delta t L (u^(2))
+		ApplyBC_U_2D(FU1);
+		ApplyBC_V_2D(FV1);
+		FU2 = UpdateFU(LSolver, lsB, FU1, FV1);
+		FV2 = UpdateFV(LSolver, lsB, FU1, FV1);
+		for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
+		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
+			FU1[idx(i, j)] = FU1[idx(i, j)] + m_dt * FU2[idx(i, j)];
+		}
+		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+		for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++) {
+			FV1[idx(i, j)] = FV1[idx(i, j)] + m_dt * FV2[idx(i, j)];
+		}
+		std::fill(FU2.begin(), FU2.end(), 0.0);
+		std::fill(FV2.begin(), FV2.end(), 0.0);
+
+		// FU1 & FV1 : u^(2) + \delta t L (u^(2))
+		// FU2 & FV2 : doesn't need. set to zero.
+		for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
+		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
+			uhat[idx(i, j)] = 1.0 / 3.0 * u[idx(i, j)] + 2.0 / 3.0 * FU1[idx(i, j)];
+		}
+		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+		for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++) {
+			vhat[idx(i, j)] = 1.0 / 3.0 * v[idx(i, j)] + 2.0 / 3.0 * FV1[idx(i, j)];
+		}
+	}
+
 	for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
 	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
-		uhat[idx(i, j)] = u[idx(i, j)] + m_dt * rhsu[idx(i, j)];
 		if (std::isnan(uhat[idx(i, j)]) || std::isinf(uhat[idx(i, j)])) {
 			std::cout << "Uhat term nan/inf error : " << i << " " << j << " " << uhat[idx(i, j)] << std::endl;
 			exit(1);
 		}
 	}
 
-	return uhat;
-}
-
-std::vector<double> MACSolver2D::GetVhat(const std::vector<double>& v, const std::vector<double>& rhsv) {
-	std::vector<double> vhat((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
-
-	// Update rhs
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 	for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++) {
-		vhat[idx(i, j)] = v[idx(i, j)] + m_dt * rhsv[idx(i, j)];
 		if (std::isnan(vhat[idx(i, j)]) || std::isinf(vhat[idx(i, j)])) {
 			std::cout << "Vhat term nan/inf error : " << i << " " << j << " " << vhat[idx(i, j)] << std::endl;
 			exit(1);
 		}
 	}
 
-	return vhat;
+	return 0;
 }
 
 int MACSolver2D::SetPoissonSolver(POISSONTYPE type) {

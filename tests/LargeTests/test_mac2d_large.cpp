@@ -13,21 +13,22 @@ int MAC2DTest_CavityFlow() {
 	const double baseX = 0.0, baseY = 0.0, lenX = 1.0, lenY = 1.0, cfl = 0.1;
 	double x = 0.0, y = 0.0, d = 0.0;
 
-	const int maxtime = 2.0, maxiter = 20000, niterskip = 50, num_bc_grid = 3;
+	const int maxtime = 10.0, maxiter = 10000, niterskip = 50, num_bc_grid = 3;
 	const bool writeVTK = false;
 	// length of each cell
 	const double dx = lenX / nx, dy = lenY / ny;
 	const std::string fname_vel("testMAC2D_CavityVel_Re_" + std::to_string(Re));
 	const std::string fname_div("testMAC2D_CavityDiv_Re_" + std::to_string(Re));
-	int iterskip = 1;
+	const int iterskip = 1;
+	const TimeOrderEnum timeOrder = TimeOrderEnum::RK3;
 	int stat = 0;
 
 	std::unique_ptr<MACSolver2D> MSolver;
 	MSolver = std::make_unique<MACSolver2D>(Re, We, Fr,
 		L, U, sigma, densityRatio, viscosityRatio, rhoI, muI,
 		nx, ny, baseX, baseY, lenX, lenY,
-		cfl, maxtime, maxiter, niterskip, num_bc_grid,
-		writeVTK);
+		timeOrder, cfl, maxtime, maxiter, niterskip,
+		num_bc_grid, writeVTK);
 	MSolver->SetBC_U_2D("dirichlet", "dirichlet", "dirichlet", "dirichlet");
 	MSolver->SetBC_V_2D("dirichlet", "dirichlet", "dirichlet", "dirichlet");
 	MSolver->SetBC_P_2D("neumann", "neumann", "neumann", "neumann");
@@ -95,7 +96,6 @@ int MAC2DTest_CavityFlow() {
 	MSolver->m_dt = cfl * std::min(dx, dy) / U;
 	std::cout << " dt : " << MSolver->m_dt << std::endl;
 
-	std::vector<double> FU((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid)), FV((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid));
 	std::vector<double> uhat((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid)), vhat((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid));
 	std::vector<double> div((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid));
 	MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
@@ -116,12 +116,9 @@ int MAC2DTest_CavityFlow() {
 
 		// Update F and apply time integration
 		MSolver->UpdateJumpCond(MSolver->m_u, MSolver->m_v, lsB);
-		FU = MSolver->UpdateFU(LSolver, lsB, MSolver->m_u, MSolver->m_v);
-		FV = MSolver->UpdateFV(LSolver, lsB, MSolver->m_u, MSolver->m_v);
-
-		// Get intermediate velocity
-		uhat = MSolver->GetUhat(MSolver->m_u, FU);
-		vhat = MSolver->GetVhat(MSolver->m_v, FV);
+		
+		// Get intermediate velocity with RK method
+		MSolver->GetIntermediateVel(LSolver, lsB, MSolver->m_u, MSolver->m_v, uhat, vhat);
 
 		MSolver->ApplyBC_U_2D(uhat);
 		MSolver->ApplyBC_V_2D(vhat);
@@ -156,8 +153,6 @@ int MAC2DTest_CavityFlow() {
 		}
 		std::fill(uhat.begin(), uhat.end(), 0.0);
 		std::fill(vhat.begin(), vhat.end(), 0.0);
-		std::fill(FU.begin(), FU.end(), 0.0);
-		std::fill(FV.begin(), FV.end(), 0.0);
 	}
 
 	MSolver->OutResClose();
@@ -189,13 +184,14 @@ int MAC2DTest_SmallAirBubbleRising() {
 	const double dx = lenX / nx, dy = lenY / ny;
 	const std::string fname_vel("testMAC2D_BubbleRisingVel_Re_" + std::to_string(Re));
 	const std::string fname_div("testMAC2D_BubbleRisingDiv_Re_" + std::to_string(Re));
-	int iterskip = 1;
+	const int iterskip = 1;
+	const TimeOrderEnum timeOrder = TimeOrderEnum::RK1;
 	int stat = 0;
 	
 	std::unique_ptr<MACSolver2D> MSolver;
 	MSolver = std::make_unique<MACSolver2D>(rhoI, rhoO, muI, muO, gConstant,
-		L, U, sigma, nx, ny, baseX, baseY, lenX, lenY, cfl, maxtime, maxiter, niterskip, num_bc_grid,
-		writeVTK);
+		L, U, sigma, nx, ny, baseX, baseY, lenX, lenY,
+		timeOrder, cfl, maxtime, maxiter, niterskip, num_bc_grid, writeVTK);
 	MSolver->SetBC_U_2D("dirichlet", "dirichlet", "dirichlet", "dirichlet");
 	MSolver->SetBC_V_2D("dirichlet", "dirichlet", "dirichlet", "dirichlet");
 	MSolver->SetBC_P_2D("neumann", "neumann", "neumann", "neumann");
@@ -264,8 +260,7 @@ int MAC2DTest_SmallAirBubbleRising() {
 	// prevent dt == 0.0
 	MSolver->m_dt = cfl * std::min(dx, dy) / U;
 	std::cout << " dt : " << MSolver->m_dt << std::endl;
-	
-	std::vector<double> FU((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid)), FV((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid));
+
 	std::vector<double> uhat((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid)), vhat((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid));
 	std::vector<double> div((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid));
 	MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
@@ -286,13 +281,10 @@ int MAC2DTest_SmallAirBubbleRising() {
 		
 		// Update F and apply time integration
 		MSolver->UpdateJumpCond(MSolver->m_u, MSolver->m_v, lsB);
-		FU = MSolver->UpdateFU(LSolver, lsB, MSolver->m_u, MSolver->m_v);
-		FV = MSolver->UpdateFV(LSolver, lsB, MSolver->m_u, MSolver->m_v);
-
-		// Get intermediate velocity
-		uhat = MSolver->GetUhat(MSolver->m_u, FU);
-		vhat = MSolver->GetVhat(MSolver->m_v, FV);
 		
+		// Get intermediate velocity
+		MSolver->GetIntermediateVel(LSolver, lsB, MSolver->m_u, MSolver->m_v, uhat, vhat);
+
 		MSolver->ApplyBC_U_2D(uhat);
 		MSolver->ApplyBC_V_2D(vhat);
 		
@@ -326,8 +318,6 @@ int MAC2DTest_SmallAirBubbleRising() {
 		}
 		std::fill(uhat.begin(), uhat.end(), 0.0);
 		std::fill(vhat.begin(), vhat.end(), 0.0);
-		std::fill(FU.begin(), FU.end(), 0.0);
-		std::fill(FV.begin(), FV.end(), 0.0);
 	}
 
 	MSolver->OutResClose();
@@ -359,15 +349,15 @@ int MAC2DTest_TaylorInstability() {
 	const double dx = lenX / nx, dy = lenY / ny;
 	const std::string fname_vel("TaylorVel_Re_" + std::to_string(Re));
 	const std::string fname_div("TaylorDiv_Re_" + std::to_string(Re));
-	int iterskip = 1;
+	const TimeOrderEnum timeOrder = TimeOrderEnum::RK1;
+	const int iterskip = 1;
 	int stat = 0;
 
 	std::unique_ptr<MACSolver2D> MSolver;
 	MSolver = std::make_unique<MACSolver2D>(Re, We, Fr,
 		L, U, sigma, densityRatio, viscosityRatio, rhoI, muI,
 		nx, ny, baseX, baseY, lenX, lenY,
-		cfl, maxtime, maxiter, niterskip, num_bc_grid,
-		writeVTK);
+		timeOrder, cfl, maxtime, maxiter, niterskip, num_bc_grid, writeVTK);
 	MSolver->SetBC_U_2D("periodic", "periodic", "dirichlet", "dirichlet");
 	MSolver->SetBC_V_2D("periodic", "periodic", "dirichlet", "dirichlet");
 	MSolver->SetBC_P_2D("periodic", "periodic", "dirichlet", "dirichlet");
@@ -438,7 +428,6 @@ int MAC2DTest_TaylorInstability() {
 	MSolver->m_dt = cfl * std::min(dx, dy) / U;
 	std::cout << " dt : " << MSolver->m_dt << std::endl;
 
-	std::vector<double> FU((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid)), FV((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid));
 	std::vector<double> uhat((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid)), vhat((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid));
 	std::vector<double> div((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid));
 	MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
@@ -458,12 +447,8 @@ int MAC2DTest_TaylorInstability() {
 
 		// Update F and apply time integration
 		MSolver->UpdateJumpCond(MSolver->m_u, MSolver->m_v, lsB);
-		FU = MSolver->UpdateFU(LSolver, lsB, MSolver->m_u, MSolver->m_v);
-		FV = MSolver->UpdateFV(LSolver, lsB, MSolver->m_u, MSolver->m_v);
-
 		// Get intermediate velocity
-		uhat = MSolver->GetUhat(MSolver->m_u, FU);
-		vhat = MSolver->GetVhat(MSolver->m_v, FV);
+		MSolver->GetIntermediateVel(LSolver, lsB, MSolver->m_u, MSolver->m_v, uhat, vhat);
 
 		MSolver->ApplyBC_U_2D(uhat);
 		MSolver->ApplyBC_V_2D(vhat);
@@ -497,8 +482,6 @@ int MAC2DTest_TaylorInstability() {
 		}
 		std::fill(uhat.begin(), uhat.end(), 0.0);
 		std::fill(vhat.begin(), vhat.end(), 0.0);
-		std::fill(FU.begin(), FU.end(), 0.0);
-		std::fill(FV.begin(), FV.end(), 0.0);
 	}
 
 	MSolver->OutResClose();
