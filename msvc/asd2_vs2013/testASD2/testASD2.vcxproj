@@ -51,7 +51,7 @@
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
     <InterproceduralOptimization>true</InterproceduralOptimization>
-    <UseIntelMKL>Sequential</UseIntelMKL>
+    <UseIntelMKL>Parallel</UseIntelMKL>
     <UseILP64Interfaces>true</UseILP64Interfaces>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
@@ -85,6 +85,8 @@
     <IncludePath>$(SolutionDir)..\..\include;$(MKLIncludeDir);$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)..\..\lib;$(SolutionDir)..\..\lib\windows;$(OmpLibDir);$(LibraryPath)</LibraryPath>
     <SourcePath>$(SolutionDir)..\..\src;$(VC_SourcePath);</SourcePath>
+    <OutDir>$(SolutionDir)..\..\bin\windows\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)tmp\$(Configuration)\$(ProjectName)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -144,6 +146,10 @@
       <SDLCheck>true</SDLCheck>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <AdditionalIncludeDirectories>$(TECPLOT_DIR)\include;$(SolutionDir)..\..\include</AdditionalIncludeDirectories>
+      <Parallelization>true</Parallelization>
+      <UseProcessorExtensions>AVX</UseProcessorExtensions>
+      <OpenMP>GenerateParallelCode</OpenMP>
+      <Cpp0xSupport>true</Cpp0xSupport>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>

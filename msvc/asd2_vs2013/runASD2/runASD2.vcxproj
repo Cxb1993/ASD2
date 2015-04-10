@@ -106,6 +106,8 @@
     <IncludePath>$(SolutionDir)..\..\include;$(HDF5_DIR)\include;$(MKLIncludeDir);$(TECPLOT_DIR)\include;$(IncludePath)</IncludePath>
     <LibraryPath>$(HDF5_DIR)\lib;$(SolutionDir)..\..\lib\windows\;$(MKLLibDir);$(TECPLOT_DIR)\szl;$(LibraryPath)</LibraryPath>
     <SourcePath>$(SolutionDir)..\..\src;$(VC_SourcePath);</SourcePath>
+    <IntDir>$(SolutionDir)tmp\$(Configuration)\$(ProjectName)\</IntDir>
+    <OutDir>$(SolutionDir)..\..\bin\windows\$(Configuration)\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -174,6 +176,10 @@
       <AdditionalIncludeDirectories>$(TECPLOT_DIR)\include;$(SolutionDir)..\..\include</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_VARIADIC_MAX=10;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <Parallelization>true</Parallelization>
+      <OpenMP>GenerateParallelCode</OpenMP>
+      <Cpp0xSupport>true</Cpp0xSupport>
+      <UseProcessorExtensions>AVX</UseProcessorExtensions>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>

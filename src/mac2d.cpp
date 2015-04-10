@@ -259,7 +259,7 @@ std::vector<double> MACSolver2D::UpdateFU(const std::shared_ptr<LevelSetSolver2D
 
 		rhsU[idx(i, j)] = -cU[idx(i, j)] + vU[idx(i, j)] * iRhoEff + gU[idx(i, j)];
 	}
-
+	
 	return rhsU;
 }
 
@@ -596,17 +596,34 @@ std::vector<double> MACSolver2D::AddViscosityFU(const std::vector<double>& u, co
 	}
 
 	// level set
-	double lsW = 0.0, lsE = 0.0, lsS = 0.0, lsN = 0.0, lsM = 0.0;
+	double lsUW = 0.0, lsUE = 0.0, lsUS = 0.0, lsUN = 0.0, lsUM = 0.0;
+	double lsVW_N = 0.0, lsVW = 0.0, lsVM = 0.0, lsVN = 0.0;
+	/*
+	-------------------------------------
+	|			|			|			|
+	|		  lsUN			|			|
+	|			|			|			|
+	----lsVW_N-------lsVN----------------
+	|			|			|			|
+  lsUW		  lsUM  (i,j)  lsUE			|
+	|			|			|			|
+	----lsVW---------lsVM----------------
+	|			|			|			|
+	|		  lsUS		  lsUE_S		|
+	|			|			|			|
+	-------------------------------------
+	*/
 	// subcell
 	double theta = 0.0;
 	double muU_X_W = 0.0, muU_X_E = 0.0, muU_Y_S = 0.0, muU_Y_N = 0.0;
-	double muV_X_W = 0.0, muV_X_E = 0.0;
+	double muV_X_S = 0.0, muV_X_N = 0.0;
 	double uW = 0.0, uE = 0.0, uS = 0.0, uN = 0.0, uM = 0.0;
-	double vW = 0.0, vE = 0.0, vM = 0.0;
+	double vW = 0.0, vW_N = 0.0, vM = 0.0, vN = 0.0;
 	double visX = 0.0, visY = 0.0;
 
 	// jump condition
-	double JW = 0.0, JE = 0.0, JS = 0.0, JN = 0.0, JM = 0.0;
+	double JUW = 0.0, JUE = 0.0, JUS = 0.0, JUN = 0.0, JUM = 0.0;
+	double JVW = 0.0, JVW_N = 0.0, JVM = 0.0, JVN = 0.0;
 	// effective Jump condition, effective u(uEff), and effective mu (muEff)
 	// J is a jump condition and defined at P grid
 	double JEff = 0.0, JO = 0.0, uEff = 0.0, vEff = 0.0, muEff = 0.0;
@@ -615,172 +632,209 @@ std::vector<double> MACSolver2D::AddViscosityFU(const std::vector<double>& u, co
 	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
 		visX = 0.0, visY = 0.0;
 		muU_X_W = 0.0; muU_X_E = 0.0; muU_Y_S = 0.0; muU_Y_N = 0.0;
-		lsW = 0.5 * (ls[idx(i - 2, j)] + ls[idx(i - 1, j)]);
-		lsE = 0.5 * (ls[idx(i, j)] + ls[idx(i + 1, j)]);
-		lsM = 0.5 * (ls[idx(i - 1, j)] + ls[idx(i, j)]);
-		lsS = 0.5 * (ls[idx(i - 1, j - 1)] + ls[idx(i, j - 1)]);
-		lsN = 0.5 * (ls[idx(i - 1, j + 1)] + ls[idx(i, j + 1)]);
+		muV_X_S = 0.0; muV_X_N = 0.0;
+		lsUW = 0.5 * (ls[idx(i - 2, j)] + ls[idx(i - 1, j)]);
+		lsUE = 0.5 * (ls[idx(i, j)] + ls[idx(i + 1, j)]);
+		lsUM = 0.5 * (ls[idx(i - 1, j)] + ls[idx(i, j)]);
+		lsUS = 0.5 * (ls[idx(i - 1, j - 1)] + ls[idx(i, j - 1)]);
+		lsUN = 0.5 * (ls[idx(i - 1, j + 1)] + ls[idx(i, j + 1)]);
+		lsVW = 0.5 * (ls[idx(i - 1, j - 1)] + ls[idx(i - 1, j)]);
+		lsVW_N = 0.5 * (ls[idx(i - 1, j)] + ls[idx(i, j + 1)]);
+		lsVM = 0.5 * (ls[idx(i, j)] + ls[idx(i, j - 1)]);
+		lsVN = 0.5 * (ls[idx(i, j)] + ls[idx(i, j + 1)]);
 		uM = u[idx(i, j)];
 		uW = u[idx(i - 1, j)];
 		uE = u[idx(i + 1, j)];
 		uS = u[idx(i, j - 1)];
 		uN = u[idx(i, j + 1)];
-		vW = 0.25 * (v[idx(i - 2, j)] + v[idx(i - 1, j)] + v[idx(i - 1, j + 1)] + v[idx(i - 2, j + 1)]);
-		vM = 0.25 * (v[idx(i - 1, j)] + v[idx(i, j)] + v[idx(i, j + 1)] + v[idx(i - 1, j + 1)]);
-		vE = 0.25 * (v[idx(i, j)] + v[idx(i + 1, j)] + v[idx(i + 1, j + 1)] + v[idx(i, j + 1)]);
+		vW = v[idx(i - 1, j)];
+		vW = v[idx(i - 1, j)];
+		vW_N = v[idx(i - 1, j + 1)];
+		vM = v[idx(i, j)];
+		vN = v[idx(i, j + 1)];
 		
-		if (lsW >= 0 && lsM >= 0) {
+		// U part 
+
+		if (lsUW >= 0 && lsUM >= 0) {
 			muU_X_W = kMuI * (uM - uW) / kDx;
-			muV_X_W = kMuI * (vM - vW) / kDx;
 		}
-		else if (lsW < 0 && lsM < 0) {
+		else if (lsUW < 0 && lsUM < 0) {
 			muU_X_W = kMuO * (uM - uW) / kDx;
-			muV_X_W = kMuO * (vM - vW) / kDx;
 		}
-		else if (lsW > 0 && lsM <= 0) {
-			// interface lies between v[i,j] and v[i - 1,j]
-			theta = fabs(lsW) / (fabs(lsW) + fabs(lsM));
-			// |(lsW)| === inside(+)  === |(interface)| ===    outside(-)   === |(lsM)|
-			// |(lsW)| === theta * d  === |(interface)| === (1 - theta) * d === |(lsM)|
-			JW = (kMuO - kMuI) * (m_J11[idx(i - 2, j)] + m_J11[idx(i - 1, j)]) * 0.5;
-			JM = (kMuO - kMuI) * (m_J11[idx(i - 1, j)] + m_J11[idx(i, j)]) * 0.5;
-			JEff = theta * JM + (1.0 - theta) * JW;
+		else if (lsUW > 0 && lsUM <= 0) {
+			// interface lies between u[i - 1, j] and u[i, j]
+			theta = fabs(lsUW) / (fabs(lsUW) + fabs(lsUM));
+			// |(lsUW)| === inside(+)  === |(interface)| ===    outside(-)   === |(lsUM)|
+			// |(lsUW)| === theta * d  === |(interface)| === (1 - theta) * d === |(lsUM)|
+			JUW = (kMuO - kMuI) * (m_J11[idx(i - 2, j)] + m_J11[idx(i - 1, j)]) * 0.5;
+			JUM = (kMuO - kMuI) * (m_J11[idx(i - 1, j)] + m_J11[idx(i, j)]) * 0.5;
+			JEff = theta * JUM + (1.0 - theta) * JUW;
 			muEff = kMuO * kMuI / (kMuO * theta + kMuO * (1.0 - theta));
 			muU_X_W = muEff * (uM - uW) / kDx - muEff * JEff * theta / kMuI;
-			
-			JW = (kMuO - kMuI) * (m_J21[idx(i - 2, j)] + m_J21[idx(i - 1, j)]) * 0.5;
-			JM = (kMuO - kMuI) * (m_J21[idx(i - 1, j)] + m_J21[idx(i, j)]) * 0.5;
-			JEff = theta * JM + (1.0 - theta) * JW;
-			muEff = kMuO * kMuI / (kMuO * theta + kMuI * (1.0 - theta));
-			muV_X_W = muEff * (vM - vW) / kDx - muEff * JEff * theta / kMuI;
 		}
-		else if (lsW <= 0 && lsM > 0) {
-			// interface lies between v[i,j] and v[i - 1,j]
-			theta = fabs(lsW) / (fabs(lsW) + fabs(lsM));
-			// |(lsW)| ===  outside(-) === |(interface)| ===    inside(+)    === |(lsM)|
-			// |(lsW)| ===  theta * d  === |(interface)| === (1 - theta) * d === |(lsM)|
-			JW = (kMuI - kMuO) * (m_J11[idx(i - 2, j)] + m_J11[idx(i - 1, j)]) * 0.5;
-			JM = (kMuI - kMuO) * (m_J11[idx(i - 1, j)] + m_J11[idx(i, j)]) * 0.5;
-			JEff = theta * JM + (1.0 - theta) * JW;
+		else if (lsUW <= 0 && lsUM > 0) {
+			// interface lies between u[i - 1, j] and u[i, j]
+			theta = fabs(lsUW) / (fabs(lsUW) + fabs(lsUM));
+			// |(lsUW)| ===  outside(-) === |(interface)| ===    inside(+)    === |(lsUM)|
+			// |(lsUW)| ===  theta * d  === |(interface)| === (1 - theta) * d === |(lsUM)|
+			JUW = (kMuI - kMuO) * (m_J11[idx(i - 2, j)] + m_J11[idx(i - 1, j)]) * 0.5;
+			JUM = (kMuI - kMuO) * (m_J11[idx(i - 1, j)] + m_J11[idx(i, j)]) * 0.5;
+			JEff = theta * JUM + (1.0 - theta) * JUW;
 			muEff = kMuI * kMuO / (kMuI * theta + kMuO * (1.0 - theta));
 			muU_X_W = muEff * (uM - uW) / kDx + muEff * JEff * theta / kMuO;
-
-			JW = (kMuI - kMuO) * (m_J21[idx(i - 2, j)] + m_J21[idx(i - 1, j)]) * 0.5;
-			JM = (kMuI - kMuO) * (m_J21[idx(i - 1, j)] + m_J21[idx(i, j)]) * 0.5;
-			JEff = theta * JM + (1.0 - theta) * JW;
-			muEff = kMuI * kMuO / (kMuI * theta + kMuO * (1.0 - theta));
-			muV_X_W = muEff * (vM - vW) / kDx + muEff * JEff * theta / kMuO;
 		}
 		
-		if (lsM >= 0 && lsE >= 0) {
+		if (lsUM >= 0 && lsUE >= 0) {
 			muU_X_E = kMuI * (uE - uM) / kDx;
-			muV_X_E = kMuI * (vE - vM) / kDx;
 		}
-		else if (lsM < 0 && lsE < 0) {
+		else if (lsUM < 0 && lsUE < 0) {
 			muU_X_E = kMuO * (uE - uM) / kDx;
-			muV_X_E = kMuO * (vE - vM) / kDx;
 		}
-		else if (lsM > 0 && lsE <= 0) {
-			// interface lies between u[i,j] and u[i + 1,j]
-			theta = fabs(lsE) / (fabs(lsE) + fabs(lsM));
-			// |(lsM)| ===    inside(+)    === |(interface)| === outside(-) === |(lsE)|
-			// |(lsM)| === (1 - theta) * d === |(interface)| === theta * d  === |(lsE)|
-			JM = (kMuO - kMuI) * (m_J11[idx(i - 1, j)] + m_J11[idx(i, j)]) * 0.5;
-			JE = (kMuO - kMuI) * (m_J11[idx(i, j)] + m_J11[idx(i + 1, j)]) * 0.5;
-			JEff = theta * JM + (1.0 - theta) * JE;
+		else if (lsUM > 0 && lsUE <= 0) {
+			// interface lies between u[i, j] and u[i + 1, j]
+			theta = fabs(lsUE) / (fabs(lsUE) + fabs(lsUM));
+			// |(lsUM)| ===    inside(+)    === |(interface)| === outside(-) === |(lsUE)|
+			// |(lsUM)| === (1 - theta) * d === |(interface)| === theta * d  === |(lsUE)|
+			JUM = (kMuO - kMuI) * (m_J11[idx(i - 1, j)] + m_J11[idx(i, j)]) * 0.5;
+			JUE = (kMuO - kMuI) * (m_J11[idx(i, j)] + m_J11[idx(i + 1, j)]) * 0.5;
+			JEff = theta * JUM + (1.0 - theta) * JUE;
 			muEff = kMuI * kMuO / (kMuI * theta + kMuO * (1.0 - theta));
 			muU_X_E = muEff * (uE - uM) / kDx + muEff * JEff * theta / kMuO;
-
-			JM = (kMuO - kMuI) * (m_J21[idx(i - 1, j)] + m_J21[idx(i, j)]) * 0.5;
-			JE = (kMuO - kMuI) * (m_J21[idx(i, j)] + m_J21[idx(i + 1, j)]) * 0.5;
-			JEff = theta * JM + (1.0 - theta) * JE;
-			muEff = kMuI * kMuO / (kMuI * theta + kMuO * (1.0 - theta));
-			muV_X_E = muEff * (vE - vM) / kDx + muEff * JEff * theta / kMuO;
 		}
-		else if (lsM <= 0 && lsE > 0) {
-			// interface lies between v[i,j] and v[i + 1,j]
-			theta = fabs(lsE) / (fabs(lsE) + fabs(lsM));
-			// |(lsM)| ===   outside(-)    === |(interface)| === inside(+) === |(lsE)|
-			// |(lsM)| === (1 - theta) * d === |(interface)| === theta * d === |(lsE)|
-			JM = (kMuI - kMuO) * (m_J11[idx(i - 1, j)] + m_J11[idx(i, j)]) * 0.5;
-			JE = (kMuI - kMuO) * (m_J11[idx(i, j)] + m_J11[idx(i + 1, j)]) * 0.5;
-			JEff = theta * JM + (1.0 - theta) * JE;
+		else if (lsUM <= 0 && lsUE > 0) {
+			// interface lies between u[i, j] and u[i + 1, j]
+			theta = fabs(lsUE) / (fabs(lsUE) + fabs(lsUM));
+			// |(lsUM)| ===   outside(-)    === |(interface)| === inside(+) === |(lsUE)|
+			// |(lsUM)| === (1 - theta) * d === |(interface)| === theta * d === |(lsUE)|
+			JUM = (kMuI - kMuO) * (m_J11[idx(i - 1, j)] + m_J11[idx(i, j)]) * 0.5;
+			JUE = (kMuI - kMuO) * (m_J11[idx(i, j)] + m_J11[idx(i + 1, j)]) * 0.5;
+			JEff = theta * JUM + (1.0 - theta) * JUE;
 			muEff = kMuO * kMuI / (kMuO * theta + kMuI * (1.0 - theta));
 			muU_X_E = muEff * (uE - uM) / kDx - muEff * JEff * theta / kMuI;
-
-			JM = (kMuI - kMuO) * (m_J21[idx(i - 1, j)] + m_J21[idx(i, j)]) * 0.5;
-			JE = (kMuI - kMuO) * (m_J21[idx(i, j)] + m_J21[idx(i + 1, j)]) * 0.5;
-			JEff = theta * JM + (1.0 - theta) * JE;
-			muEff = kMuO * kMuI / (kMuO * theta + kMuI * (1.0 - theta));
-			muV_X_E = muEff * (vE - vM) / kDx - muEff * JEff * theta / kMuI;
 		}
 		
-		if (lsS >= 0 && lsM >= 0) {
+		if (lsUS >= 0 && lsUM >= 0) {
 			muU_Y_S = kMuI * (uM - uS) / kDy;
 		}
-		else if (lsS < 0 && lsM < 0) {
+		else if (lsUS < 0 && lsUM < 0) {
 			muU_Y_S = kMuO * (uM - uS) / kDy;
 		}
-		else if (lsS > 0 && lsM <= 0) {
-			// interface lies between u[i,j] and u[i,j - 1]
-			theta = fabs(lsS) / (fabs(lsS) + fabs(lsM));
-			// |(lsS)| ===  inside(+) === |(interface)| ===     outside(-)  === |(lsM)|
-			// |(lsS)| === theta * d  === |(interface)| === (1 - theta) * d === |(lsM)|
-			JS = (kMuO - kMuI) * (m_J12[idx(i - 1, j - 1)] + m_J12[idx(i, j - 1)]) * 0.5;
-			JM = (kMuO - kMuI) * (m_J12[idx(i - 1, j)] + m_J12[idx(i, j)]) * 0.5;
-			JEff = theta * JM + (1.0 - theta) * JS;
+		else if (lsUS > 0 && lsUM <= 0) {
+			// interface lies between u[i, j] and u[i, j - 1]
+			theta = fabs(lsUS) / (fabs(lsUS) + fabs(lsUM));
+			// |(lsUS)| ===  inside(+) === |(interface)| ===     outside(-)  === |(lsUM)|
+			// |(lsUS)| === theta * d  === |(interface)| === (1 - theta) * d === |(lsUM)|
+			JUS = (kMuO - kMuI) * (m_J12[idx(i - 1, j - 1)] + m_J12[idx(i, j - 1)]) * 0.5;
+			JUM = (kMuO - kMuI) * (m_J12[idx(i - 1, j)] + m_J12[idx(i, j)]) * 0.5;
+			JEff = theta * JUM + (1.0 - theta) * JUS;
 			muEff = kMuO * kMuI / (kMuO * theta + kMuO * (1.0 - theta));
 			muU_Y_S = muEff * (uM - uS) / kDy - muEff * JEff * theta / kMuI;
 		}
-		else if (lsS <= 0 && lsM > 0) {
-			// interface lies between u[i,j] and u[i,j - 1]
-			theta = fabs(lsS) / (fabs(lsS) + fabs(lsM));
+		else if (lsUS <= 0 && lsUM > 0) {
+			// interface lies between u[i, j] and u[i, j - 1]
+			theta = fabs(lsUS) / (fabs(lsUS) + fabs(lsUM));
 			// |(lsS)| === outside(-) === |(interface)| ===    inside(+)    === |(lsM)|
 			// |(lsS)| === theta * d  === |(interface)| === (1 - theta) * d === |(lsM)|
-			JS = (kMuI - kMuO) * (m_J12[idx(i - 1, j - 1)] + m_J12[idx(i, j - 1)]) * 0.5;
-			JM = (kMuI - kMuO) * (m_J12[idx(i - 1, j)] + m_J12[idx(i, j)]) * 0.5;
-			JEff = theta * JM + (1.0 - theta) * JS;
+			JUS = (kMuI - kMuO) * (m_J12[idx(i - 1, j - 1)] + m_J12[idx(i, j - 1)]) * 0.5;
+			JUM = (kMuI - kMuO) * (m_J12[idx(i - 1, j)] + m_J12[idx(i, j)]) * 0.5;
+			JEff = theta * JUM + (1.0 - theta) * JUS;
 			muEff = kMuI * kMuO / (kMuI * theta + kMuO * (1.0 - theta));
 			muU_Y_S = muEff * (uM - uS) / kDy + muEff * JEff * theta / kMuO;
 		}
 		
-		if (lsM >= 0 && lsN >= 0) {
+		if (lsUM >= 0 && lsUN >= 0) {
 			muU_Y_N = kMuI * (uN - uM) / kDy;
 		}
-		else if (lsM < 0 && lsN < 0) {
+		else if (lsUM < 0 && lsUN < 0) {
 			muU_Y_N = kMuO * (uN - uM) / kDy;
 		}
-		else if (lsM > 0 && lsN <= 0) {
-			// interface lies between u[i,j] and u[i,j + 1]
-			theta = fabs(lsN) / (fabs(lsN) + fabs(lsM));
-			// |(lsM)| ===    inside(+)    === |(interface)| === outside(-) === |(lsN)|
-			// |(lsM)| === (1 - theta) * d === |(interface)| === theta * d  === |(lsN)|
-			JM = (kMuO - kMuI) * (m_J12[idx(i - 1, j)] + m_J12[idx(i, j)]) * 0.5;
-			JN = (kMuO - kMuI) * (m_J12[idx(i - 1, j + 1)] + m_J12[idx(i, j + 1)]) * 0.5;
-			JEff = theta * JM + (1.0 - theta) * JN;
+		else if (lsUM > 0 && lsUN <= 0) {
+			// interface lies between u[i, j] and u[i, j + 1]
+			theta = fabs(lsUN) / (fabs(lsUN) + fabs(lsUM));
+			// |(lsUM)| ===    inside(+)    === |(interface)| === outside(-) === |(lsUN)|
+			// |(lsUM)| === (1 - theta) * d === |(interface)| === theta * d  === |(lsUN)|
+			JUM = (kMuO - kMuI) * (m_J12[idx(i - 1, j)] + m_J12[idx(i, j)]) * 0.5;
+			JUN = (kMuO - kMuI) * (m_J12[idx(i - 1, j + 1)] + m_J12[idx(i, j + 1)]) * 0.5;
+			JEff = theta * JUM + (1.0 - theta) * JUN;
 			muEff = kMuI * kMuO / (kMuI * theta + kMuO * (1.0 - theta));
 			muU_Y_N = muEff * (uN - uM) / kDy + muEff * JEff * theta / kMuO;
 		}
-		else if (lsM <= 0 && lsN > 0) {
-			// interface lies between u[i,j] and u[i,j + 1]
-			theta = fabs(lsN) / (fabs(lsN) + fabs(lsM));
-			// |(lsM)| ===    outside(-)   === |(interface)| ===   inside(+) === |(lsN)|
-			// |(lsM)| === (1 - theta) * d === |(interface)| === theta * d   === |(lsN)|
-			JM = (kMuI - kMuO) * (m_J12[idx(i - 1, j)] + m_J12[idx(i, j)]) * 0.5;
-			JN = (kMuI - kMuO) * (m_J12[idx(i - 1, j + 1)] + m_J12[idx(i, j + 1)]) * 0.5;
-			JEff = theta * JM + (1.0 - theta) * JN;
+		else if (lsUM <= 0 && lsUN > 0) {
+			// interface lies between u[i, j] and u[i, j + 1]
+			theta = fabs(lsUN) / (fabs(lsUN) + fabs(lsUM));
+			// |(lsUM)| ===    outside(-)   === |(interface)| ===   inside(+) === |(lsUN)|
+			// |(lsUM)| === (1 - theta) * d === |(interface)| === theta * d   === |(lsUN)|
+			JUM = (kMuI - kMuO) * (m_J12[idx(i - 1, j)] + m_J12[idx(i, j)]) * 0.5;
+			JUN = (kMuI - kMuO) * (m_J12[idx(i - 1, j + 1)] + m_J12[idx(i, j + 1)]) * 0.5;
+			JEff = theta * JUM + (1.0 - theta) * JUN;
 			muEff = kMuO * kMuI / (kMuO * theta + kMuI * (1.0 - theta));
 			muU_Y_N = muEff * (uN - uM) / kDy - muEff * JEff * theta / kMuI;
 		}
+
+		// V part
+
+		if (lsVW >= 0 && lsVM >= 0) {
+			muV_X_S = kMuI * (vM - vW) / kDx;
+		}
+		else if (lsVW < 0 && lsVM < 0) {
+			muV_X_S = kMuO * (vM - vW) / kDx;
+		}
+		else if (lsVW > 0 && lsVM <= 0) {
+			// interface lies between v[i - 1, j] and v[i, j]
+			theta = fabs(lsVW) / (fabs(lsVW) + fabs(lsVM));
+			// |(lsVW)| ===  inside(+) === |(interface)| ===     outside(-)  === |(lsVM)|
+			// |(lsVW)| === theta * d  === |(interface)| === (1 - theta) * d === |(lsVM)|
+			JVW = (kMuO - kMuI) * (m_J21[idx(i - 1, j - 1)] + m_J21[idx(i - 1, j)]) * 0.5;
+			JVM = (kMuO - kMuI) * (m_J21[idx(i, j - 1)] + m_J21[idx(i, j)]) * 0.5;
+			JEff = theta * JVM + (1.0 - theta) * JVW;
+			muEff = kMuO * kMuI / (kMuO * theta + kMuO * (1.0 - theta));
+			muV_X_S = muEff * (vM - vW) / kDx - muEff * JEff * theta / kMuI;
+		}
+		else if (lsVW <= 0 && lsVM > 0) {
+			// interface lies between v[i - 1, j] and v[i, j]
+			theta = fabs(lsUS) / (fabs(lsUS) + fabs(lsUM));
+			// |(lsVW)| === outside(-) === |(interface)| ===    inside(+)    === |(lsVM)|
+			// |(lsVW)| === theta * d  === |(interface)| === (1 - theta) * d === |(lsVM)|
+			JVW = (kMuI - kMuO) * (m_J21[idx(i - 1, j - 1)] + m_J21[idx(i - 1, j)]) * 0.5;
+			JVM = (kMuI - kMuO) * (m_J21[idx(i, j - 1)] + m_J21[idx(i, j)]) * 0.5;
+			JEff = theta * JVM + (1.0 - theta) * JVW;
+			muEff = kMuI * kMuO / (kMuI * theta + kMuO * (1.0 - theta));
+			muV_X_S = muEff * (vM - vW) / kDx + muEff * JEff * theta / kMuO;
+		}
+
+		if (lsVW_N >= 0 && lsVN >= 0) {
+			muV_X_N = kMuI * (vN - vW_N) / kDx;
+		}
+		else if (lsVW_N < 0 && lsVN < 0) {
+			muV_X_N = kMuO * (vN - vW_N) / kDx;
+		}
+		else if (lsVW_N > 0 && lsVN <= 0) {
+			// interface lies between v[i - 1, j + 1] and v[i, j + 1]
+			theta = fabs(lsVW_N) / (fabs(lsVW_N) + fabs(lsVN));
+			// |(lsVW_N)| ===  inside(+) === |(interface)| ===     outside(-)  === |(lsVN)|
+			// |(lsVW_N)| === theta * d  === |(interface)| === (1 - theta) * d === |(lsVN)|
+			JVW_N = (kMuO - kMuI) * (m_J21[idx(i - 1, j)] + m_J21[idx(i - 1, j + 1)]) * 0.5;
+			JVN = (kMuO - kMuI) * (m_J21[idx(i, j)] + m_J21[idx(i, j + 1)]) * 0.5;
+			JEff = theta * JVN + (1.0 - theta) * JVW_N;
+			muEff = kMuO * kMuI / (kMuO * theta + kMuO * (1.0 - theta));
+			muV_X_N = muEff * (vW_N - vN) / kDx + muEff * JEff * theta / kMuI;
+		}
+		else if (lsVW_N <= 0 && lsVN > 0) {
+			// interface lies between v[i - 1, j + 1] and v[i, j + 1]
+			theta = fabs(lsVW_N) / (fabs(lsVW_N) + fabs(lsVN));
+			// |(lsVW_N)| === outside(-) === |(interface)| ===    inside(+)    === |(lsVN)|
+			// |(lsVW_N)| === theta * d  === |(interface)| === (1 - theta) * d === |(lsVN)|
+			JVW_N = (kMuI - kMuO) * (m_J21[idx(i - 1, j)] + m_J21[idx(i - 1, j + 1)]) * 0.5;
+			JVN = (kMuI - kMuO) * (m_J21[idx(i, j)] + m_J21[idx(i, j + 1)]) * 0.5;
+			JEff = theta * JVN + (1.0 - theta) * JVW_N;
+			muEff = kMuI * kMuO / (kMuI * theta + kMuO * (1.0 - theta));
+			muV_X_N = muEff * (vW_N - vN) / kDx - muEff * JEff * theta / kMuO;
+		}
 		
 		visX = 2.0 * (muU_X_E - muU_X_W) / kDx;
-		visY = (muU_Y_N - muU_Y_S) / kDy + (muV_X_E - muV_X_W) / kDy;
-		// visX = (muU_X_E - muU_X_W) / kDx;
-		// visY = (muU_Y_N - muU_Y_S) / kDy;
+		visY = (muU_Y_N - muU_Y_S) / kDy + (muV_X_N - muV_X_S) / kDy;
 		
 		dU[idx(i, j)] = visX + visY;
-		// if (j == kNy + kNumBCGrid - 1)
-		// 	std::cout << i << " " << j << " " << (muU_X_E - muU_X_W) / kDx + (muV_X_E - muV_X_W) / kDy << " " << (muU_X_E - muU_X_W) / kDx + (muU_Y_N - muU_Y_S) / kDy << std::endl;
 		
 		if (std::isnan(dU[idx(i, j)]) || std::isinf(dU[idx(i, j)])) {
 			std::cout << "U-viscosity term nan/inf error : " << i << " " << j << " " << dU[idx(i, j)] << std::endl;
@@ -806,14 +860,28 @@ std::vector<double> MACSolver2D::AddViscosityFV(const std::vector<double>& u, co
 	}
 
 	// level set
-	double lsW = 0.0, lsE = 0.0, lsS = 0.0, lsN = 0.0, lsM = 0.0;
+	/*
+	----------------lsVN-----------------
+	|			|			|			|
+	|		  lsUM  (i,j)  lsUE			|
+	|			|			|			|
+	-----lsVW-------lsVM--------lsVE-----
+	|			|			|			|
+	|		  lsUS		  lsUE_S		|
+	|			|			|			|
+	----------------lsVS-----------------
+	*/
+
+	double lsVW = 0.0, lsVE = 0.0, lsVS = 0.0, lsVN = 0.0, lsVM = 0.0;
+	double lsUM = 0.0, lsUS = 0.0, lsUE = 0.0, lsUE_S = 0.0;
 	// jump condition
-	double JW = 0.0, JE = 0.0, JS = 0.0, JN = 0.0, JM = 0.0;
+	double JVW = 0.0, JVE = 0.0, JVS = 0.0, JVN = 0.0, JVM = 0.0;
+	double JUM = 0.0, JUS = 0.0, JUE = 0.0, JUE_S = 0.0;
 	double theta = 0.0;
-	double muV_X_W = 0.0, muV_X_E = 0.0, muV_Y_S = 0.0, muV_Y_N = 0.0;
-	double muU_Y_S = 0.0, muU_Y_N = 0.0;
-	double uS = 0.0, uM = 0.0, uN = 0.0;
+	double uS = 0.0, uM = 0.0, uE = 0.0, uE_S = 0.0;
 	double vW = 0.0, vE = 0.0, vS = 0.0, vN = 0.0, vM = 0.0;
+	double muV_X_W = 0.0, muV_X_E = 0.0, muV_Y_S = 0.0, muV_Y_N = 0.0;
+	double muU_Y_W = 0.0, muU_Y_E = 0.0;
 	double visX = 0.0, visY = 0.0;
 
 	// effective Jump condition, effective v (vEff), and effective mu (muEff)
@@ -821,173 +889,212 @@ std::vector<double> MACSolver2D::AddViscosityFV(const std::vector<double>& u, co
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 	for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++) {
 		muV_X_W = 0.0; muV_X_E = 0.0; muV_Y_S = 0.0; muV_Y_N = 0.0;
+		muU_Y_W = 0.0; muU_Y_E = 0.0;
 		visX = 0.0, visY = 0.0;
-		lsW = 0.5 * (ls[idx(i - 1, j - 1)] + ls[idx(i - 1, j)]);
-		lsE = 0.5 * (ls[idx(i + 1, j - 1)] + ls[idx(i + 1, j)]);
-		lsM = 0.5 * (ls[idx(i, j - 1)] + ls[idx(i, j)]);
-		lsS = 0.5 * (ls[idx(i, j - 2)] + ls[idx(i, j - 1)]);
-		lsN = 0.5 * (ls[idx(i, j)] + ls[idx(i, j + 1)]);
-		uS = 0.25 * (u[idx(i, j - 1)] + u[idx(i + 1, j - 1)] + u[idx(i + 1, j - 2)] + u[idx(i, j - 2)]);
-		uM = 0.25 * (u[idx(i, j)] + u[idx(i + 1, j)] + u[idx(i + 1, j - 1)] + u[idx(i, j - 1)]);
-		uN = 0.25 * (u[idx(i, j + 1)] + u[idx(i + 1, j + 1)] + u[idx(i + 1, j)] + u[idx(i, j)]);
+		lsVW = 0.5 * (ls[idx(i - 1, j - 1)] + ls[idx(i - 1, j)]);
+		lsVE = 0.5 * (ls[idx(i + 1, j - 1)] + ls[idx(i + 1, j)]);
+		lsVM = 0.5 * (ls[idx(i, j - 1)] + ls[idx(i, j)]);
+		lsVS = 0.5 * (ls[idx(i, j - 2)] + ls[idx(i, j - 1)]);
+		lsVN = 0.5 * (ls[idx(i, j)] + ls[idx(i, j + 1)]);
+		lsUM = 0.5 * (ls[idx(i - 1, j)] + ls[idx(i, j)]);
+		lsUS = 0.5 * (ls[idx(i, j - 1)] + ls[idx(i, j - 1)]);
+		lsUE = 0.5 * (ls[idx(i, j)] + ls[idx(i + 1, j)]);
+		lsUE_S = 0.5 * (ls[idx(i, j - 1)] + ls[idx(i + 1, j - 1)]);
 		vW = v[idx(i - 1, j)];
 		vE = v[idx(i + 1, j)];
 		vS = v[idx(i, j - 1)];
 		vN = v[idx(i, j + 1)];
 		vM = v[idx(i, j)];
+		uM = u[idx(i, j)];
+		uE = u[idx(i + 1, j)];
+		uS = u[idx(i, j - 1)];
+		uE_S = u[idx(i + 1, j - 1)];
 
-		if (lsW >= 0 && lsM >= 0) {
+		// V part
+
+		if (lsVW >= 0 && lsVM >= 0) {
 			muV_X_W = kMuI * (vM - vW) / kDx;
 		}
-		else if (lsW < 0 && lsM < 0) {
+		else if (lsVW < 0 && lsVM < 0) {
 			muV_X_W = kMuO * (vM - vW) / kDx;
 		}
-		else if (lsW >= 0 && lsM < 0) {
-			// interface lies between v[i,j] and v[i - 1,j]
-			theta = fabs(lsW) / (fabs(lsW) + fabs(lsM));
-			// |(lsW)| === inside(+) === |(interface)| ===   outside(-)    === |(lsM)|
-			// |(lsW)| === theta * d === |(interface)| === (1 - theta) * d === |(lsM)|
-			JW = (kMuO - kMuI) * (m_J21[idx(i - 1, j)] + m_J21[idx(i - 1, j - 1)]) * 0.5;
-			JM = (kMuO - kMuI) * (m_J21[idx(i, j)] + m_J21[idx(i, j - 1)]) * 0.5;
-			JEff = theta * JM + (1.0 - theta) * JW;
+		else if (lsVW >= 0 && lsVM < 0) {
+			// interface lies between v[i, j] and v[i - 1, j]
+			theta = fabs(lsVW) / (fabs(lsVW) + fabs(lsVM));
+			// |(lsVW)| === inside(+) === |(interface)| ===   outside(-)    === |(lsVM)|
+			// |(lsVW)| === theta * d === |(interface)| === (1 - theta) * d === |(lsVM)|
+			JVW = (kMuO - kMuI) * (m_J21[idx(i - 1, j)] + m_J21[idx(i - 1, j - 1)]) * 0.5;
+			JVM = (kMuO - kMuI) * (m_J21[idx(i, j)] + m_J21[idx(i, j - 1)]) * 0.5;
+			JEff = theta * JVM + (1.0 - theta) * JVW;
 			muEff = kMuO * kMuI / (kMuO * theta + kMuO * (1.0 - theta));
 			muV_X_W = muEff * (vM - vW) / kDx - muEff * JEff * theta / kMuI;
 		}
-		else if (lsW < 0 && lsM >= 0) {
-			// interface lies between v[i,j] and v[i - 1,j]
-			theta = fabs(lsW) / (fabs(lsW) + fabs(lsM));
-			// |(lsW)| === outside(-) === |(interface)| ===    inside(+)    === |(lsM)|
-			// |(lsW)| === theta * d  === |(interface)| === (1 - theta) * d === |(lsM)|
-			JW = (kMuI - kMuO) * (m_J21[idx(i - 1, j)] + m_J21[idx(i - 1, j - 1)]) * 0.5;
-			JM = (kMuI - kMuO) * (m_J21[idx(i, j)] + m_J21[idx(i, j - 1)]) * 0.5;
-			JEff = theta * JM + (1.0 - theta) * JW;
+		else if (lsVW < 0 && lsVM >= 0) {
+			// interface lies between v[i, j] and v[i - 1, j]
+			theta = fabs(lsVW) / (fabs(lsVW) + fabs(lsVM));
+			// |(lsVW)| === outside(-) === |(interface)| ===    inside(+)    === |(lsVM)|
+			// |(lsVW)| === theta * d  === |(interface)| === (1 - theta) * d === |(lsVM)|
+			JVW = (kMuI - kMuO) * (m_J21[idx(i - 1, j)] + m_J21[idx(i - 1, j - 1)]) * 0.5;
+			JVM = (kMuI - kMuO) * (m_J21[idx(i, j)] + m_J21[idx(i, j - 1)]) * 0.5;
+			JEff = theta * JVM + (1.0 - theta) * JVW;
 			muEff = kMuI * kMuO / (kMuI * theta + kMuO * (1.0 - theta));
 			muV_X_W = muEff * (vM - vW) / kDx + muEff * JEff * theta / kMuO;
 		}
 			
-		if (lsM >= 0 && lsE >= 0) {
+		if (lsVM >= 0 && lsVE >= 0) {
 			muV_X_E = kMuI * (vE - vM) / kDx;
 		}
-		else if (lsM < 0 && lsE < 0) {
+		else if (lsVM < 0 && lsVE < 0) {
 			muV_X_E = kMuO * (vE - vM) / kDx;
 		}
-		else if (lsM >= 0 && lsE < 0) {
-			// interface lies between v[i,j] and v[i + 1,j]
-			theta = fabs(lsE) / (fabs(lsE) + fabs(lsM));
-			// |(lsM)| ===    inside(+)    === |(interface)| === outside(-) === |(lsE)|
-			// |(lsM)| === (1 - theta) * d === |(interface)| === theta * d  === |(lsE)|
-			JM = (kMuO - kMuI) * (m_J21[idx(i, j)] + m_J21[idx(i, j - 1)]) * 0.5;
-			JE = (kMuO - kMuI) * (m_J21[idx(i + 1, j)] + m_J21[idx(i + 1, j - 1)]) * 0.5;
-			JEff = theta * JM + (1.0 - theta) * JE;
+		else if (lsVM >= 0 && lsVE < 0) {
+			// interface lies between v[i, j] and v[i + 1, j]
+			theta = fabs(lsVE) / (fabs(lsVE) + fabs(lsVM));
+			// |(lsVM)| ===    inside(+)    === |(interface)| === outside(-) === |(lsVE)|
+			// |(lsVM)| === (1 - theta) * d === |(interface)| === theta * d  === |(lsVE)|
+			JVM = (kMuO - kMuI) * (m_J21[idx(i, j)] + m_J21[idx(i, j - 1)]) * 0.5;
+			JVE = (kMuO - kMuI) * (m_J21[idx(i + 1, j)] + m_J21[idx(i + 1, j - 1)]) * 0.5;
+			JEff = theta * JVM + (1.0 - theta) * JVE;
 			muEff = kMuI * kMuO / (kMuI * theta + kMuO * (1.0 - theta));
 			muV_X_E = muEff * (vE - vM) / kDx + muEff * JEff * theta / kMuO;
 		}
-		else if (lsM < 0 && lsE >= 0) {
-			// interface lies between v[i,j] and v[i + 1,j]
-			theta = fabs(lsE) / (fabs(lsE) + fabs(lsM));
-			// |(lsM)| ===    outside(-)   === |(interface)| === inside(+)  === |(lsE)|
-			// |(lsM)| === (1 - theta) * d === |(interface)| === theta * d  === |(lsE)|
-			JM = (kMuI - kMuO) * (m_J21[idx(i, j)] + m_J21[idx(i, j - 1)]) * 0.5;
-			JE = (kMuI - kMuO) * (m_J21[idx(i + 1, j)] + m_J21[idx(i + 1, j - 1)]) * 0.5;
-			JEff = theta * JM + (1.0 - theta) * JE;
+		else if (lsVM < 0 && lsVE >= 0) {
+			// interface lies between v[i, j] and v[i + 1, j]
+			theta = fabs(lsVE) / (fabs(lsVE) + fabs(lsVM));
+			// |(lsvM)| ===    outside(-)   === |(interface)| === inside(+)  === |(lsvE)|
+			// |(lsvM)| === (1 - theta) * d === |(interface)| === theta * d  === |(lsvE)|
+			JVM = (kMuI - kMuO) * (m_J21[idx(i, j)] + m_J21[idx(i, j - 1)]) * 0.5;
+			JVE = (kMuI - kMuO) * (m_J21[idx(i + 1, j)] + m_J21[idx(i + 1, j - 1)]) * 0.5;
+			JEff = theta * JVM + (1.0 - theta) * JVE;
 			muEff = kMuO * kMuI / (kMuO * theta + kMuI * (1.0 - theta));
 			muV_X_E = muEff * (vE - vM) / kDx - muEff * JEff * theta / kMuI;
 		}
 		
-		if (lsS >= 0 && lsM >= 0) {
+		if (lsVS >= 0 && lsVM >= 0) {
 			muV_Y_S = kMuI * (vM - vS) / kDy;
-			muU_Y_S = kMuI * (uM - uS) / kDy;
+			muU_Y_W = kMuI * (u[idx(i, j)] - u[idx(i, j - 1)]) / kDy;
 		}
-		else if (lsS < 0 && lsM < 0) {
+		else if (lsVS < 0 && lsVM < 0) {
 			muV_Y_S = kMuO * (vM - vS) / kDy;
-			muU_Y_S = kMuO * (uM - uS) / kDy;
+			muU_Y_W = kMuO * (u[idx(i, j)] - u[idx(i, j - 1)]) / kDy;
 		}
-		else if (lsS >= 0 && lsM < 0) {
-			// interface lies between v[i,j] and v[i,j - 1]
-			theta = fabs(lsS) / (fabs(lsS) + fabs(lsM));
-			// |(lsS)| === inside(+) === |(interface)| ===    outside(-)   === |(lsM)|
-			// |(lsS)| === theta * d === |(interface)| === (1 - theta) * d === |(lsM)|
-			JS = (kMuO - kMuI) * (m_J22[idx(i, j - 2)] + m_J22[idx(i, j - 1)]) * 0.5;
-			JM = (kMuO - kMuI) * (m_J22[idx(i, j - 1)] + m_J22[idx(i, j)]) * 0.5;
-			JEff = theta * JM + (1.0 - theta) * JS;
+		else if (lsVS >= 0 && lsVM < 0) {
+			// interface lies between v[i, j] and v[i, j - 1]
+			theta = fabs(lsVS) / (fabs(lsVS) + fabs(lsVM));
+			// |(lsVS)| === inside(+) === |(interface)| ===    outside(-)   === |(lsVM)|
+			// |(lsVS)| === theta * d === |(interface)| === (1 - theta) * d === |(lsVM)|
+			JVS = (kMuO - kMuI) * (m_J22[idx(i, j - 2)] + m_J22[idx(i, j - 1)]) * 0.5;
+			JVM = (kMuO - kMuI) * (m_J22[idx(i, j - 1)] + m_J22[idx(i, j)]) * 0.5;
+			JEff = theta * JVM + (1.0 - theta) * JVS;
 			muEff = kMuI * kMuO / (kMuI * theta + kMuO * (1.0 - theta));
 			muV_Y_S = muEff * (vM - vS) / kDy - muEff * JEff * theta / kMuO;
-
-			JS = (kMuO - kMuI) * (m_J12[idx(i, j - 2)] + m_J12[idx(i, j - 1)]) * 0.5;
-			JM = (kMuO - kMuI) * (m_J12[idx(i, j - 1)] + m_J12[idx(i, j)]) * 0.5;
-			JEff = theta * JM + (1.0 - theta) * JS;
-			muEff = kMuI * kMuO / (kMuI * theta + kMuO * (1.0 - theta));
-			muU_Y_S = muEff * (uM - uS) / kDy - muEff * JEff * theta / kMuO;
 		}
-		else if (lsS < 0 && lsM >= 0) {
-			// interface lies between v[i,j] and v[i,j - 1]
-			theta = fabs(lsS) / (fabs(lsS) + fabs(lsM));
-			// |(lsS)| === outside(-) === |(interface)| ===     inside(+)   === |(lsM)|
-			// |(lsS)| === theta * d  === |(interface)| === (1 - theta) * d === |(lsM)|
-			JS = (kMuI - kMuO) * (m_J22[idx(i, j - 2)] + m_J22[idx(i, j - 1)]) * 0.5;
-			JM = (kMuI - kMuO) * (m_J22[idx(i, j - 1)] + m_J22[idx(i, j)]) * 0.5;
-			JEff = theta * JM + (1.0 - theta) * JS;
+		else if (lsVS < 0 && lsVM >= 0) {
+			// interface lies between v[i, j] and v[i,j  - 1]
+			theta = fabs(lsVS) / (fabs(lsVS) + fabs(lsVM));
+			// |(lsVS)| === outside(-) === |(interface)| ===     inside(+)   === |(lsVM)|
+			// |(lsVS)| === theta * d  === |(interface)| === (1 - theta) * d === |(lsVM)|
+			JVS = (kMuI - kMuO) * (m_J22[idx(i, j - 2)] + m_J22[idx(i, j - 1)]) * 0.5;
+			JVM = (kMuI - kMuO) * (m_J22[idx(i, j - 1)] + m_J22[idx(i, j)]) * 0.5;
+			JEff = theta * JVM + (1.0 - theta) * JVS;
 			muEff = kMuO * kMuI / (kMuO * theta + kMuO * (1.0 - theta));
 			muV_Y_S = muEff * (vM - vS) / kDy + muEff * JEff * theta / kMuI;
-
-			JS = (kMuI - kMuO) * (m_J12[idx(i, j - 2)] + m_J12[idx(i, j - 1)]) * 0.5;
-			JM = (kMuI - kMuO) * (m_J12[idx(i, j - 1)] + m_J12[idx(i, j)]) * 0.5;
-			JEff = theta * JM + (1.0 - theta) * JS;
-			muEff = kMuO * kMuI / (kMuO * theta + kMuO * (1.0 - theta));
-			muU_Y_S = muEff * (uM - uS) / kDy + muEff * JEff * theta / kMuI;
 		}
 		
-		if (lsM >= 0 && lsN >= 0) {
+		if (lsVM >= 0 && lsVN >= 0) {
 			muV_Y_N = kMuI * (vN - vM) / kDy;
-			muU_Y_N = kMuI * (uN - uM) / kDy;
 		}
-		else if (lsM < 0 && lsN < 0) {
+		else if (lsVM < 0 && lsVN < 0) {
 			muV_Y_N = kMuO * (vN - vM) / kDy;
-			muU_Y_N = kMuO * (uN - uM) / kDy;
 		}
-		else if (lsM >= 0 && lsN < 0) {
-			// interface lies between v[i,j] and v[i,j + 1]
-			theta = fabs(lsN) / (fabs(lsN) + fabs(lsM));
-			// |(lsM)| ===    inside(+)    === |(interface)| === outside(-) === |(lsN)|
-			// |(lsM)| === (1 - theta) * d === |(interface)| === theta * d  === |(lsN)|
-			JM = (kMuO - kMuI) * (m_J22[idx(i, j - 1)] + m_J22[idx(i, j)]) * 0.5;
-			JN = (kMuO - kMuI) * (m_J22[idx(i, j)] + m_J22[idx(i, j + 1)]) * 0.5;
-			JEff = theta * JM + (1.0 - theta) * JN;
+		else if (lsVM >= 0 && lsVN < 0) {
+			// interface lies between v[i, j] and v[i, j + 1]
+			theta = fabs(lsVN) / (fabs(lsVN) + fabs(lsVM));
+			// |(lsVM)| ===    inside(+)    === |(interface)| === outside(-) === |(lsVN)|
+			// |(lsVM)| === (1 - theta) * d === |(interface)| === theta * d  === |(lsVN)|
+			JVM = (kMuO - kMuI) * (m_J22[idx(i, j - 1)] + m_J22[idx(i, j)]) * 0.5;
+			JVN = (kMuO - kMuI) * (m_J22[idx(i, j)] + m_J22[idx(i, j + 1)]) * 0.5;
+			JEff = theta * JVM + (1.0 - theta) * JVN;
 			muEff = kMuI * kMuO / (kMuI * theta + kMuO * (1.0 - theta));
 			muV_Y_N = muEff * (vN - vM) / kDy + muEff * JEff * theta / kMuO;
-
-			JM = (kMuO - kMuI) * (m_J12[idx(i, j - 1)] + m_J12[idx(i, j)]) * 0.5;
-			JN = (kMuO - kMuI) * (m_J12[idx(i, j)] + m_J12[idx(i, j + 1)]) * 0.5;
-			JEff = theta * JM + (1.0 - theta) * JN;
-			muEff = kMuI * kMuO / (kMuI * theta + kMuO * (1.0 - theta));
-			muU_Y_N = muEff * (uN - uM) / kDy + muEff * JEff * theta / kMuO;
 		}
-		else if (lsM < 0 && lsN >= 0) {
-			// interface lies between v[i,j] and v[i,j + 1]
-			theta = fabs(lsN) / (fabs(lsN) + fabs(lsM));
-			// |(lsM)| ===    outside(-)   === |(interface)| === inside(+) === |(lsN)|
-			// |(lsM)| === (1 - theta) * d === |(interface)| === theta * d === |(lsN)|
-			JM = (kMuI - kMuO) * (m_J22[idx(i, j - 1)] + m_J22[idx(i, j)]) * 0.5;
-			JN = (kMuI - kMuO) * (m_J22[idx(i, j)] + m_J22[idx(i, j + 1)]) * 0.5;
-			JEff = theta * JM + (1.0 - theta) * JN;
+		else if (lsVM < 0 && lsVN >= 0) {
+			// interface lies between v[i, j] and v[i, j + 1]
+			theta = fabs(lsVN) / (fabs(lsVN) + fabs(lsVM));
+			// |(lsVM)| ===    outside(-)   === |(interface)| === inside(+) === |(lsVN)|
+			// |(lsVM)| === (1 - theta) * d === |(interface)| === theta * d === |(lsVN)|
+			JVM = (kMuI - kMuO) * (m_J22[idx(i, j - 1)] + m_J22[idx(i, j)]) * 0.5;
+			JVN = (kMuI - kMuO) * (m_J22[idx(i, j)] + m_J22[idx(i, j + 1)]) * 0.5;
+			JEff = theta * JVM + (1.0 - theta) * JVN;
 			muEff = kMuO * kMuI / (kMuO * theta + kMuI * (1.0 - theta));
 			muV_Y_N = muEff * (vN - vM) / kDy - muEff * JEff * theta / kMuI;
-
-			JM = (kMuI - kMuO) * (m_J12[idx(i, j - 1)] + m_J12[idx(i, j)]) * 0.5;
-			JN = (kMuI - kMuO) * (m_J12[idx(i, j)] + m_J12[idx(i, j + 1)]) * 0.5;
-			JEff = theta * JM + (1.0 - theta) * JN;
-			muEff = kMuO * kMuI / (kMuO * theta + kMuI * (1.0 - theta));
-			muU_Y_N = muEff * (uN - uM) / kDy - muEff * JEff * theta / kMuI;
 		}
 		
-		visX = (muU_Y_N - muU_Y_S) / kDx + (muV_X_E - muV_X_W) / kDx;
-		visY = 2.0 * (muV_Y_N - muV_Y_S) / kDy;
-		// visX = (muV_X_E - muV_X_W) / kDx;
-		// visY = (muV_Y_N - muV_Y_S) / kDy;
+		// U part
+		
+		if (lsUS >= 0 && lsUM >= 0) {
+			muU_Y_W = kMuI * (uM - uS) / kDy;
+		}
+		else if (lsUS < 0 && lsUM < 0) {
+			muU_Y_W = kMuO * (uM - uS) / kDy;
+		}
+		else if (lsUS >= 0 && lsUM < 0) {
+			// interface lies between u[i, j] and u[i, j - 1]
+			theta = fabs(lsUS) / (fabs(lsUS) + fabs(lsUM));
+			// |(lsUS)| === inside(+) === |(interface)| ===    outside(-)   === |(lsUM)|
+			// |(lsUS)| === theta * d === |(interface)| === (1 - theta) * d === |(lsUM)|
+			JUS = (kMuO - kMuI) * (m_J12[idx(i - 1, j - 1)] + m_J12[idx(i, j - 1)]) * 0.5;
+			JUM = (kMuO - kMuI) * (m_J12[idx(i - 1, j)] + m_J12[idx(i, j)]) * 0.5;
+			JEff = theta * JUM + (1.0 - theta) * JUS;
+			muEff = kMuI * kMuO / (kMuI * theta + kMuO * (1.0 - theta));
+			muU_Y_W = muEff * (uM - uS) / kDy - muEff * JEff * theta / kMuO;
+		}
+		else if (lsUS < 0 && lsUM >= 0) {
+			// interface lies between v[i,j] and v[i,j - 1]
+			theta = fabs(lsUS) / (fabs(lsUS) + fabs(lsUM));
+			// |(lsUS)| === outside(-) === |(interface)| ===     inside(+)   === |(lsUM)|
+			// |(lsUS)| === theta * d  === |(interface)| === (1 - theta) * d === |(lsUM)|
+			JUS = (kMuI - kMuO) * (m_J12[idx(i - 1, j - 1)] + m_J12[idx(i, j - 1)]) * 0.5;
+			JUM = (kMuI - kMuO) * (m_J12[idx(i - 1, j)] + m_J12[idx(i, j)]) * 0.5;
+			JEff = theta * JUM + (1.0 - theta) * JUS;
+			muEff = kMuO * kMuI / (kMuO * theta + kMuO * (1.0 - theta));
+			muU_Y_W = muEff * (uM - uS) / kDy + muEff * JEff * theta / kMuI;
+		}
 
+		if (lsUE >= 0 && lsUE_S >= 0) {
+			muU_Y_E = kMuI * (uE - uE_S) / kDy;
+		}
+		else if (lsUE < 0 && lsUE_S < 0) {
+			muU_Y_E = kMuO * (uE - uE_S) / kDy;
+		}
+		else if (lsUE >= 0 && lsUE_S < 0) {
+			// interface lies between u[i + 1, j] and u[i + 1, j - 1]
+			theta = fabs(lsUE) / (fabs(lsUE) + fabs(lsUE_S));
+			// |(lsUE)| === inside(+) === |(interface)| ===    outside(-)   === |(lsUE_S)|
+			// |(lsUE)| === theta * d === |(interface)| === (1 - theta) * d === |(lsUE_S)|
+			JUE_S = (kMuO - kMuI) * (m_J12[idx(i, j - 1)] + m_J12[idx(i + 1, j - 1)]) * 0.5;
+			JUE = (kMuO - kMuI) * (m_J12[idx(i, j)] + m_J12[idx(i + 1, j)]) * 0.5;
+			JEff = theta * JUE_S + (1.0 - theta) * JUE;
+			muEff = kMuI * kMuO / (kMuI * theta + kMuO * (1.0 - theta));
+			muU_Y_E = muEff * (uE_S - uE) / kDy + muEff * JEff * theta / kMuO;
+		}
+		else if (lsUE < 0 && lsUE_S >= 0) {
+			// interface lies between v[i,j] and v[i,j - 1]
+			theta = fabs(lsUE) / (fabs(lsUE) + fabs(lsUE_S));
+			// |(lsUE)| === outside(-) === |(interface)| ===     inside(+)   === |(lsUE_S)|
+			// |(lsUE)| === theta * d  === |(interface)| === (1 - theta) * d === |(lsUE_S)|
+			JUE_S = (kMuI - kMuO) * (m_J12[idx(i, j - 1)] + m_J12[idx(i + 1, j - 1)]) * 0.5;
+			JUE = (kMuI - kMuO) * (m_J12[idx(i, j)] + m_J12[idx(i + 1, j)]) * 0.5;
+			JEff = theta * JUE_S + (1.0 - theta) * JUE;
+			muEff = kMuO * kMuI / (kMuO * theta + kMuO * (1.0 - theta));
+			muU_Y_E = muEff * (uE_S - uE) / kDy - muEff * JEff * theta / kMuI;
+		}
+		
+		visX = (muU_Y_E - muU_Y_W) / kDx + (muV_X_E - muV_X_W) / kDx;
+		visY = 2.0 * (muV_Y_N - muV_Y_S) / kDy;
+		
 		dV[idx(i, j)] = visX + visY;
-		// if (j == kNy + kNumBCGrid - 1)
-		// 	std::cout << i << " " << j << " " << visX + visY << " " << (muU_Y_N - muU_Y_S) / kDx + (muV_Y_N - muV_Y_S) / kDy << " " << (muV_X_E - muV_X_W) / kDx + (muV_Y_N - muV_Y_S) / kDy << std::endl;
+		
 		assert(dV[idx(i, j)] == dV[idx(i, j)]);
 		if (std::isnan(dV[idx(i, j)]) || std::isinf(dV[idx(i, j)])) {
 			std::cout << "V-viscosity term nan/inf error : " << i << " " << j << " " << dV[idx(i, j)] << std::endl;
@@ -1041,7 +1148,7 @@ int MACSolver2D::GetIntermediateVel(const std::shared_ptr<LevelSetSolver2D>& LSo
 	std::vector<double>& uhat, std::vector<double>& vhat) {
 		
 	// Update rhs
-	if (kTimeOrder == TimeOrderEnum::RK1) {
+	if (kTimeOrder == TimeOrderEnum::EULER) {
 		std::vector<double> FU1((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
 		std::vector<double> FV1((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
 
@@ -1196,7 +1303,7 @@ int MACSolver2D::GetIntermediateVel(const std::shared_ptr<LevelSetSolver2D>& LSo
 			exit(1);
 		}
 	}
-
+	
 	return 0;
 }
 
@@ -1276,7 +1383,7 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 
 	for (int i = 0; i < kNx + 2 * kNumBCGrid; i++)
 	for (int j = 0; j < kNy + 2 * kNumBCGrid; j++) {
-		ps[idx(i, j)] = 0.0;
+//		ps[idx(i, j)] = 0.0;
 		rhs[idx(i, j)] = 0.0;
 	}
 
@@ -1655,7 +1762,7 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 		}
 		
 		rowIdx += tmpRowIdx;
-
+		
 		assert(rhs[idx(i, j)] == rhs[idx(i, j)]);
 		if (std::isnan(rhs[idx(i, j)]) || std::isinf(rhs[idx(i, j)])) {
 			std::cout << "right hand side of poisson equation nan/inf error : " 
@@ -1724,7 +1831,9 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 			if (std::isnan(ps[idx(i, j)]) || std::isinf(ps[idx(i, j)]))
 				std::cout << "Pseudo-p nan/inf error : " << i << " " << j << " " << ps[idx(i, j)] << std::endl;
 	}
-
+	
+	ApplyBC_P_2D(ps);
+	
 	return 0;
 }
 
@@ -1887,6 +1996,9 @@ int MACSolver2D::UpdateVel(std::vector<double>& u, std::vector<double>& v,
 		v[idx(i, j)] = vs[idx(i, j)] - iRhoEff * (ps[idx(i, j)] - ps[idx(i, j - 1)]) / kDy + iRhoEff * aEff;
 	}
 
+	ApplyBC_U_2D(u);
+	ApplyBC_V_2D(v);
+	
 	return 0;
 }
 

@@ -277,13 +277,14 @@ int PoissonSolver2D::CG_2FUniform_2D(std::vector<double>& ps, const std::vector<
 	delta_old = cblas_ddot(size, r, 1, r, 1);
 	delta_new = 0.0;
 	// std::cout << delta0 << std::endl;
-	const double err_tol = 1.0e-6;
+	const double err_tol = 1.0e-8;
 	int iter = 0;
 	bool isConverged = false;
 	
 	while (iter < maxIter && isConverged == false) {
 		// q = A * p_k, will be resued below
 		// https://software.intel.com/en-us/node/468560
+		x[0] = 0.0;
 		mkl_cspblas_dcsrgemv(&transa, &Anrows, AVals.data(), ARowIdx.data(), ACols.data(), p, q);
 		// get alpha (r^T_k * r_k) / (d^T_k q) (= (r^T_k * r_k) / (d^T_k A d_k))
 		// https://software.intel.com/en-us/node/468398#D4E53C70-D8FA-4095-A800-4203CAFE64FE
@@ -413,6 +414,7 @@ int PoissonSolver2D::BiCGStab_2FUniform_2D(std::vector<double>& ps, const std::v
 	while (iter < maxIter && isConverged == false) {
 		// direction vector
 		// rho_i = (\hat{r0}, r_(i-1))
+		x[0] = 0.0;
 		rho = cblas_ddot(size, r0, 1, r, 1);
 
 		// beta = (rho_i / rho_{i - 1}) (\alpha / omega_{i - 1})

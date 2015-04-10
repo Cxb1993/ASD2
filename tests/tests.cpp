@@ -4,6 +4,8 @@
 #include "LargeTests/test_poisson2d_large.h"
 
 int main(int argc, char *argv[]) {
+	mkl_set_num_threads(4);
+
 	// LevelSetTest_2D_Simple();
 	// LevelSetTest_2D_ReinitOnly();
 	// LevelSetTest_2D_Sussman621_ReinitSussman();
@@ -11,6 +13,6 @@ int main(int argc, char *argv[]) {
 	// test_VBC();
 	// test_poisson_CG();
 	// test_poisson_BiCGStab();
-	MAC2DTest_CavityFlow();
-	// MAC2DTest_SmallAirBubbleRising();
+	// MAC2DTest_CavityFlow();
+	MAC2DTest_SmallAirBubbleRising();
 }

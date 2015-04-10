@@ -10,17 +10,17 @@ int MAC2DTest_CavityFlow() {
 	// # of cells
 	const int nx = 128, ny = 128;
 	// related to initialize level set
-	const double baseX = 0.0, baseY = 0.0, lenX = 1.0, lenY = 1.0, cfl = 0.1;
+	const double baseX = 0.0, baseY = 0.0, lenX = 1.0, lenY = 1.0, cfl = 0.3;
 	double x = 0.0, y = 0.0, d = 0.0;
 
-	const int maxtime = 10.0, maxiter = 10000, niterskip = 50, num_bc_grid = 3;
+	const int maxtime = 10.0, maxiter = 10000, niterskip = 100, num_bc_grid = 3;
 	const bool writeVTK = false;
 	// length of each cell
 	const double dx = lenX / nx, dy = lenY / ny;
 	const std::string fname_vel("testMAC2D_CavityVel_Re_" + std::to_string(Re));
 	const std::string fname_div("testMAC2D_CavityDiv_Re_" + std::to_string(Re));
 	const int iterskip = 1;
-	const TimeOrderEnum timeOrder = TimeOrderEnum::RK3;
+	const TimeOrderEnum timeOrder = TimeOrderEnum::EULER;
 	int stat = 0;
 
 	std::unique_ptr<MACSolver2D> MSolver;
@@ -125,6 +125,7 @@ int MAC2DTest_CavityFlow() {
 
 		// From intermediate velocity, get divergence
 		div = MSolver->GetDivergence(uhat, vhat);
+		MSolver->ApplyBC_P_2D(div);
 		MSolver->ApplyBC_P_2D(MSolver->m_ps);
 
 		// Solve Poisson equation
@@ -132,8 +133,7 @@ int MAC2DTest_CavityFlow() {
 		stat = MSolver->SolvePoisson(MSolver->m_ps, div, lsB, ls, uhat, vhat, poissonMaxIter);
 		MSolver->ApplyBC_P_2D(MSolver->m_ps);
 
-		stat = MSolver->UpdateVel(MSolver->m_u, MSolver->m_v,
-			uhat, vhat, MSolver->m_ps, ls);
+		stat = MSolver->UpdateVel(MSolver->m_u, MSolver->m_v, uhat, vhat, MSolver->m_ps, ls);
 
 		MSolver->ApplyBC_U_2D(MSolver->m_u);
 		MSolver->ApplyBC_V_2D(MSolver->m_v);
@@ -144,12 +144,16 @@ int MAC2DTest_CavityFlow() {
 		MSolver->m_iter++;
 	
 		if ((MSolver->m_iter % MSolver->kNIterSkip) == 0) {
-			double rnorm2 = 0.0;
-			std::cout << "Cavity : " << MSolver->m_iter << " " << MSolver->m_curTime << " " << MSolver->m_dt << " " << rnorm2 << std::endl;
+			std::chrono::high_resolution_clock::time_point p = std::chrono::high_resolution_clock::now();
+			std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(p.time_since_epoch());
+
+			std::chrono::seconds s = std::chrono::duration_cast<std::chrono::seconds>(ms);
+			std::time_t t = s.count();
+			std::size_t fractional_seconds = ms.count() % 1000;
+
+			std::cout << "Cavity : " << std::ctime(&t) << " " << MSolver->m_iter << " " << MSolver->m_curTime << " " << MSolver->m_dt << " " << std::endl;
 			MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
-				uhat, vhat, MSolver->m_ps, ls);
-			// MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
-			// 	MSolver->m_u, MSolver->m_v, MSolver->m_ps, ls);
+				MSolver->m_u, MSolver->m_v, MSolver->m_ps, ls);
 		}
 		std::fill(uhat.begin(), uhat.end(), 0.0);
 		std::fill(vhat.begin(), vhat.end(), 0.0);
@@ -185,7 +189,7 @@ int MAC2DTest_SmallAirBubbleRising() {
 	const std::string fname_vel("testMAC2D_BubbleRisingVel_Re_" + std::to_string(Re));
 	const std::string fname_div("testMAC2D_BubbleRisingDiv_Re_" + std::to_string(Re));
 	const int iterskip = 1;
-	const TimeOrderEnum timeOrder = TimeOrderEnum::RK1;
+	const TimeOrderEnum timeOrder = TimeOrderEnum::EULER;
 	int stat = 0;
 	
 	std::unique_ptr<MACSolver2D> MSolver;
@@ -307,12 +311,15 @@ int MAC2DTest_SmallAirBubbleRising() {
 		MSolver->m_curTime += MSolver->m_dt;
 		MSolver->m_iter++;
 
-		
 		if ((MSolver->m_iter % MSolver->kNIterSkip) == 0) {
-			double rnorm2 = 0.0;
-			std::cout << "Bubble : " << MSolver->m_iter << " " << MSolver->m_curTime << " " << MSolver->m_dt << " " << rnorm2 << std::endl;
-			// MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
-			// 	uhat, vhat, MSolver->m_ps, ls);
+			std::chrono::high_resolution_clock::time_point p = std::chrono::high_resolution_clock::now();
+			std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(p.time_since_epoch());
+			
+			std::chrono::seconds s = std::chrono::duration_cast<std::chrono::seconds>(ms);
+			std::time_t t = s.count();
+			std::size_t fractional_seconds = ms.count() % 1000;
+			
+			std::cout << "Bubble : " << std::ctime(&t) << " " << MSolver->m_iter << " " << MSolver->m_curTime << " " << MSolver->m_dt << " " << std::endl;
 			MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
 				MSolver->m_u, MSolver->m_v, MSolver->m_ps, ls);
 		}
@@ -349,7 +356,7 @@ int MAC2DTest_TaylorInstability() {
 	const double dx = lenX / nx, dy = lenY / ny;
 	const std::string fname_vel("TaylorVel_Re_" + std::to_string(Re));
 	const std::string fname_div("TaylorDiv_Re_" + std::to_string(Re));
-	const TimeOrderEnum timeOrder = TimeOrderEnum::RK1;
+	const TimeOrderEnum timeOrder = TimeOrderEnum::EULER;
 	const int iterskip = 1;
 	int stat = 0;
 
@@ -473,10 +480,14 @@ int MAC2DTest_TaylorInstability() {
 		MSolver->m_iter++;
 
 		if ((MSolver->m_iter % MSolver->kNIterSkip) == 0) {
-			double rnorm2 = 0.0;
-			std::cout << "Taylor : " << MSolver->m_iter << " " << MSolver->m_curTime << " " << MSolver->m_dt << " " << rnorm2 << std::endl;
-			// MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
-			// 	uhat, vhat, MSolver->m_ps, ls);
+			std::chrono::high_resolution_clock::time_point p = std::chrono::high_resolution_clock::now();
+			std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(p.time_since_epoch());
+
+			std::chrono::seconds s = std::chrono::duration_cast<std::chrono::seconds>(ms);
+			std::time_t t = s.count();
+			std::size_t fractional_seconds = ms.count() % 1000;
+
+			std::cout << "Taylor : " << std::ctime(&t) << " " << MSolver->m_iter << " " << MSolver->m_curTime << " " << MSolver->m_dt << " " << std::endl;
 			MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
 				MSolver->m_u, MSolver->m_v, MSolver->m_ps, ls);
 		}

@@ -53,7 +53,7 @@
     <PlatformToolset>Intel C++ Compiler XE 14.0</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
-    <UseIntelMKL>Sequential</UseIntelMKL>
+    <UseIntelMKL>Parallel</UseIntelMKL>
     <InterproceduralOptimization>true</InterproceduralOptimization>
     <UseILP64Interfaces>true</UseILP64Interfaces>
   </PropertyGroup>
@@ -137,6 +137,7 @@
       <UseProcessorExtensions>AVX</UseProcessorExtensions>
       <GenerateAlternateCodePaths>AVX</GenerateAlternateCodePaths>
       <Cpp0xSupport>true</Cpp0xSupport>
+      <Parallelization>true</Parallelization>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -188,6 +189,9 @@
       <AdditionalIncludeDirectories>$(TECPLOT_DIR)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_VARIADIC_MAX=10;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <Cpp0xSupport>true</Cpp0xSupport>
+      <UseProcessorExtensions>AVX</UseProcessorExtensions>
+      <OpenMP>GenerateParallelCode</OpenMP>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
