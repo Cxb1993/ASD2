@@ -100,7 +100,10 @@ int MACSolver2D::UpdateKappa(const std::vector<double>& ls) {
 				/ std::pow(LSSize[idx(i, j)], 3.0);
 
 		// curvature is limiited so that under-resolved regions do not erroneously contribute large surface tensor forces
-		m_kappa[idx(i, j)] = std::min(m_kappa[idx(i, j)], 1.0 / std::min(kDx, kDy));
+		if (m_kappa[idx(i, j)] > 0)
+			m_kappa[idx(i, j)] = std::min(std::fabs(m_kappa[idx(i, j)]), 1.0 / std::min(kDx, kDy));
+		else
+			m_kappa[idx(i, j)] = -std::min(std::fabs(m_kappa[idx(i, j)]), 1.0 / std::min(kDx, kDy));
 
 		assert(m_kappa[idx(i, j)] == m_kappa[idx(i, j)]);
 	}
