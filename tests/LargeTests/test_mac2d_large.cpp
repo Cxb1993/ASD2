@@ -20,7 +20,7 @@ int MAC2DTest_CavityFlow() {
 	const std::string fname_vel("testMAC2D_CavityVel_Re_" + std::to_string(Re));
 	const std::string fname_div("testMAC2D_CavityDiv_Re_" + std::to_string(Re));
 	const int iterskip = 1;
-	const TimeOrderEnum timeOrder = TimeOrderEnum::EULER;
+	const TimeOrderEnum timeOrder = TimeOrderEnum::RK3;
 	int stat = 0;
 
 	std::unique_ptr<MACSolver2D> MSolver;
@@ -115,10 +115,10 @@ int MAC2DTest_CavityFlow() {
 		// Solve Momentum Part
 
 		// Update F and apply time integration
-		MSolver->UpdateJumpCond(MSolver->m_u, MSolver->m_v, lsB);
+		MSolver->UpdateJumpCond(MSolver->m_u, MSolver->m_v, ls);
 		
 		// Get intermediate velocity with RK method
-		MSolver->GetIntermediateVel(LSolver, lsB, MSolver->m_u, MSolver->m_v, uhat, vhat);
+		MSolver->GetIntermediateVel(LSolver, ls, MSolver->m_u, MSolver->m_v, uhat, vhat);
 
 		MSolver->ApplyBC_U_2D(uhat);
 		MSolver->ApplyBC_V_2D(vhat);
@@ -130,7 +130,7 @@ int MAC2DTest_CavityFlow() {
 
 		// Solve Poisson equation
 		// m_phi = pressure * dt
-		stat = MSolver->SolvePoisson(MSolver->m_ps, div, lsB, ls, uhat, vhat, poissonMaxIter);
+		stat = MSolver->SolvePoisson(MSolver->m_ps, div, ls, uhat, vhat, poissonMaxIter);
 		MSolver->ApplyBC_P_2D(MSolver->m_ps);
 
 		stat = MSolver->UpdateVel(MSolver->m_u, MSolver->m_v, uhat, vhat, MSolver->m_ps, ls);
@@ -158,6 +158,17 @@ int MAC2DTest_CavityFlow() {
 		std::fill(uhat.begin(), uhat.end(), 0.0);
 		std::fill(vhat.begin(), vhat.end(), 0.0);
 	}
+	// http://stackoverflow.com/a/12836048/743078
+	std::chrono::high_resolution_clock::time_point p = std::chrono::high_resolution_clock::now();
+	std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(p.time_since_epoch());
+
+	std::chrono::seconds s = std::chrono::duration_cast<std::chrono::seconds>(ms);
+	std::time_t t = s.count();
+	std::size_t fractional_seconds = ms.count() % 1000;
+
+	std::cout << "(Final) Cavity : " << std::ctime(&t) << " " << MSolver->m_iter << " " << MSolver->m_curTime << " " << MSolver->m_dt << " " << std::endl;
+	MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
+		MSolver->m_u, MSolver->m_v, MSolver->m_ps, ls);
 
 	MSolver->OutResClose();
 
@@ -173,7 +184,7 @@ int MAC2DTest_SmallAirBubbleRising() {
 	const double L = 1.0, U = 1.0;
 	const double rhoI = 1.226, muI = 1.78e-5;
 	const double rhoO = 1000, muO = 1.137e-3, sigma = 0.0728;
-	const double gConstant = -9.81;
+	const double gConstant = 9.81;
 	// # of cells
 	const int nx = 80, ny = 120;
 	// related to initialize level set
@@ -189,7 +200,7 @@ int MAC2DTest_SmallAirBubbleRising() {
 	const std::string fname_vel("testMAC2D_BubbleRisingVel_Re_" + std::to_string(Re));
 	const std::string fname_div("testMAC2D_BubbleRisingDiv_Re_" + std::to_string(Re));
 	const int iterskip = 1;
-	const TimeOrderEnum timeOrder = TimeOrderEnum::EULER;
+	const TimeOrderEnum timeOrder = TimeOrderEnum::RK2;
 	int stat = 0;
 	
 	std::unique_ptr<MACSolver2D> MSolver;
@@ -273,21 +284,17 @@ int MAC2DTest_SmallAirBubbleRising() {
 	while (MSolver->m_curTime < MSolver->kMaxTime && MSolver->m_iter < MSolver->kMaxIter) {
 		// Solver Level set part first
 		// Have to use \phi^{n+1} for rho, mu, kappa
-		for (int i = 0; i < nx + 2 * num_bc_grid; i++)
-		for (int j = 0; j < ny + 2 * num_bc_grid; j++)
-			lsB[idx3(ny, i, j)] = ls[idx3(ny, i, j)];
 		
-		// lsB = ls;
 		LSolver->Solve_LevelSet_2D(ls, MSolver->m_u, MSolver->m_v, MSolver->m_dt);
 		LSolver->Reinit_Sussman_2D(ls);
 		LSolver->ApplyBC_P_2D(ls);
 		// Solve Momentum Part
 		
 		// Update F and apply time integration
-		MSolver->UpdateJumpCond(MSolver->m_u, MSolver->m_v, lsB);
+		MSolver->UpdateJumpCond(MSolver->m_u, MSolver->m_v, ls);
 		
 		// Get intermediate velocity
-		MSolver->GetIntermediateVel(LSolver, lsB, MSolver->m_u, MSolver->m_v, uhat, vhat);
+		MSolver->GetIntermediateVel(LSolver, ls, MSolver->m_u, MSolver->m_v, uhat, vhat);
 
 		MSolver->ApplyBC_U_2D(uhat);
 		MSolver->ApplyBC_V_2D(vhat);
@@ -298,7 +305,7 @@ int MAC2DTest_SmallAirBubbleRising() {
 
 		// Solve Poisson equation
 		// m_phi = pressure * dt
-		stat = MSolver->SolvePoisson(MSolver->m_ps, div, lsB, ls, uhat, vhat, poissonMaxIter);
+		stat = MSolver->SolvePoisson(MSolver->m_ps, div, ls, uhat, vhat, poissonMaxIter);
 		MSolver->ApplyBC_P_2D(MSolver->m_ps);
 		
 		stat = MSolver->UpdateVel(MSolver->m_u, MSolver->m_v,
@@ -320,13 +327,26 @@ int MAC2DTest_SmallAirBubbleRising() {
 			std::size_t fractional_seconds = ms.count() % 1000;
 			
 			std::cout << "Bubble : " << std::ctime(&t) << " " << MSolver->m_iter << " " << MSolver->m_curTime << " " << MSolver->m_dt << " " << std::endl;
+
+			// MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
+			// 	uhat, vhat, MSolver->m_ps, ls);
 			MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
 				MSolver->m_u, MSolver->m_v, MSolver->m_ps, ls);
 		}
 		std::fill(uhat.begin(), uhat.end(), 0.0);
 		std::fill(vhat.begin(), vhat.end(), 0.0);
 	}
+	// http://stackoverflow.com/a/12836048/743078
+	std::chrono::high_resolution_clock::time_point p = std::chrono::high_resolution_clock::now();
+	std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(p.time_since_epoch());
 
+	std::chrono::seconds s = std::chrono::duration_cast<std::chrono::seconds>(ms);
+	std::time_t t = s.count();
+	std::size_t fractional_seconds = ms.count() % 1000;
+
+	std::cout << "(Final) Bubble : " << std::ctime(&t) << " " << MSolver->m_iter << " " << MSolver->m_curTime << " " << MSolver->m_dt << " " << std::endl;
+	// MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
+	// 	MSolver->m_u, MSolver->m_v, MSolver->m_ps, ls);
 	MSolver->OutResClose();
 
 	MSolver.reset();
@@ -453,9 +473,9 @@ int MAC2DTest_TaylorInstability() {
 		// Solve Momentum Part
 
 		// Update F and apply time integration
-		MSolver->UpdateJumpCond(MSolver->m_u, MSolver->m_v, lsB);
+		MSolver->UpdateJumpCond(MSolver->m_u, MSolver->m_v, ls);
 		// Get intermediate velocity
-		MSolver->GetIntermediateVel(LSolver, lsB, MSolver->m_u, MSolver->m_v, uhat, vhat);
+		MSolver->GetIntermediateVel(LSolver, ls, MSolver->m_u, MSolver->m_v, uhat, vhat);
 
 		MSolver->ApplyBC_U_2D(uhat);
 		MSolver->ApplyBC_V_2D(vhat);
@@ -466,7 +486,7 @@ int MAC2DTest_TaylorInstability() {
 
 		// Solve Poisson equation
 		// m_phi = pressure * dt
-		stat = MSolver->SolvePoisson(MSolver->m_ps, div, lsB, ls, uhat, vhat, poissonMaxIter);
+		stat = MSolver->SolvePoisson(MSolver->m_ps, div, ls, uhat, vhat, poissonMaxIter);
 		MSolver->ApplyBC_P_2D(MSolver->m_ps);
 
 		stat = MSolver->UpdateVel(MSolver->m_u, MSolver->m_v,
@@ -494,6 +514,17 @@ int MAC2DTest_TaylorInstability() {
 		std::fill(uhat.begin(), uhat.end(), 0.0);
 		std::fill(vhat.begin(), vhat.end(), 0.0);
 	}
+	// http://stackoverflow.com/a/12836048/743078
+	std::chrono::high_resolution_clock::time_point p = std::chrono::high_resolution_clock::now();
+	std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(p.time_since_epoch());
+
+	std::chrono::seconds s = std::chrono::duration_cast<std::chrono::seconds>(ms);
+	std::time_t t = s.count();
+	std::size_t fractional_seconds = ms.count() % 1000;
+
+	std::cout << "(Final) Taylor : " << std::ctime(&t) << " " << MSolver->m_iter << " " << MSolver->m_curTime << " " << MSolver->m_dt << " " << std::endl;
+	MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
+		MSolver->m_u, MSolver->m_v, MSolver->m_ps, ls);
 
 	MSolver->OutResClose();
 

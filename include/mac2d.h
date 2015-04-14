@@ -7,6 +7,7 @@
 #include <cfloat>
 #include <cstdlib>
 #include <iostream>
+#include <iomanip>
 #include <istream>
 #include <fstream>
 #include <string>
@@ -105,12 +106,12 @@ public:
 	
 	// Intermediate Velocity
 	int GetIntermediateVel(const std::shared_ptr<LevelSetSolver2D>& LSolver,
-		const std::vector<double>& lsB, const std::vector<double>& u, const std::vector<double>& v,
+		const std::vector<double>& ls, const std::vector<double>& u, const std::vector<double>& v,
 		std::vector<double>& uhat, std::vector<double>& vhat);
 	
 	// Poisson 
 	int SetPoissonSolver(POISSONTYPE type);
-	int SolvePoisson(std::vector<double>& ps, const std::vector<double>& div, const std::vector<double>& lsB, const std::vector<double>& ls,
+	int SolvePoisson(std::vector<double>& ps, const std::vector<double>& div, const std::vector<double>& ls,
 		const std::vector<double>& u, const std::vector<double>& v, const int maxiter);
 
 	// update velocity using projection
