@@ -41,13 +41,17 @@ public:
 		double lenX, double lenY, double dx, double dy, std::shared_ptr<BoundaryCondition2D> PBC);
 	int CG_2FUniform_2D(std::vector<double>& ps, const std::vector<double>& rhs,
 		std::vector<double>& AVals, std::vector<MKL_INT>& ACols, std::vector<MKL_INT>& ARowIdx,
+		std::vector<double>& MVals, std::vector<MKL_INT>& MCols, std::vector<MKL_INT>& MRowIdx,
 		const double lenX, const double lenY, const double dx, const double dy,
 		const std::shared_ptr<BoundaryCondition2D>& PBC, const int maxiter);
 	int BiCGStab_2FUniform_2D(std::vector<double>& ps, const std::vector<double>& rhs,
 		std::vector<double>& AVals, std::vector<MKL_INT>& ACols, std::vector<MKL_INT>& ARowIdx,
+		std::vector<double>& M, std::vector<MKL_INT>& MCols, std::vector<MKL_INT>& MRowIdx, 
 		const double lenX, const double lenY, const double dx, const double dy,
 		const std::shared_ptr<BoundaryCondition2D>& PBC, const int maxiter);
+	bool IsSymmetric(std::vector<double>& AVals, std::vector<MKL_INT>& ACols, std::vector<MKL_INT>& ARowIdx);
 
+	std::vector<double> InvertMatrixDiagonal(const std::vector<double>& M);
 	int idx(int i, int j);
 };
 

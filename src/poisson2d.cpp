@@ -229,6 +229,7 @@ int PoissonSolver2D::MKL_2FUniform_2D(std::vector<double>& ps, const std::vector
 
 int PoissonSolver2D::CG_2FUniform_2D(std::vector<double>& ps, const std::vector<double>& rhs,
 	std::vector<double>& AVals, std::vector<MKL_INT>& ACols, std::vector<MKL_INT>& ARowIdx,
+	std::vector<double>& MVals, std::vector<MKL_INT>& MCols, std::vector<MKL_INT>& MRowIdx,
 	const double lenX, const double lenY, const double dx, const double dy,
 	const std::shared_ptr<BoundaryCondition2D>& PBC, const int maxIter) {
 	
@@ -237,9 +238,18 @@ int PoissonSolver2D::CG_2FUniform_2D(std::vector<double>& ps, const std::vector<
 	double *b = Data::Allocate1Dd(size);
 	double *x = Data::Allocate1Dd(size);
 	double *Ax = Data::Allocate1Dd(size); 
-	double *r = Data::Allocate1Dd(size);
 	double *p = Data::Allocate1Dd(size);
 	double *q = Data::Allocate1Dd(size);
+	double *r = Data::Allocate1Dd(size);
+	double *z = Data::Allocate1Dd(size);
+
+	double alpha = 1.0, beta = 1.0;
+	double rho = 1.0, rho1 = 1.0;
+	double rnorm2 = 0.0, bnorm2 = 0.0, resid = 0.0;
+
+	const double err_tol = 1.0e-6;
+	int iter = 0;
+	bool isConverged = false;
 
 	// check values
 	if (Anrows != ARowIdx.size() - 1)
@@ -252,6 +262,7 @@ int PoissonSolver2D::CG_2FUniform_2D(std::vector<double>& ps, const std::vector<
 		p[i + j * kNx] = 0.0;
 		r[i + j * kNx] = 0.0;
 		q[i + j * kNx] = 0.0;
+		z[i + j * kNx] = 0.0;
 	}
 	
 	// get Ax(=A*x), using upper triangular matrix (Sparse BLAS)
@@ -268,26 +279,47 @@ int PoissonSolver2D::CG_2FUniform_2D(std::vector<double>& ps, const std::vector<
 
 	// p_0 = r_0
 	cblas_dcopy(size, r, 1, p, 1);
-	// declare coefficients
-	double alpha = 0.0, alpha1 = 0.0, beta = 0.0, beta1 = 0.0;
-	double delta_new = 0.0, delta_old = 0.0, delta0;
-	double rnorm2 = 0.0;
+	
+	bnorm2 = cblas_dnrm2(size, b, 1);
+	if (bnorm2 == 0.0)
+		bnorm2 = 1.0;
+	rnorm2 = cblas_dnrm2(size, r, 1);
 
-	// delta = r * r^T
-	delta_old = cblas_ddot(size, r, 1, r, 1);
-	delta_new = 0.0;
-	// std::cout << delta0 << std::endl;
-	const double err_tol = 1.0e-8;
-	int iter = 0;
-	bool isConverged = false;
+	if ((resid = rnorm2 / bnorm2) <= err_tol) {
+		isConverged = true;
+	}
+
+	std::vector<double> MInvVals = InvertMatrixDiagonal(MVals);
 	
 	while (iter < maxIter && isConverged == false) {
+		// z = M^-1 r
+		mkl_cspblas_dcsrgemv(&transa, &Anrows, MInvVals.data(), MRowIdx.data(), MCols.data(), r, z);
+		rho = cblas_ddot(size, r, 1, z, 1);
+
+		if (iter == 1) {
+			cblas_dcopy(size, z, 1, p, 1);
+		}
+		else {
+			// beta = (rho_i / rho_{i - 1}) (\alpha / omega_{i - 1})
+			beta = rho / rho1;
+			// p_{i} = r_{i-1} + \beta * (p_{i-1} - \omega_{i - 1}v_{i -  1})
+			// p = p - \omega_{i - 1}v_{i -  1} = p - \omega_{i - 1}v_{i -  1}
+			cblas_dscal(size, beta, p, 1);
+			// p = z + beta * p
+			cblas_daxpy(size, 1.0, z, 1, p, 1);
+			if (std::isnan(beta) || std::isinf(beta)) {
+				std::cout << "poisson equation nan/inf error(beta) : " << iter << " " << beta << std::endl;
+				exit(1);
+			}
+			assert(beta == beta);
+		}
+
 		// q = A * p_k, will be resued below
 		// https://software.intel.com/en-us/node/468560
 		mkl_cspblas_dcsrgemv(&transa, &Anrows, AVals.data(), ARowIdx.data(), ACols.data(), p, q);
 		// get alpha (r^T_k * r_k) / (d^T_k q) (= (r^T_k * r_k) / (d^T_k A d_k))
 		// https://software.intel.com/en-us/node/468398#D4E53C70-D8FA-4095-A800-4203CAFE64FE
-		alpha = delta_old / (cblas_ddot(size, p, 1, q, 1) + err_tol * err_tol);
+		alpha = rho / (cblas_ddot(size, p, 1, q, 1) + err_tol * err_tol);
 		
 		// x_k+1 = x_k + alpha * p_k
 		// https://software.intel.com/en-us/node/468394
@@ -302,31 +334,17 @@ int PoissonSolver2D::CG_2FUniform_2D(std::vector<double>& ps, const std::vector<
 		// r_k+1 = -alpha * A * p_k + r_k = -alpha * q + r_k
 		cblas_daxpy(size, -alpha, q, 1, r, 1);
 		
-		// delta_new = r_k+1^T r_k+1
-		delta_new = cblas_ddot(size, r, 1, r, 1);
-		
-		if (delta_new <= err_tol)
+		rnorm2 = cblas_dnrm2(size, r, 1);
+		if ((resid = rnorm2 / bnorm2) <= err_tol) {
 			isConverged = true;
-
-		beta = delta_new / (delta_old + err_tol * err_tol);
-		if (std::isnan(beta) || std::isinf(beta)) {
-			std::cout << "poisson equation nan/inf error(beta) : " << iter << " " << beta << std::endl;
-			exit(1);
 		}
-		assert(beta == beta);
 		
-		// p_k+1 = r_k+1 + beta * p_k
-		// p_k = p_k * beta
-		cblas_dscal(size, beta, p, 1);
-		// p = 1.0 * r_k+1 + p_k = r_k+1 + (beta * p_k)
-		cblas_daxpy(size, 1.0, r, 1, p, 1);
-
-		delta_old = delta_new;
-
+		rho1 = rho;
+		
 		iter++;
 	}
 
-	// std::cout << "CG : " << iter << " " << maxIter << " Err : " << delta_new << std::endl;
+	std::cout << "CG : " << iter << " " << maxIter << " Err : " << rnorm2 / bnorm2 << " " << x[50 + 50 * kNx] << std::endl;
 	for (int j = 0; j < kNy; j++)
 	for (int i = 0; i < kNx; i++) {
 		ps[idx(i + kNumBCGrid, j + kNumBCGrid)] = x[i + j * kNx];
@@ -341,31 +359,36 @@ int PoissonSolver2D::CG_2FUniform_2D(std::vector<double>& ps, const std::vector<
 	Data::Deallocate1Dd(b);
 	Data::Deallocate1Dd(x);
 	Data::Deallocate1Dd(Ax);
-	Data::Deallocate1Dd(r);
 	Data::Deallocate1Dd(p);
 	Data::Deallocate1Dd(q);
+	Data::Deallocate1Dd(r);
+	Data::Deallocate1Dd(z);
 
 	return 0;
 }
 
 int PoissonSolver2D::BiCGStab_2FUniform_2D(std::vector<double>& ps, const std::vector<double>& rhs,
 	std::vector<double>& AVals, std::vector<MKL_INT>& ACols, std::vector<MKL_INT>& ARowIdx,
+	std::vector<double>& MVals, std::vector<MKL_INT>& MCols, std::vector<MKL_INT>& MRowIdx,
 	const double lenX, const double lenY, const double dx, const double dy,
 	const std::shared_ptr<BoundaryCondition2D>& PBC, const int maxIter) {
-
+	
+	// http://math.nist.gov/iml++/bicgstab.h.txt
 	MKL_INT Anrows = kNx * kNy, Ancols = kNx * kNy;
 	MKL_INT size = kNx * kNy;
 	double *b = Data::Allocate1Dd(size);
 	double *x = Data::Allocate1Dd(size);
 	double *Ax = Data::Allocate1Dd(size);
 	double *r = Data::Allocate1Dd(size);
-	double *r0 = Data::Allocate1Dd(size);
-	double *nu = Data::Allocate1Dd(size);
+	double *rtilde = Data::Allocate1Dd(size);
+	double *v = Data::Allocate1Dd(size);
 	double *p = Data::Allocate1Dd(size);
-	double *pTmp = Data::Allocate1Dd(size);
+	double *phat = Data::Allocate1Dd(size);
 	double *s = Data::Allocate1Dd(size);
+	double *shat = Data::Allocate1Dd(size);
 	double *t = Data::Allocate1Dd(size);
 	double bnorm2 = 0.0, rnorm2 = 0.0;
+
 	// check values
 	if (Anrows != ARowIdx.size() - 1)
 		std::cout << "the # of rows is invalid!" << std::endl;
@@ -376,14 +399,22 @@ int PoissonSolver2D::BiCGStab_2FUniform_2D(std::vector<double>& ps, const std::v
 		Ax[i + j * kNx] = 0.0;
 		x[i + j * kNx] = 0.0;
 		r[i + j * kNx] = 0.0;
-		r0[i + j * kNx] = 0.0;
-		nu[i + j * kNx] = 0.0;
+		v[i + j * kNx] = 0.0;
 		p[i + j * kNx] = 0.0;
-		pTmp[i + j * kNx] = 0.0;
+		phat[i + j * kNx] = 0.0;
 		s[i + j * kNx] = 0.0;
+		shat[i + j * kNx] = 0.0;
 		t[i + j * kNx] = 0.0;
 	}
 	
+	// declare coefficients
+	double alpha = 1.0, beta = 1.0, omega = 1.0, resid;
+	double rho1 = 1.0, rho2 = 1.0;
+	const double err_tol = 1.0e-6;
+
+	int iter = 0;
+	bool isConverged = false;
+
 	// get Ax(=A*x), using upper triangular matrix (Sparse BLAS)
 	// https://software.intel.com/en-us/node/468560
 	char transa = 'n';
@@ -396,78 +427,96 @@ int PoissonSolver2D::BiCGStab_2FUniform_2D(std::vector<double>& ps, const std::v
 	// https://software.intel.com/en-us/node/468394
 	cblas_daxpy(size, -1.0, Ax, 1, r, 1);
 
-	// r_0 = r
-	cblas_dcopy(size, r, 1, r0, 1);
+	// rtilde = r
+	cblas_dcopy(size, r, 1, rtilde, 1);
 	
 	// norm of b matrix
 	bnorm2 = cblas_dnrm2(size, b, 1);
 
-	// declare coefficients
-	double alpha = 1.0, beta = 1.0;
-	double rho = 1.0, rhoPrev = 1.0, omega = 1.0, omegaPrev = 1.0;
+	if (bnorm2 == 0.0)
+		bnorm2 = 1.0;
 
-	const double err_tol = 1.0e-6;
-	int iter = 0;
-	bool isConverged = false;
+	rnorm2 = cblas_dnrm2(size, r, 1);
+
+	if ((resid = rnorm2 / bnorm2) <= err_tol) {
+		// no need to do BiCGStab
+		isConverged = true;
+	}
+	
+	std::vector<double> MInvVals = InvertMatrixDiagonal(MVals);
 
 	while (iter < maxIter && isConverged == false) {
 		// direction vector
 		// rho_i = (\hat{r0}, r_(i-1))
-		rho = cblas_ddot(size, r0, 1, r, 1);
-
-		// beta = (rho_i / rho_{i - 1}) (\alpha / omega_{i - 1})
-		beta = (rho / rhoPrev) * (alpha / omega);
-
-		// p_{i} = r_{i-1} + \beta * (p_{i-1} - \omega_{i - 1}v_{i -  1})
-		// pTmp = p_i
-		cblas_dcopy(size, p, 1, pTmp, 1);
-		// pTmp = pTmp - \omega_{i - 1}v_{i -  1} = p - \omega_{i - 1}v_{i -  1}
-		cblas_daxpy(size, -omega, nu, 1, pTmp, 1);
-		// pTmp = (beta - 1.0) * pTmp + pTmp = beta * pTmp
-		cblas_daxpy(size, beta - 1.0, pTmp, 1, pTmp, 1);
-		// p = pTmp
-		cblas_dcopy(size, pTmp, 1, p, 1);
-		// p = 1.0 * r + p = 1.0 * r + \beta * (p_{i-1} - \omega_{i - 1}v_{i -  1})
-		cblas_daxpy(size, 1.0, r, 1, p, 1);
-
-		// \nu  = A * p_i
-		// https://software.intel.com/en-us/node/468560
-		mkl_cspblas_dcsrgemv(&transa, &Anrows, AVals.data(), ARowIdx.data(), ACols.data(), p, nu);
+		rho1 = cblas_ddot(size, rtilde, 1, r, 1);
+		if (rho1 == 0.0) {
+			break;
+		}
 		
-		// \nu = rho_i / (r0, \nu)
-		alpha = rho / cblas_ddot(size, r0, 1, nu, 1);
+		if (iter == 1) {
+			cblas_dcopy(size, r, 1, p, 1);
+		}
+		else {
+			// beta = (rho_i / rho_{i - 1}) (\alpha / omega_{i - 1})
+			beta = (rho1 / rho2) * (alpha / omega);
+			// p_{i} = r_{i-1} + \beta * (p_{i-1} - \omega_{i - 1}v_{i -  1})
+			// p = p - \omega_{i - 1}v_{i -  1} = p - \omega_{i - 1}v_{i -  1}
+			cblas_daxpy(size, -omega, v, 1, p, 1);
+			// p = (beta - 1.0) * p + p = beta * p
+			cblas_dscal(size, beta, p, 1);
+			// p = 1.0 * r + p = 1.0 * r + \beta * (p_{i-1} - \omega_{i - 1}v_{i -  1})
+			cblas_daxpy(size, 1.0, r, 1, p, 1);
+		}
+		
+		// phat = M^-1 p
+		mkl_cspblas_dcsrgemv(&transa, &Anrows, MInvVals.data(), MRowIdx.data(), MCols.data(), p, phat);
+
+		// v  = A * p_i
+		// https://software.intel.com/en-us/node/468560
+		mkl_cspblas_dcsrgemv(&transa, &Anrows, AVals.data(), ARowIdx.data(), ACols.data(), phat, v);
+		
+		// v = rho_i / (rilde, v)
+		alpha = rho1 / cblas_ddot(size, rtilde, 1, v, 1);
 
 		// s = r_{i - 1}
 		cblas_dcopy(size, r, 1, s, 1);
 		// s = s - \alpha nu_i = r_{i - 1} - \alpha nu_i
-		cblas_daxpy(size, -alpha, nu, 1, s, 1);
+		cblas_daxpy(size, -alpha, v, 1, s, 1);
 
-		// t = As
-		mkl_cspblas_dcsrgemv(&transa, &Anrows, AVals.data(), ARowIdx.data(), ACols.data(), s, t);
+		if ((resid = cblas_dnrm2(size, s, 1) / bnorm2) < err_tol) {
+			cblas_daxpy(size, alpha, phat, 1, x, 1);
+			isConverged = true;
+			break;
+		}
+
+		// shat = M^-1 s
+		mkl_cspblas_dcsrgemv(&transa, &Anrows, MInvVals.data(), MRowIdx.data(), MCols.data(), s, shat);
+		// t = A shat
+		mkl_cspblas_dcsrgemv(&transa, &Anrows, AVals.data(), ARowIdx.data(), ACols.data(), shat, t);
 
 		// omega = (t, s) / (t, t)
 		omega = cblas_ddot(size, t, 1, s, 1) / cblas_ddot(size, t, 1, t, 1);
 
 		// x_i = x_{i - 1} + \alpha p_i + \omega s
 		// x_i = x_{i - 1} + \alpha p_i
-		cblas_daxpy(size, alpha, p, 1, x, 1);
+		cblas_daxpy(size, alpha, phat, 1, x, 1);
 		// x_i = x_{i} + \omega s = x_{i - 1} + \alpha p_i + \omega s
-		cblas_daxpy(size, omega, s, 1, x, 1);
+		cblas_daxpy(size, omega, shat, 1, x, 1);
 
 		// r_i =  s_i
 		cblas_dcopy(size, s, 1, r, 1);
 		// r = r - \omega t
 		cblas_daxpy(size, -omega, t, 1, r, 1);
-
+			
 		rnorm2 = cblas_dnrm2(size, r, 1);
-
+		
 		if (rnorm2 / bnorm2 <= err_tol)
 			isConverged = true;
-
+		
 		iter++;
 	}
 	
-	std::cout << "BiCG : " << iter << " " << maxIter << " Err : " << rnorm2 / bnorm2 << std::endl;
+	std::cout << "BiCG : " << iter << " " << maxIter << " Err : " << rnorm2 / bnorm2 << " " << x[50 + 50 * kNx] << std::endl;
 	for (int j = 0; j < kNy; j++)
 	for (int i = 0; i < kNx; i++) {
 		ps[idx(i + kNumBCGrid, j + kNumBCGrid)] = x[i + j * kNx];
@@ -483,14 +532,25 @@ int PoissonSolver2D::BiCGStab_2FUniform_2D(std::vector<double>& ps, const std::v
 	Data::Deallocate1Dd(x);
 	Data::Deallocate1Dd(Ax);
 	Data::Deallocate1Dd(r);
-	Data::Deallocate1Dd(r0);
-	Data::Deallocate1Dd(nu);
+	Data::Deallocate1Dd(rtilde);
+	Data::Deallocate1Dd(v);
 	Data::Deallocate1Dd(p);
-	Data::Deallocate1Dd(pTmp);
+	Data::Deallocate1Dd(phat);
 	Data::Deallocate1Dd(s);
+	Data::Deallocate1Dd(shat);
 	Data::Deallocate1Dd(t);
 
 	return 0;
+}
+
+std::vector<double> PoissonSolver2D::InvertMatrixDiagonal(const std::vector<double>& M) {
+	std::vector<double> MInv(M.size(), 0.0);
+
+	for (int i = 0; i < M.size(); i++) {
+		MInv[i] = 1.0 / M[i];
+	}
+
+	return MInv;
 }
 
 inline int PoissonSolver2D::idx(int i, int j) {
