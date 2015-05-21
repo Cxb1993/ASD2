@@ -33,8 +33,8 @@ public:
 	const int kNx, kNy, kNumBCGrid;
 	const double kBaseX, kBaseY, kLenX, kLenY, kDx, kDy;
 
-	const double kRe, kWe, kFr;
-	const double kLScale, kUScale, kSigma, kG, kMuScale, kRhoScale;
+	const double kRe, kWe, kFrX, kFrY;
+	const double kLScale, kUScale, kSigma, kGX, kGY, kMuScale, kRhoScale;
 	// *I : inside fluid, *O : outside fluid
 	const double kRhoI, kRhoO, kRhoRatio;
 	const double kMuI, kMuO, kMuRatio;
@@ -66,12 +66,12 @@ public:
 	std::vector<double> m_J11, m_J12, m_J21, m_J22;
 
 	MACSolver2D();
-	MACSolver2D(double Re, double We, double Fr,
+	MACSolver2D(double Re, double We, double FrX, double FrY,
 		double L, double U, double sigma, double densityRatio, double viscosityRatio, double rhoI, double mu1,
 		int nx, int ny, double baseX, double baseY, double lenX, double lenY, 
 		TimeOrderEnum RKOrder, double cfl, double maxtime, int maxiter, int niterskip,
 		int num_bc_grid, bool writeVTK);
-	MACSolver2D(double rhoI, double rhoO, double muI, double muO, double gConstant,
+	MACSolver2D(double rhoI, double rhoO, double muI, double muO, double gConstantX, double gConstantY,
 		double L, double U, double sigma,
 		int nx, int ny, double baseX, double baseY, double lenX, double lenY, 
 		TimeOrderEnum RKOrder, double cfl, double maxtime, int maxiter, int niterskip,
@@ -81,7 +81,7 @@ public:
 	int AllocateVariables();
 
 	// Related to Level Set Related
-	std::vector<double> UpdateHeaviside(const std::vector<double>& ls);
+	std::vector<double> UpdateHeavisideFunc(const std::vector<double>& ls);
 	int UpdateKappa(const std::vector<double>& ls);
 	int UpdateJumpCond(const std::vector<double>& u, const std::vector<double>& v, 
 		const std::vector<double>& ls);

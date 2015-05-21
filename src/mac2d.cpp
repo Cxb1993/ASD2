@@ -1,13 +1,13 @@
 #include "mac2d.h"
 
-MACSolver2D::MACSolver2D(double Re, double We, double Fr,
+MACSolver2D::MACSolver2D(double Re, double We, double FrX, double FrY,
 	double L, double U, double sigma, double densityRatio, double viscosityRatio, double rhoI, double muI,
 	int nx, int ny, double baseX, double baseY, double lenX, double lenY,
 	TimeOrderEnum timeOrder, double cfl, double maxtime, int maxIter, int niterskip, int num_bc_grid,
 	bool writeVTK) :
-	kRe(Re), kWe(We), kFr(Fr),
+	kRe(Re), kWe(We), kFrX(FrX), kFrY(FrY),
 	kLScale(L), kUScale(U), kSigma(sigma),
-	kG(kFr * L / (U * U)), kRhoScale(We * sigma / (L * U * U)), kMuScale(kRhoScale * L * U / Re),
+	kGX(kFrX * L / (U * U)), kGY(kFrY * L / (U * U)), kRhoScale(We * sigma / (L * U * U)), kMuScale(kRhoScale * L * U / Re),
 	kRhoI(rhoI), kRhoO(rhoI * densityRatio), kRhoRatio(densityRatio),
 	kMuI(muI), kMuO(muI * viscosityRatio), kMuRatio(viscosityRatio),
 	kNuI(muI / rhoI), kNuO(kMuO / kRhoO),
@@ -23,15 +23,15 @@ MACSolver2D::MACSolver2D(double Re, double We, double Fr,
 	m_dt = std::min(0.005, kCFL * std::min(lenX / static_cast<double>(nx), lenY / static_cast<double>(ny)) / U);
 }
 
-MACSolver2D::MACSolver2D(double rhoI, double rhoO, double muI, double muO, double gConstant,
+MACSolver2D::MACSolver2D(double rhoI, double rhoO, double muI, double muO, double gConstantX, double gConstantY,
 	double L, double U, double sigma, int nx, int ny, double baseX, double baseY, double lenX, double lenY,
 	TimeOrderEnum timeOrder, double cfl, double maxtime, int maxIter, int niterskip, int num_bc_grid,
 	bool writeVTK) :
-	kRhoScale(rhoI), kMuScale(muI), kG(gConstant), kLScale(L), kUScale(U), kSigma(sigma),
+	kRhoScale(rhoI), kMuScale(muI), kGX(gConstantX), kGY(gConstantY), kLScale(L), kUScale(U), kSigma(sigma),
 	kRhoI(rhoI), kRhoO(rhoO), kRhoRatio(rhoI / rhoO), 
 	kMuI(muI), kMuO(muO), kMuRatio(muI / muO),
 	kNuI(muI / rhoI), kNuO(muO / rhoO),
-	kRe(rhoI * L * U / muI), kWe(rhoI * L * U * U / sigma), kFr(U * U / (gConstant * L)),
+	kRe(rhoI * L * U / muI), kWe(rhoI * L * U * U / sigma), kFrX(U * U / (gConstantX * L)), kFrY(U * U / (gConstantY * L)),
 	kNx(nx), kNy(ny), kBaseX(baseX), kBaseY(baseY), kLenX(lenX), kLenY(lenY),
 	kDx(lenX / static_cast<double>(nx)), kDy(lenY / static_cast<double>(ny)),
 	kTimeOrder(timeOrder), kCFL(cfl), kMaxTime(maxtime), kMaxIter(maxIter), kNIterSkip(niterskip),
@@ -68,15 +68,28 @@ int MACSolver2D::AllocateVariables() {
 
 	return 0;
 }
-/*
-std::vector<double> MACSolver2D::UpdateHeaviside(const std::vector<double>& ls) {
+
+std::vector<double> MACSolver2D::UpdateHeavisideFunc(const std::vector<double>& ls) {
 	std::vector<double> Heaviside((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
+	const double eps = std::min(kDx, kDy) * 3.0;
 
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
-	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-				
+	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
+		// inside
+		if (ls[idx(i, j)] > eps)
+			Heaviside[idx(i, j)] = 1.0;
+		// outside
+		else if (ls[idx(i, j)] < eps)
+			Heaviside[idx(i, j)] = 0.0;
+		else
+			Heaviside[idx(i, j)] 
+				= 0.5 * (1.0 + ls[idx(i, j)] / eps
+					+ 1.0 / M_PI * sin(M_PI * ls[idx(i, j)] / eps));
+	}
+		
+	return Heaviside;
 }
-*/
+
 int MACSolver2D::UpdateKappa(const std::vector<double>& ls) {
 	std::vector<double> dLSdX((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
 	std::vector<double> dLSdY((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
@@ -368,16 +381,13 @@ std::vector<double> MACSolver2D::UpdateFU(const std::shared_ptr<LevelSetSolver2D
 	// Viscous term
 	vU = this->AddViscosityFU(u, v, ls);
 
-	// Gravity term
-	gU = this->AddGravityFU();
-
 	// Get RHS(Right Hand Side)
 		// level set
 	double lsW = 0.0, lsE = 0.0, lsS = 0.0, lsN = 0.0, lsM = 0.0;
 	double theta = 0.0, iRhoEff = 0.0;
 	for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
 	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
-		rhsU[idx(i, j)] = -cU[idx(i, j)] + vU[idx(i, j)] + gU[idx(i, j)];
+		rhsU[idx(i, j)] = -cU[idx(i, j)] + vU[idx(i, j)];
 	}
 	
 	return rhsU;
@@ -397,9 +407,6 @@ std::vector<double> MACSolver2D::UpdateFV(const std::shared_ptr<LevelSetSolver2D
 	// Viscous term
 	vV = this->AddViscosityFV(u, v, ls);
 
-	// Gravity term
-	gV = this->AddGravityFV();
-
 	// Get RHS(Right Hand Side)
 	// level set
 
@@ -407,7 +414,7 @@ std::vector<double> MACSolver2D::UpdateFV(const std::shared_ptr<LevelSetSolver2D
 	double theta = 0.0, iRhoEff = 0.0;
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 	for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++) {
-		rhsV[idx(i, j)] = -cV[idx(i, j)] + vV[idx(i, j)] + gV[idx(i, j)];
+		rhsV[idx(i, j)] = -cV[idx(i, j)] + vV[idx(i, j)];
 	}
 	
 	return rhsV;
@@ -1654,7 +1661,7 @@ std::vector<double> MACSolver2D::AddViscosityFV(const std::vector<double>& u, co
 std::vector<double> MACSolver2D::AddGravityFU() {
 	std::vector<double> gU((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
 
-	if ((kFr == 0 || kG == 0.0) && !isnan(kFr) && !isinf(kFr)) {
+	if ((kFrX == 0 || kGX == 0.0) && !isnan(kFrX) && !isinf(kFrX)) {
 		for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
 		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
 			gU[idx(i, j)] = 0.0;
@@ -1663,7 +1670,7 @@ std::vector<double> MACSolver2D::AddGravityFU() {
 	else {
 		for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
 		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
-			gU[idx(i, j)] = 0.0;
+			gU[idx(i, j)] = -1.0 / kFrX;
 		}
 	}
 
@@ -1673,7 +1680,7 @@ std::vector<double> MACSolver2D::AddGravityFU() {
 std::vector<double> MACSolver2D::AddGravityFV() {
 	std::vector<double> gV((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
 
-	if ((kFr == 0 || kG == 0.0) && !isnan(kFr) && !isinf(kFr)) {
+	if ((kFrY == 0 || kGY == 0.0) && !isnan(kFrY) && !isinf(kFrY)) {
 		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 		for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++) {
 			gV[idx(i, j)] = 0.0;
@@ -1682,7 +1689,7 @@ std::vector<double> MACSolver2D::AddGravityFV() {
 	else {
 		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 		for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++) {
-			gV[idx(i, j)] = -1.0 / kFr;
+			gV[idx(i, j)] = -1.0 / kFrY;
 		}
 	}
 
@@ -2826,7 +2833,7 @@ double MACSolver2D::UpdateDt(const std::vector<double>& u, const std::vector<dou
 	
 	Cefl = uAMax / kDx + vAMax / kDy;
 	Vefl = std::max(kMuI / kRhoI, kMuO / kRhoO) * (2.0 / (kDx * kDx) + 2.0 / (kDy * kDy));
-	Gefl = std::sqrt(std::fabs(kG) / kDy);
+	Gefl = std::max(std::sqrt(std::fabs(kGY) / kDy), std::sqrt(std::fabs(kGX) / kDx));
 	
 	dt = std::min(dt,
 		1.0 / (0.5 * (Cefl + Vefl +

@@ -2,7 +2,7 @@
 
 int MAC2DTest_CavityFlow() {
 	// Set initial level set
-	const double Re = 100.0, We = 0.0, Fr = 0.0;
+	const double Re = 100.0, We = 0.0, FrX = 0.0, FrY = 0.0;
 	const double L = 1.0, U = 1.0;
 	const double rhoI = 1.0, muI = 0.01, sigma = 0.0;
 	const double densityRatio = 1.0, viscosityRatio = 1.0;
@@ -25,7 +25,7 @@ int MAC2DTest_CavityFlow() {
 	int stat = 0;
 
 	std::unique_ptr<MACSolver2D> MSolver;
-	MSolver = std::make_unique<MACSolver2D>(Re, We, Fr,
+	MSolver = std::make_unique<MACSolver2D>(Re, We, FrX, FrY,
 		L, U, sigma, densityRatio, viscosityRatio, rhoI, muI,
 		nx, ny, baseX, baseY, lenX, lenY,
 		timeOrder, cfl, maxtime, maxiter, niterskip,
@@ -173,7 +173,7 @@ int MAC2DTest_StationaryBubble() {
 	// const double rhoI = 1000, muI = 1.137e-3;
 	const double rhoO = 1000, muO = 1.137e-3, sigma = 0.0728;
 	// const double rhoO = 1000, muO = 1.137e-3, sigma = 0.0;
-	const double gConstant = 0.0;
+	const double gConstantX = 0.0, gConstantY = 0.0;
 	// # of cells
 	const int nx = 128, ny = 128;
 	// related to initialize level set
@@ -192,7 +192,7 @@ int MAC2DTest_StationaryBubble() {
 	int stat = 0;
 
 	std::unique_ptr<MACSolver2D> MSolver;
-	MSolver = std::make_unique<MACSolver2D>(rhoI, rhoO, muI, muO, gConstant,
+	MSolver = std::make_unique<MACSolver2D>(rhoI, rhoO, muI, muO, gConstantX, gConstantY,
 		L, U, sigma, nx, ny, baseX, baseY, lenX, lenY,
 		timeOrder, cfl, maxtime, maxiter, niterskip, num_bc_grid, writeVTK);
 	MSolver->SetBC_U_2D("dirichlet", "dirichlet", "dirichlet", "dirichlet");
@@ -351,7 +351,7 @@ int MAC2DTest_SmallAirBubbleRising() {
 	const double L = 1.0, U = 1.0;
 	const double rhoI = 1.226, muI = 1.78e-5;
 	const double rhoO = 1000, muO = 1.137e-3, sigma = 0.0728;
-	const double gConstant = 9.81;
+	const double gConstantX = 0.0, gConstantY = 9.81;
 	// # of cells
 	const int nx = 80, ny = 120;
 	// related to initialize level set
@@ -372,7 +372,7 @@ int MAC2DTest_SmallAirBubbleRising() {
 	int stat = 0;
 	
 	std::unique_ptr<MACSolver2D> MSolver;
-	MSolver = std::make_unique<MACSolver2D>(rhoI, rhoO, muI, muO, gConstant,
+	MSolver = std::make_unique<MACSolver2D>(rhoI, rhoO, muI, muO, gConstantX, gConstantY,
 		L, U, sigma, nx, ny, baseX, baseY, lenX, lenY,
 		timeOrder, cfl, maxtime, maxiter, niterskip, num_bc_grid, writeVTK);
 	MSolver->SetBC_U_2D("dirichlet", "dirichlet", "dirichlet", "dirichlet");
@@ -528,7 +528,7 @@ int MAC2DTest_LargeAirBubbleRising() {
 	const double L = 1.0, U = 1.0;
 	const double rhoI = 1.226, muI = 1.78e-5;
 	const double rhoO = 1000, muO = 1.137e-3, sigma = 0.0728;
-	const double gConstant = 9.81;
+	const double gConstantX = 0.0, gConstantY = 9.81;
 	// # of cells
 	const int nx = 80, ny = 120;
 	// related to initialize level set
@@ -547,7 +547,7 @@ int MAC2DTest_LargeAirBubbleRising() {
 	int stat = 0;
 
 	std::unique_ptr<MACSolver2D> MSolver;
-	MSolver = std::make_unique<MACSolver2D>(rhoI, rhoO, muI, muO, gConstant,
+	MSolver = std::make_unique<MACSolver2D>(rhoI, rhoO, muI, muO, gConstantX, gConstantY,
 		L, U, sigma, nx, ny, baseX, baseY, lenX, lenY,
 		timeOrder, cfl, maxtime, maxiter, niterskip, num_bc_grid, writeVTK);
 	MSolver->SetBC_U_2D("dirichlet", "dirichlet", "dirichlet", "dirichlet");
@@ -699,11 +699,11 @@ int MAC2DTest_LargeAirBubbleRising() {
 
 int MAC2DTest_TaylorInstability() {
 	// Set initial level set
-	const double gConstant = 200;
+	const double gConstantX = 0.0, gConstantY = 200;
 	// Length Scale = d, Time Scale = \sqrt(d / g), Vel Scale = Length / Time
-	const double L = 1.0, U = L / (std::sqrt(L / gConstant));
+	const double L = 1.0, U = L / (std::sqrt(L / gConstantY));
 	// Froude Number : u0 / (sqrt(g0 * l0))
-	const double Re = 1000.0, We = 0.0, Fr = U / std::sqrt(gConstant * L);
+	const double Re = 1000.0, We = 0.0, FrX = 0.0, FrY = U / std::sqrt(gConstantY * L);
 	const double rhoI = 1.0, muI = rhoI / Re * std::sqrt(L * L * L * 9.8);
 	const double rhoO = 3.0, muO = rhoO / Re * std::sqrt(L * L * L * 9.8),
 		 sigma = 0.0;
@@ -728,7 +728,7 @@ int MAC2DTest_TaylorInstability() {
 	int stat = 0;
 
 	std::unique_ptr<MACSolver2D> MSolver;
-	MSolver = std::make_unique<MACSolver2D>(Re, We, Fr,
+	MSolver = std::make_unique<MACSolver2D>(Re, We, FrX, FrY, 
 		L, U, sigma, densityRatio, viscosityRatio, rhoI, muI,
 		nx, ny, baseX, baseY, lenX, lenY,
 		timeOrder, cfl, maxtime, maxiter, niterskip, num_bc_grid, writeVTK);
