@@ -17,23 +17,31 @@
 class LevelSetSolver2D {
 public:
 	LevelSetSolver2D(int nx, int ny, int num_bc_grid, double dx, double dy);
+	LevelSetSolver2D(int nx, int ny, int num_bc_grid, double dx, double dy, double maxTime);
 	
-	std::vector<double> HJWENO5_LS_2D(std::vector<double>& ls,
-		const std::vector<double>& u, const std::vector<double>& v);
-	
+	std::vector<double> UpdateKappa(const std::vector<double>& ls);
+
 	int Solve_LevelSet_2D(std::vector<double>& ls, const std::vector<double>& u, const std::vector<double>& v, double dt);
 
 	int Reinit_Original_2D(std::vector<double>& ls);
 	int Reinit_Sussman_2D(std::vector<double>& ls);
-	std::vector<double> HJENO_ReinitABS_2D(std::vector<double>& ls);
+	int Reinit_Sussman_FirstTime_2D(std::vector<double>& ls);
+	int FirstTimeOnlyReinit_Sussman_2D(std::vector<double>& ls);
+	int Reinit_MinRK2_2D(std::vector<double>& ls);
 
 	int sign(const double& val);
+	double MinAbs(const double& val1, const double& val2);
+	double MinMod(const double& val1, const double& val2);
 	std::vector<int> GetSignedLSNormalized(const std::vector<double>& ls);
-	double NewtonDivdedDifference_X(int order, const std::vector<double> val, int i, int j, int lI, int rI);
-	double NewtonDivdedDifference_Y(int order, const std::vector<double> val, int i, int j, int lJ, int rJ);
 
+	std::vector<double> HJWENO5_LS_2D(std::vector<double>& ls,
+		const std::vector<double>& u, const std::vector<double>& v);
 	int UnitHJWENO5(
 		const std::vector<double> &F, std::vector<double> &FP, std::vector<double> &FM, const double d, const int n);
+	std::vector<double>
+		ENO_ReinitABS_2D(std::vector<double>& ls, std::vector<double>& lsInit);
+	std::vector<double>
+		Subcell_ReinitABS_2D(std::vector<double>& ls, std::vector<double>& lsInit);
 
 	// BC
 	int SetBC_U_2D(std::string BC_W, std::string BC_E, std::string BC_S, std::string BC_N);
@@ -55,14 +63,12 @@ public:
 	void SetBCConstantPS(double BC_ConstantS);
 	void SetBCConstantPN(double BC_ConstantN);
 
-	double minmod(double a, double b);
 	int idx(int i, int j);
 	
 	const double kEps, kThickness, kMaxATime;
-	const int kNx, kNy, kNumBCGrid;
+	const int kNx, kNy, kNumBCGrid, kENOSpatialOrder;
 	const double kDx, kDy;
-	std::vector<int> m_signedInitLS;
-
+	
 	// artificial dt for reinitialization only 
 	double m_atime;
 	const double kAdt;
