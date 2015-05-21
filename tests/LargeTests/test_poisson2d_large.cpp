@@ -196,8 +196,8 @@ int test_poisson_CG() {
 	}
 
 	std::vector<double> AVals, DiagVals, MVals;
-	std::vector<MKL_INT> ACols, ARowIdx, MCols, MRowIdx;
-	MKL_INT rowIdx = 0, tmpRowIdx = 0, colIdx = 0;
+	std::vector<MKL_INT> ACols, ARowIdx, DiagCols, DiagRowIdx;
+	MKL_INT rowIdx = 0, MRowIdx = 0, tmpRowIdx = 0, tmpMRowIdx = 0, colIdx = 0;
 	MKL_INT Anrows = kNx * kNy, Ancols = kNx * kNy;
 	MKL_INT size = kNx * kNy;
 	std::map<std::string, double> AValsDic;
@@ -213,8 +213,10 @@ int test_poisson_CG() {
 		AValsDic.clear();
 		AColsDic.clear();
 		tmpRowIdx = 0;
+		tmpMRowIdx = 0;
 		// Add starting rowIdx
 		ARowIdx.push_back(rowIdx);
+		DiagRowIdx.push_back(MRowIdx);
 
 		// Set default values, if a current pointer is in interior, it will not be changed.
 		AValsDic["S"] = -1.0 / (kDy * kDy);
@@ -308,12 +310,17 @@ int test_poisson_CG() {
 			ACols.push_back(AColsDic["N"]);
 		}
 
+		tmpMRowIdx++;
 		DiagVals.push_back(AValsDic["C"]);
+		DiagCols.push_back(AColsDic["C"]);
+
 		rowIdx += tmpRowIdx;
+		MRowIdx += tmpMRowIdx;
 	}
 	ARowIdx.push_back(rowIdx);
+	DiagRowIdx.push_back(MRowIdx);
 
-	PSolver->CG_2FUniform_2D(u, b, AVals, ACols, ARowIdx, kLenX, kLenY, kDx, kDy, PBC, 10000);
+	PSolver->CG_2FUniform_2D(u, b, AVals, ACols, ARowIdx, DiagVals, DiagCols, DiagRowIdx, kLenX, kLenY, kDx, kDy, PBC, 10000);
 
 	std::string fname_p_base("TestPoisson_CG");
 	std::ofstream outF;
@@ -368,9 +375,9 @@ int test_poisson_BiCGStab() {
 		b[i + j * (kNx + 2 * kNumBCGrid)] = 0.0;
 	}
 
-	std::vector<double> AVals, DiagVals, MVals;
-	std::vector<MKL_INT> ACols, ARowIdx, MCols, MRowIdx;
-	MKL_INT rowIdx = 0, tmpRowIdx = 0, colIdx = 0;
+	std::vector<double> AVals, DiagVals;
+	std::vector<MKL_INT> ACols, ARowIdx, DiagCols, DiagRowIdx;
+	MKL_INT rowIdx = 0, MRowIdx = 0, tmpRowIdx = 0, tmpMRowIdx = 0, colIdx = 0;
 	MKL_INT Anrows = kNx * kNy, Ancols = kNx * kNy;
 	MKL_INT size = kNx * kNy;
 	std::map<std::string, double> AValsDic;
@@ -385,8 +392,10 @@ int test_poisson_BiCGStab() {
 		AValsDic.clear();
 		AColsDic.clear();
 		tmpRowIdx = 0;
+		tmpMRowIdx = 0;
 		// Add starting rowIdx
 		ARowIdx.push_back(rowIdx);
+		DiagRowIdx.push_back(MRowIdx);
 
 		// Set default values, if a current pointer is in interior, it will not be changed.
 		AValsDic["S"] = -1.0 / (kDy * kDy);
@@ -480,12 +489,17 @@ int test_poisson_BiCGStab() {
 			ACols.push_back(AColsDic["N"]);
 		}
 
+		tmpMRowIdx++;
 		DiagVals.push_back(AValsDic["C"]);
+		DiagCols.push_back(AColsDic["C"]);
+
 		rowIdx += tmpRowIdx;
+		MRowIdx += tmpMRowIdx;
 	}
 	ARowIdx.push_back(rowIdx);
+	DiagRowIdx.push_back(MRowIdx);
 
-	PSolver->BiCGStab_2FUniform_2D(u, b, AVals, ACols, ARowIdx, kLenX, kLenY, kDx, kDy, PBC, 10000);
+	PSolver->BiCGStab_2FUniform_2D(u, b, AVals, ACols, ARowIdx, DiagVals, DiagCols, DiagRowIdx, kLenX, kLenY, kDx, kDy, PBC, 10000);
 
 	std::string fname_p_base("TestPoisson_BiCGSTAB");
 	std::ofstream outF;
@@ -510,50 +524,6 @@ int test_poisson_BiCGStab() {
 		outF << kBaseX + static_cast<double>(i + 0.5 - kNumBCGrid) * kDx << std::string(",")
 		<< kBaseY + static_cast<double>(j + 0.5 - kNumBCGrid) * kDy << std::string(",")
 		<< static_cast<double>(u[idx3(kNy, i, j)]) << std::endl;
-
-	outF.close();
-
-	return 0;
-}
-
-int test_VBC() {
-	const int kNx = 64, kNy = 64, kNumBCGrid = 3;
-	const double kBaseX = 0.0, kBaseY = 0.0, kLenX = 1.0, kLenY = 1.0;
-	const double kDx = kLenX / kNx, kDy = kLenY / kNy;
-
-	std::shared_ptr<BoundaryCondition2D> BC = std::make_shared<BoundaryCondition2D>(kNx, kNy, kNumBCGrid);
-	std::vector<double> u((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
-	BC->SetBC_P_2D("dirichlet", "dirichlet", "dirichlet", "dirichlet");
-	BC->SetBCConstantPW(1.0);
-	BC->SetBCConstantPE(1.0);
-	BC->SetBCConstantPS(1.0);
-	BC->SetBCConstantPN(1.0);
-
-	BC->ApplyBC_P_2D(u);
-
-	std::string fname_p_base("TestBC");
-	std::ofstream outF;
-	std::string fname_p(fname_p_base + "_ASCII.plt");
-
-	outF.open(fname_p.c_str(), std::ios::out);
-
-	outF << "TITLE = VEL" << std::endl;
-	outF << "VARIABLES = \"X\", \"Y\", \"P\"" << std::endl;
-	outF.close();
-
-	outF.open(fname_p.c_str(), std::ios::app);
-
-	outF << std::string("ZONE T=\"1\", I=") << kNx + 2 * kNumBCGrid << std::string(", J=") << kNy + 2 * kNumBCGrid
-		<< std::string(", DATAPACKING=POINT")
-		<< std::string(", SOLUTIONTIME=") << 0.0
-		<< std::string(", STRANDID=") << 1
-		<< std::endl;
-
-	for (int j = 0; j < kNy + 2 * kNumBCGrid; j++)
-		for (int i = 0; i < kNx + 2 * kNumBCGrid; i++)
-			outF << kBaseX + static_cast<double>(i + 0.5 - kNumBCGrid) * kDx << std::string(",")
-			<< kBaseY + static_cast<double>(j + 0.5 - kNumBCGrid) * kDy << std::string(",")
-			<< static_cast<double>(u[j + (kNy + 2 * kNumBCGrid) * i]) << std::endl;
 
 	outF.close();
 
