@@ -50,14 +50,14 @@
     <ClInclude Include="..\..\..\include\levelset2d.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\include\mac2d.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\include\poisson2d.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\lib\common\jsonxx\jsonxx.h">
       <Filter>JSONXX</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\mac2d.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
