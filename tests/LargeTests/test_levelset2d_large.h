@@ -17,6 +17,9 @@
 
 int LevelSetTest_2D_Simple();
 int LevelSetTest_2D_ReinitOnly();
+int LevelSetTest_2D_ReinitOnly2();
+int LevelSetTest_2D_ReinitOnlyWithKinks();
 int LevelSetTest_2D_Sussman621_ReinitSussman();
+int LevelSetTest_2D_FirstTimeReinit();
 
 #endif __TEST_LEVEL2DLARGE_H__
