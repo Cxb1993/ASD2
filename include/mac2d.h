@@ -38,6 +38,7 @@ public:
 	// *I : inside fluid, *O : outside fluid
 	const double kRhoI, kRhoO, kRhoRatio;
 	const double kMuI, kMuO, kMuRatio;
+	const double kNuI, kNuO;
 
 	const int kMaxIter, kNIterSkip;
 	const TimeOrderEnum kTimeOrder;
@@ -68,18 +69,19 @@ public:
 	MACSolver2D(double Re, double We, double Fr,
 		double L, double U, double sigma, double densityRatio, double viscosityRatio, double rhoI, double mu1,
 		int nx, int ny, double baseX, double baseY, double lenX, double lenY, 
-		TimeOrderEnum RKOrder, double cfl, int maxtime, int maxiter, int niterskip,
+		TimeOrderEnum RKOrder, double cfl, double maxtime, int maxiter, int niterskip,
 		int num_bc_grid, bool writeVTK);
 	MACSolver2D(double rhoI, double rhoO, double muI, double muO, double gConstant,
 		double L, double U, double sigma,
 		int nx, int ny, double baseX, double baseY, double lenX, double lenY, 
-		TimeOrderEnum RKOrder, double cfl, int maxtime, int maxiter, int niterskip,
+		TimeOrderEnum RKOrder, double cfl, double maxtime, int maxiter, int niterskip,
 		int num_bc_grid, bool writeVTK);
 	~MACSolver2D();
 
 	int AllocateVariables();
 
 	// Related to Level Set Related
+	std::vector<double> UpdateHeaviside(const std::vector<double>& ls);
 	int UpdateKappa(const std::vector<double>& ls);
 	int UpdateJumpCond(const std::vector<double>& u, const std::vector<double>& v, 
 		const std::vector<double>& ls);
@@ -111,13 +113,15 @@ public:
 	
 	// Poisson 
 	int SetPoissonSolver(POISSONTYPE type);
-	int SolvePoisson(std::vector<double>& ps, const std::vector<double>& div, const std::vector<double>& ls,
+	int SolvePoisson(std::vector<double>& ps, const std::vector<double>& div,
+		const std::vector<double>& ls, const std::vector<double>& lsB,
 		const std::vector<double>& u, const std::vector<double>& v, const int maxiter);
 
 	// update velocity using projection
 	std::vector<double> GetDivergence(const std::vector<double>& u, const std::vector<double>& v);
 	int UpdateVel(std::vector<double>& u, std::vector<double>& v,
-		const std::vector<double>& us, const std::vector<double>& vs, const std::vector<double>& ps, const std::vector<double>& ls);
+		const std::vector<double>& us, const std::vector<double>& vs, const std::vector<double>& ps,
+		const std::vector<double>& ls, const std::vector<double>& lsB);
 	double UpdateDt(const std::vector<double>& u, const std::vector<double>& v);
 
 	// BC
