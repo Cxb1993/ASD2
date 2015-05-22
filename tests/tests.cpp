@@ -16,8 +16,8 @@ int main(int argc, char *argv[]) {
 	// test_poisson_CG();
 	// test_poisson_BiCGStab();
 	// MAC2DTest_CavityFlow();
-	// MAC2DTest_StationaryBubble();
-	MAC2DTest_SmallAirBubbleRising();
+	MAC2DTest_StationaryBubble();
+	// MAC2DTest_SmallAirBubbleRising();
 	// MAC2DTest_LargeAirBubbleRising();
 	// MAC2DTest_TaylorInstability();
 }

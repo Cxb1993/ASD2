@@ -35,11 +35,10 @@ public:
 
 	const double kRe, kWe, kFrX, kFrY;
 	const double kLScale, kUScale, kSigma, kGX, kGY, kMuScale, kRhoScale;
-	// *I : inside fluid, *O : outside fluid
-	const double kRhoI, kRhoO, kRhoRatio;
-	const double kMuI, kMuO, kMuRatio;
-	const double kNuI, kNuO;
-
+	// *H : Heavy fluid(such as liquid), *L : light fluid (such as gas)
+	const double kRhoH, kRhoL, kRhoRatio;
+	const double kMuH, kMuL, kMuRatio;
+	
 	const int kMaxIter, kNIterSkip;
 	const TimeOrderEnum kTimeOrder;
 	const double kCFL, kMaxTime;
@@ -81,14 +80,15 @@ public:
 	int AllocateVariables();
 
 	// Related to Level Set Related
+	std::vector<double> UpdateSmoothHeavisideFunc(const std::vector<double>& ls);
 	std::vector<double> UpdateHeavisideFunc(const std::vector<double>& ls);
 	int UpdateKappa(const std::vector<double>& ls);
 	int UpdateJumpCond(const std::vector<double>& u, const std::vector<double>& v, 
 		const std::vector<double>& ls);
 	std::vector<double> UpdateFU(const std::shared_ptr<LevelSetSolver2D>& LSolver,
-		const std::vector<double>& ls, const std::vector<double>& u, const std::vector<double>& v);
+		const std::vector<double>& ls, const std::vector<double>& u, const std::vector<double>& v, const std::vector<double>& H);
 	std::vector<double> UpdateFV(const std::shared_ptr<LevelSetSolver2D>& LSolver,
-		const std::vector<double>& ls, const std::vector<double>& u, const std::vector<double>& v);
+		const std::vector<double>& ls, const std::vector<double>& u, const std::vector<double>& v, const std::vector<double>& H);
 
 	// Convection Term
 	std::vector<double> AddConvectionFU(const std::vector<double>& u, const std::vector<double>& v);
@@ -98,9 +98,9 @@ public:
 
 	// Viscosity Term
 	std::vector<double> AddViscosityFU(
-		const std::vector<double>& u, const std::vector<double>& v, const std::vector<double>& ls);
+		const std::vector<double>& u, const std::vector<double>& v, const std::vector<double>& ls, const std::vector<double>& H);
 	std::vector<double> AddViscosityFV(
-		const std::vector<double>& u, const std::vector<double>& v, const std::vector<double>& ls);
+		const std::vector<double>& u, const std::vector<double>& v, const std::vector<double>& ls, const std::vector<double>& H);
 	
 	// Gravity Term
 	std::vector<double> AddGravityFU();
@@ -109,19 +109,20 @@ public:
 	// Intermediate Velocity
 	int GetIntermediateVel(const std::shared_ptr<LevelSetSolver2D>& LSolver,
 		const std::vector<double>& ls, const std::vector<double>& u, const std::vector<double>& v,
-		std::vector<double>& uhat, std::vector<double>& vhat);
+		std::vector<double>& uhat, std::vector<double>& vhat, const std::vector<double>& H);
 	
 	// Poisson 
 	int SetPoissonSolver(POISSONTYPE type);
 	int SolvePoisson(std::vector<double>& ps, const std::vector<double>& div,
 		const std::vector<double>& ls, const std::vector<double>& lsB,
-		const std::vector<double>& u, const std::vector<double>& v, const int maxiter);
+		const std::vector<double>& u, const std::vector<double>& v, const std::vector<double>& H, const int maxiter);
 
 	// update velocity using projection
 	std::vector<double> GetDivergence(const std::vector<double>& u, const std::vector<double>& v);
 	int UpdateVel(std::vector<double>& u, std::vector<double>& v,
 		const std::vector<double>& us, const std::vector<double>& vs, const std::vector<double>& ps,
-		const std::vector<double>& ls, const std::vector<double>& lsB);
+		const std::vector<double>& ls, const std::vector<double>& lsB,
+		const std::vector<double>& H);
 	double UpdateDt(const std::vector<double>& u, const std::vector<double>& v);
 
 	// BC
@@ -145,6 +146,7 @@ public:
 	void SetBCConstantPN(double BC_ConstantN);
 
 	void TDMA(double* a, double* b, double* c, double* d, int n);
+	int sign(const double& val);
 	int SetPLTType(PLTTYPE type);
 	int OutRes(const int iter, const double curTime, const std::string fname_vel_base, const std::string fname_div_base,
 		const std::vector<double>& u, const std::vector<double>& v,

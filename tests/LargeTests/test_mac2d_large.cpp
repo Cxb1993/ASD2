@@ -4,7 +4,7 @@ int MAC2DTest_CavityFlow() {
 	// Set initial level set
 	const double Re = 100.0, We = 0.0, FrX = 0.0, FrY = 0.0;
 	const double L = 1.0, U = 1.0;
-	const double rhoI = 1.0, muI = 0.01, sigma = 0.0;
+	const double rhoH = 1.0, muH = 0.01, sigma = 0.0;
 	const double densityRatio = 1.0, viscosityRatio = 1.0;
 	const double gConstant = 0.0;
 	// # of cells
@@ -26,7 +26,7 @@ int MAC2DTest_CavityFlow() {
 
 	std::unique_ptr<MACSolver2D> MSolver;
 	MSolver = std::make_unique<MACSolver2D>(Re, We, FrX, FrY,
-		L, U, sigma, densityRatio, viscosityRatio, rhoI, muI,
+		L, U, sigma, densityRatio, viscosityRatio, rhoH, muH,
 		nx, ny, baseX, baseY, lenX, lenY,
 		timeOrder, cfl, maxtime, maxiter, niterskip,
 		num_bc_grid, writeVTK);
@@ -56,6 +56,7 @@ int MAC2DTest_CavityFlow() {
 	std::vector<double> ls((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid), 0.0);
 	// inside value must be positive levelset, otherwise, negative
 
+	std::vector<double> H((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid), 0.0);
 	// init velocity and pseudo-pressure
 	MSolver->AllocateVariables();
 
@@ -103,9 +104,10 @@ int MAC2DTest_CavityFlow() {
 		
 		// Update F and apply time integration
 		MSolver->UpdateJumpCond(MSolver->m_u, MSolver->m_v, ls);
+		H = MSolver->UpdateHeavisideFunc(ls);
 		
 		// Get intermediate velocity with RK method
-		MSolver->GetIntermediateVel(LSolver, ls, MSolver->m_u, MSolver->m_v, uhat, vhat);
+		MSolver->GetIntermediateVel(LSolver, ls, MSolver->m_u, MSolver->m_v, uhat, vhat, H);
 
 		MSolver->ApplyBC_U_2D(uhat);
 		MSolver->ApplyBC_V_2D(vhat);
@@ -117,10 +119,10 @@ int MAC2DTest_CavityFlow() {
 
 		// Solve Poisson equation
 		// m_phi = pressure * dt
-		stat = MSolver->SolvePoisson(MSolver->m_ps, div, ls, lsB, uhat, vhat, poissonMaxIter);
+		stat = MSolver->SolvePoisson(MSolver->m_ps, div, ls, lsB, uhat, vhat, H, poissonMaxIter);
 		MSolver->ApplyBC_P_2D(MSolver->m_ps);
 
-		stat = MSolver->UpdateVel(MSolver->m_u, MSolver->m_v, uhat, vhat, MSolver->m_ps, ls, lsB);
+		stat = MSolver->UpdateVel(MSolver->m_u, MSolver->m_v, uhat, vhat, MSolver->m_ps, ls, lsB, H);
 
 		MSolver->ApplyBC_U_2D(MSolver->m_u);
 		MSolver->ApplyBC_V_2D(MSolver->m_v);
@@ -169,10 +171,10 @@ int MAC2DTest_StationaryBubble() {
 	// Set initial level set
 	const double Re = 0.0, We = 0.0, Fr = 0.0;
 	const double L = 1.0, U = 1.0;
-	const double rhoI = 1.226, muI = 1.78e-5;
-	// const double rhoI = 1000, muI = 1.137e-3;
-	const double rhoO = 1000, muO = 1.137e-3, sigma = 0.0728;
-	// const double rhoO = 1000, muO = 1.137e-3, sigma = 0.0;
+	const double rhoL = 1.226, muL = 1.78e-5;
+	// const double rhoH = 1000, muH = 1.137e-3;
+	const double rhoH = 1000, muH = 1.137e-3, sigma = 0.0728;
+	// const double rhoL = 1000, muL = 1.137e-3, sigma = 0.0;
 	const double gConstantX = 0.0, gConstantY = 0.0;
 	// # of cells
 	const int nx = 128, ny = 128;
@@ -192,7 +194,7 @@ int MAC2DTest_StationaryBubble() {
 	int stat = 0;
 
 	std::unique_ptr<MACSolver2D> MSolver;
-	MSolver = std::make_unique<MACSolver2D>(rhoI, rhoO, muI, muO, gConstantX, gConstantY,
+	MSolver = std::make_unique<MACSolver2D>(rhoH, rhoL, muH, muL, gConstantX, gConstantY,
 		L, U, sigma, nx, ny, baseX, baseY, lenX, lenY,
 		timeOrder, cfl, maxtime, maxiter, niterskip, num_bc_grid, writeVTK);
 	MSolver->SetBC_U_2D("dirichlet", "dirichlet", "dirichlet", "dirichlet");
@@ -221,6 +223,7 @@ int MAC2DTest_StationaryBubble() {
 	std::vector<double> ls((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid), 0.0);
 	// inside value must be positive levelset, otherwise, negative
 
+	std::vector<double> H((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid), 0.0), HSmooth((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid), 0.0);
 	// init velocity and pseudo-pressure
 	MSolver->AllocateVariables();
 
@@ -245,7 +248,7 @@ int MAC2DTest_StationaryBubble() {
 
 	for (int j = 0; j < ny + 2 * num_bc_grid; j++)
 	for (int i = 0; i < nx + 2 * num_bc_grid; i++) {
-		// positive : inside, negative : outside
+		// positive : inside & gas, negative : outside & liquid 
 		x = baseX + (i + 0.5 - num_bc_grid) * dx;
 		y = baseY + (j + 0.5 - num_bc_grid) * dy;
 
@@ -279,13 +282,15 @@ int MAC2DTest_StationaryBubble() {
 		
 		LSolver->ApplyBC_P_2D(ls);
 		// Solve Momentum Part
-		// MSolver->UpdateKappa(ls);
+		MSolver->UpdateKappa(ls);
+		H = MSolver->UpdateHeavisideFunc(ls);
+		HSmooth = MSolver->UpdateSmoothHeavisideFunc(ls);
 
 		// Update F and apply time integration
 		MSolver->UpdateJumpCond(MSolver->m_u, MSolver->m_v, ls);
 
 		// Get intermediate velocity
-		MSolver->GetIntermediateVel(LSolver, ls, MSolver->m_u, MSolver->m_v, uhat, vhat);
+		MSolver->GetIntermediateVel(LSolver, ls, MSolver->m_u, MSolver->m_v, uhat, vhat, HSmooth);
 
 		MSolver->ApplyBC_U_2D(uhat);
 		MSolver->ApplyBC_V_2D(vhat);
@@ -296,11 +301,11 @@ int MAC2DTest_StationaryBubble() {
 
 		// Solve Poisson equation
 		// m_phi = pressure * dt
-		stat = MSolver->SolvePoisson(MSolver->m_ps, div, ls, lsB, MSolver->m_u, MSolver->m_v, poissonMaxIter);
+		stat = MSolver->SolvePoisson(MSolver->m_ps, div, ls, lsB, MSolver->m_u, MSolver->m_v, H, poissonMaxIter);
 		MSolver->ApplyBC_P_2D(MSolver->m_ps);
 
 		stat = MSolver->UpdateVel(MSolver->m_u, MSolver->m_v,
-			uhat, vhat, MSolver->m_ps, ls, lsB);
+			uhat, vhat, MSolver->m_ps, ls, lsB, H);
 
 		MSolver->ApplyBC_U_2D(MSolver->m_u);
 		MSolver->ApplyBC_V_2D(MSolver->m_v);
@@ -349,8 +354,8 @@ int MAC2DTest_SmallAirBubbleRising() {
 	// Set initial level set
 	const double Re = 0.0, We = 0.0, Fr = 0.0;
 	const double L = 1.0, U = 1.0;
-	const double rhoI = 1.226, muI = 1.78e-5;
-	const double rhoO = 1000, muO = 1.137e-3, sigma = 0.0728;
+	const double rhoL = 1.226, muL = 1.78e-5;
+	const double rhoH = 1000, muH = 1.137e-3, sigma = 0.0728;
 	const double gConstantX = 0.0, gConstantY = 9.81;
 	// # of cells
 	const int nx = 80, ny = 120;
@@ -372,7 +377,7 @@ int MAC2DTest_SmallAirBubbleRising() {
 	int stat = 0;
 	
 	std::unique_ptr<MACSolver2D> MSolver;
-	MSolver = std::make_unique<MACSolver2D>(rhoI, rhoO, muI, muO, gConstantX, gConstantY,
+	MSolver = std::make_unique<MACSolver2D>(rhoH, rhoL, muH, muL, gConstantX, gConstantY,
 		L, U, sigma, nx, ny, baseX, baseY, lenX, lenY,
 		timeOrder, cfl, maxtime, maxiter, niterskip, num_bc_grid, writeVTK);
 	MSolver->SetBC_U_2D("dirichlet", "dirichlet", "dirichlet", "dirichlet");
@@ -400,6 +405,7 @@ int MAC2DTest_SmallAirBubbleRising() {
 	// \phi^{n + 1}
 	std::vector<double> ls((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid), 0.0);
 	// inside value must be positive levelset, otherwise, negative
+	std::vector<double> H((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid), 0.0), HSmooth((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid), 0.0);
 
 	// init velocity and pseudo-pressure
 	MSolver->AllocateVariables();
@@ -460,9 +466,12 @@ int MAC2DTest_SmallAirBubbleRising() {
 		
 		// Update F and apply time integration
 		MSolver->UpdateJumpCond(MSolver->m_u, MSolver->m_v, ls);
-		
+		MSolver->UpdateKappa(ls);
+		H = MSolver->UpdateHeavisideFunc(ls);
+		HSmooth = MSolver->UpdateSmoothHeavisideFunc(ls);
+
 		// Get intermediate velocity
-		MSolver->GetIntermediateVel(LSolver, ls, MSolver->m_u, MSolver->m_v, uhat, vhat);
+		MSolver->GetIntermediateVel(LSolver, ls, MSolver->m_u, MSolver->m_v, uhat, vhat, HSmooth);
 
 		MSolver->ApplyBC_U_2D(uhat);
 		MSolver->ApplyBC_V_2D(vhat);
@@ -473,11 +482,11 @@ int MAC2DTest_SmallAirBubbleRising() {
 
 		// Solve Poisson equation
 		// m_phi = pressure * dt
-		stat = MSolver->SolvePoisson(MSolver->m_ps, div, ls, lsB, MSolver->m_u, MSolver->m_v, poissonMaxIter);
+		stat = MSolver->SolvePoisson(MSolver->m_ps, div, ls, lsB, MSolver->m_u, MSolver->m_v, H, poissonMaxIter);
 		MSolver->ApplyBC_P_2D(MSolver->m_ps);
 		
 		stat = MSolver->UpdateVel(MSolver->m_u, MSolver->m_v,
-			uhat, vhat, MSolver->m_ps, ls, lsB);
+			uhat, vhat, MSolver->m_ps, ls, lsB, H);
 		
 		MSolver->ApplyBC_U_2D(MSolver->m_u);
 		MSolver->ApplyBC_V_2D(MSolver->m_v);
@@ -526,8 +535,8 @@ int MAC2DTest_LargeAirBubbleRising() {
 	// Set initial level set
 	const double Re = 1.0, We = 1.0, Fr = 1.0;
 	const double L = 1.0, U = 1.0;
-	const double rhoI = 1.226, muI = 1.78e-5;
-	const double rhoO = 1000, muO = 1.137e-3, sigma = 0.0728;
+	const double rhoL = 1.226, muL = 1.78e-5;
+	const double rhoH = 1000, muH = 1.137e-3, sigma = 0.0728;
 	const double gConstantX = 0.0, gConstantY = 9.81;
 	// # of cells
 	const int nx = 80, ny = 120;
@@ -547,7 +556,7 @@ int MAC2DTest_LargeAirBubbleRising() {
 	int stat = 0;
 
 	std::unique_ptr<MACSolver2D> MSolver;
-	MSolver = std::make_unique<MACSolver2D>(rhoI, rhoO, muI, muO, gConstantX, gConstantY,
+	MSolver = std::make_unique<MACSolver2D>(rhoH, rhoL, muH, muL, gConstantX, gConstantY,
 		L, U, sigma, nx, ny, baseX, baseY, lenX, lenY,
 		timeOrder, cfl, maxtime, maxiter, niterskip, num_bc_grid, writeVTK);
 	MSolver->SetBC_U_2D("dirichlet", "dirichlet", "dirichlet", "dirichlet");
@@ -575,6 +584,7 @@ int MAC2DTest_LargeAirBubbleRising() {
 	// \phi^{n + 1}
 	std::vector<double> ls((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid), 0.0);
 	// inside value must be positive levelset, otherwise, negative
+	std::vector<double> H((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid), 0.0), HSmooth((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid), 0.0);
 
 	// init velocity and pseudo-pressure
 	MSolver->AllocateVariables();
@@ -635,9 +645,12 @@ int MAC2DTest_LargeAirBubbleRising() {
 
 		// Update F and apply time integration
 		MSolver->UpdateJumpCond(MSolver->m_u, MSolver->m_v, ls);
+		MSolver->UpdateKappa(ls);
+		H = MSolver->UpdateHeavisideFunc(ls);
+		HSmooth = MSolver->UpdateSmoothHeavisideFunc(ls);
 
 		// Get intermediate velocity
-		MSolver->GetIntermediateVel(LSolver, ls, MSolver->m_u, MSolver->m_v, uhat, vhat);
+		MSolver->GetIntermediateVel(LSolver, ls, MSolver->m_u, MSolver->m_v, uhat, vhat, HSmooth);
 
 		MSolver->ApplyBC_U_2D(uhat);
 		MSolver->ApplyBC_V_2D(vhat);
@@ -648,11 +661,11 @@ int MAC2DTest_LargeAirBubbleRising() {
 
 		// Solve Poisson equation
 		// m_phi = pressure * dt
-		stat = MSolver->SolvePoisson(MSolver->m_ps, div, ls, lsB, MSolver->m_u, MSolver->m_v, poissonMaxIter);
+		stat = MSolver->SolvePoisson(MSolver->m_ps, div, ls, lsB, MSolver->m_u, MSolver->m_v, H, poissonMaxIter);
 		MSolver->ApplyBC_P_2D(MSolver->m_ps);
 
 		stat = MSolver->UpdateVel(MSolver->m_u, MSolver->m_v,
-			uhat, vhat, MSolver->m_ps, ls, lsB);
+			uhat, vhat, MSolver->m_ps, ls, lsB, H);
 
 		MSolver->ApplyBC_U_2D(MSolver->m_u);
 		MSolver->ApplyBC_V_2D(MSolver->m_v);
@@ -704,10 +717,10 @@ int MAC2DTest_TaylorInstability() {
 	const double L = 1.0, U = L / (std::sqrt(L / gConstantY));
 	// Froude Number : u0 / (sqrt(g0 * l0))
 	const double Re = 1000.0, We = 0.0, FrX = 0.0, FrY = U / std::sqrt(gConstantY * L);
-	const double rhoI = 1.0, muI = rhoI / Re * std::sqrt(L * L * L * 9.8);
-	const double rhoO = 3.0, muO = rhoO / Re * std::sqrt(L * L * L * 9.8),
+	const double rhoH = 3.0, muH = rhoH / Re * std::sqrt(L * L * L * 9.8);
+	const double rhoL = 1.0, muL = rhoL / Re * std::sqrt(L * L * L * 9.8),
 		 sigma = 0.0;
-	const double densityRatio = 3.0, viscosityRatio = muO / muI;
+	const double densityRatio = rhoL / rhoH, viscosityRatio = muL / muH;
 	
 	// # of cells
 	const int nx = 128, ny = 512;
@@ -729,7 +742,7 @@ int MAC2DTest_TaylorInstability() {
 
 	std::unique_ptr<MACSolver2D> MSolver;
 	MSolver = std::make_unique<MACSolver2D>(Re, We, FrX, FrY, 
-		L, U, sigma, densityRatio, viscosityRatio, rhoI, muI,
+		L, U, sigma, densityRatio, viscosityRatio, rhoH, muH,
 		nx, ny, baseX, baseY, lenX, lenY,
 		timeOrder, cfl, maxtime, maxiter, niterskip, num_bc_grid, writeVTK);
 	MSolver->SetBC_U_2D("neumann", "neumann", "dirichlet", "dirichlet");
@@ -755,6 +768,7 @@ int MAC2DTest_TaylorInstability() {
 	// \phi^{n + 1}
 	std::vector<double> ls((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid), 0.0);
 	// inside value must be positive levelset, otherwise, negative
+	std::vector<double> H((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid), 0.0), HSmooth((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid), 0.0);
 
 	// init velocity and pseudo-pressure
 	MSolver->AllocateVariables();
@@ -810,11 +824,13 @@ int MAC2DTest_TaylorInstability() {
 		LSolver->ApplyBC_P_2D(ls);
 		// Solve Momentum Part
 		MSolver->UpdateKappa(ls);
+		H = MSolver->UpdateHeavisideFunc(ls);
+		HSmooth = MSolver->UpdateSmoothHeavisideFunc(ls);
 
 		// Update F and apply time integration
 		MSolver->UpdateJumpCond(MSolver->m_u, MSolver->m_v, ls);
 		// Get intermediate velocity
-		MSolver->GetIntermediateVel(LSolver, ls, MSolver->m_u, MSolver->m_v, uhat, vhat);
+		MSolver->GetIntermediateVel(LSolver, ls, MSolver->m_u, MSolver->m_v, uhat, vhat, HSmooth);
 
 		MSolver->ApplyBC_U_2D(uhat);
 		MSolver->ApplyBC_V_2D(vhat);
@@ -824,11 +840,11 @@ int MAC2DTest_TaylorInstability() {
 		
 		// Solve Poisson equation
 		// m_phi = pressure * dt
-		stat = MSolver->SolvePoisson(MSolver->m_ps, div, ls, lsB, MSolver->m_u, MSolver->m_v, poissonMaxIter);
+		stat = MSolver->SolvePoisson(MSolver->m_ps, div, ls, lsB, MSolver->m_u, MSolver->m_v, H, poissonMaxIter);
 		MSolver->ApplyBC_P_2D(MSolver->m_ps);
 		
 		stat = MSolver->UpdateVel(MSolver->m_u, MSolver->m_v,
-			uhat, vhat, MSolver->m_ps, ls, lsB);
+			uhat, vhat, MSolver->m_ps, ls, lsB, H);
 
 		MSolver->ApplyBC_U_2D(MSolver->m_u);
 		MSolver->ApplyBC_V_2D(MSolver->m_v);
