@@ -209,18 +209,26 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\lib\common\jsonxx\jsonxx.cc" />
     <ClCompile Include="..\..\..\src\bc2d.cpp" />
+    <ClCompile Include="..\..\..\src\bc3d.cpp" />
     <ClCompile Include="..\..\..\src\data.cpp" />
     <ClCompile Include="..\..\..\src\levelset2d.cpp" />
+    <ClCompile Include="..\..\..\src\levelset3d.cpp" />
     <ClCompile Include="..\..\..\src\mac2d.cpp" />
+    <ClCompile Include="..\..\..\src\mac3d.cpp" />
     <ClCompile Include="..\..\..\src\poisson2d.cpp" />
+    <ClCompile Include="..\..\..\src\poisson3d.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\include\bc2d.h" />
+    <ClInclude Include="..\..\..\include\bc3d.h" />
     <ClInclude Include="..\..\..\include\common.h" />
     <ClInclude Include="..\..\..\include\data.h" />
     <ClInclude Include="..\..\..\include\levelset2d.h" />
+    <ClInclude Include="..\..\..\include\levelset3d.h" />
     <ClInclude Include="..\..\..\include\mac2d.h" />
+    <ClInclude Include="..\..\..\include\mac3d.h" />
     <ClInclude Include="..\..\..\include\poisson2d.h" />
+    <ClInclude Include="..\..\..\include\poisson3d.h" />
     <ClInclude Include="..\..\..\lib\common\jsonxx\jsonxx.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

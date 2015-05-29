@@ -36,6 +36,18 @@
     <ClCompile Include="..\..\..\lib\common\jsonxx\jsonxx.cc">
       <Filter>JSONXX</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\src\levelset3d.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\mac3d.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\poisson3d.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\bc3d.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\include\common.h">
@@ -57,6 +69,18 @@
       <Filter>JSONXX</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\include\mac2d.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\levelset3d.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\mac3d.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\poisson3d.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\include\bc3d.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
