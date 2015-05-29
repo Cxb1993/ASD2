@@ -11,7 +11,7 @@ int LevelSetTest_2D_Simple() {
 	int iter = 0, maxIter = 50;
 	double curTime = 0.0, maxTime = 628.1;
 	double x = 0.0, y = 0.0;
-
+	double baseX = -5.0, baseY = -5.0;
 	int orgMass = 0, LSMass = 0;
 
 	std::vector<double> lsOrg((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
@@ -24,12 +24,12 @@ int LevelSetTest_2D_Simple() {
 	std::vector<double> massVec;
 
 	std::shared_ptr<LevelSetSolver2D> LSolver;
-	LSolver = std::make_shared<LevelSetSolver2D>(nx, ny, NBC3, dx, dy);
+	LSolver = std::make_shared<LevelSetSolver2D>(nx, ny, NBC3, baseX, baseY, dx, dy);
 	LSolver->SetBC_P_2D("neumann", "neumann", "neumann", "neumann");
 	LSolver->ApplyBC_P_2D(ls);
 
 	double radius = 2.0, d = 0.0;
-	double baseX = -5.0, baseY = -5.0;
+	
 	for (int i = NBC3; i < nx + NBC3; i++)
 	for (int j = NBC3; j < ny + NBC3; j++) {
 		// positive : inside, negative : outside
@@ -144,6 +144,7 @@ int LevelSetTest_2D_ReinitOnly() {
 	int iter = 0, maxIter = 2;
 	double curTime = 0.0, maxTime = 10.0;
 	double x = 0.0, y = 0.0;
+	double baseX = -2.0, baseY = -2.0;
 
 	int orgMass = 0, LSMass = 0;
 
@@ -157,12 +158,11 @@ int LevelSetTest_2D_ReinitOnly() {
 	std::vector<double> massVec;
 
 	std::shared_ptr<LevelSetSolver2D> LSolver;
-	LSolver = std::make_shared<LevelSetSolver2D>(nx, ny, NBC3, dx, dy, 2 * std::max(nx, ny));
+	LSolver = std::make_shared<LevelSetSolver2D>(nx, ny, NBC3, baseX, baseY, dx, dy, 2 * std::max(nx, ny));
 	LSolver->SetBC_P_2D("neumann", "neumann", "neumann", "neumann");
 	LSolver->ApplyBC_P_2D(ls);
 
 	double radius = 1.0, d = 0.0;
-	double baseX = -2.0, baseY = -2.0;
 	for (int j = NBC3; j < ny + NBC3; j++)
 	for (int i = NBC3; i < nx + NBC3; i++) {
 		// positive : inside, negative : outside
@@ -279,7 +279,7 @@ int LevelSetTest_2D_ReinitOnly2() {
 	int iter = 0, maxIter = 2;
 	double curTime = 0.0, maxTime = 10.0;
 	double x = 0.0, y = 0.0, r = 1.0, a = 0.7;
-
+	double baseX = -2.0, baseY = -2.0;
 	int orgMass = 0, LSMass = 0;
 
 	std::vector<double> lsOrg((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
@@ -292,12 +292,12 @@ int LevelSetTest_2D_ReinitOnly2() {
 	std::vector<double> massVec;
 
 	std::shared_ptr<LevelSetSolver2D> LSolver;
-	LSolver = std::make_shared<LevelSetSolver2D>(nx, ny, NBC3, dx, dy, 2.0 * std::max(nx, ny));
+	LSolver = std::make_shared<LevelSetSolver2D>(nx, ny, NBC3, baseX, baseY, dx, dy, 2.0 * std::max(nx, ny));
 	LSolver->SetBC_P_2D("neumann", "neumann", "neumann", "neumann");
 	LSolver->ApplyBC_P_2D(ls);
 
 	double radius = 1.0, d = 0.0;
-	double baseX = -2.0, baseY = -2.0;
+	
 	for (int j = NBC3; j < ny + NBC3; j++)
 	for (int i = NBC3; i < nx + NBC3; i++) {
 		// positive : inside, negative : outside
@@ -422,7 +422,7 @@ int LevelSetTest_2D_ReinitOnlyWithKinks() {
 	int iter = 0, maxIter = 2;
 	double curTime = 0.0, maxTime = 10.0;
 	double x = 0.0, y = 0.0, r = 1.0, a = 0.7;
-
+	double baseX = -2.0, baseY = -2.0;
 	int orgMass = 0, LSMass = 0;
 
 	std::vector<double> lsOrg((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
@@ -435,12 +435,12 @@ int LevelSetTest_2D_ReinitOnlyWithKinks() {
 	std::vector<double> massVec;
 
 	std::shared_ptr<LevelSetSolver2D> LSolver;
-	LSolver = std::make_shared<LevelSetSolver2D>(nx, ny, NBC3, dx, dy, 80);
+	LSolver = std::make_shared<LevelSetSolver2D>(nx, ny, NBC3, baseX, baseY, dx, dy, 80);
 	LSolver->SetBC_P_2D("neumann", "neumann", "neumann", "neumann");
 	LSolver->ApplyBC_P_2D(ls);
 
 	double radius = 1.0, d = 0.0;
-	double baseX = -2.0, baseY = -2.0;
+	
 	for (int j = NBC3; j < ny + NBC3; j++)
 	for (int i = NBC3; i < nx + NBC3; i++) {
 		// positive : inside, negative : outside
@@ -562,7 +562,7 @@ int LevelSetTest_2D_FirstTimeReinit() {
 	int iter = 0, maxIter = 10;
 	double curTime = 0.0, maxTime = 10.0;
 	double x = 0.0, y = 0.0;
-
+	double baseX = -2.0, baseY = -2.0;
 	int orgMass = 0, LSMass = 0;
 
 	std::vector<double> lsOrg((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
@@ -575,12 +575,12 @@ int LevelSetTest_2D_FirstTimeReinit() {
 	std::vector<double> massVec;
 
 	std::shared_ptr<LevelSetSolver2D> LSolver;
-	LSolver = std::make_shared<LevelSetSolver2D>(nx, ny, NBC3, dx, dy, 2 * std::max(nx, ny));
+	LSolver = std::make_shared<LevelSetSolver2D>(nx, ny, NBC3, baseX, baseY, dx, dy, 2 * std::max(nx, ny));
 	LSolver->SetBC_P_2D("neumann", "neumann", "neumann", "neumann");
 	LSolver->ApplyBC_P_2D(ls);
 
 	double radius = 1.0, d = 0.0;
-	double baseX = -2.0, baseY = -2.0;
+	
 	for (int j = NBC3; j < ny + NBC3; j++)
 	for (int i = NBC3; i < nx + NBC3; i++) {
 		// positive : inside, negative : outside
@@ -657,7 +657,7 @@ int LevelSetTest_2D_Sussman621_ReinitSussman() {
 	int iter = 0, maxIter = 630;
 	double curTime = 0.0, maxTime = 628.1;
 	double x = 0.0, y = 0.0;
-
+	const double baseX = 0.0, baseY = 0.0;
 	int orgMass = 0, LSMass = 0;
 
 	std::vector<double> lsOrg((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
@@ -670,14 +670,14 @@ int LevelSetTest_2D_Sussman621_ReinitSussman() {
 	std::vector<double> massVec;
 
 	std::shared_ptr<LevelSetSolver2D> LSolver;
-	LSolver = std::make_shared<LevelSetSolver2D>(nx, ny, NBC3, dx, dy);
+	LSolver = std::make_shared<LevelSetSolver2D>(nx, ny, NBC3, baseX, baseY, dx, dy);
 	
 	LSolver->SetBC_P_2D("neumann", "neumann", "neumann", "neumann");
 	LSolver->ApplyBC_P_2D(ls);
 
 	const double radius = 15.0, slotW = 15.0;
 	double d = 0.0;
-	const double baseX = 0.0, baseY = 0.0;
+	
 	const double centerX = 50.0, centerY = 75.0;
 
 	for (int i = 0; i < nx + 2 * NBC3; i++)

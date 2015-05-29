@@ -2,11 +2,12 @@
 
 int MAC2DTest_CavityFlow() {
 	// Set initial level set
-	const double Re = 100.0, We = 0.0, FrX = 0.0, FrY = 0.0;
+	const double Re = 100.0, We = 0.0, Fr = 0.0;
 	const double L = 1.0, U = 1.0;
 	const double rhoH = 1.0, muH = 0.01, sigma = 0.0;
 	const double densityRatio = 1.0, viscosityRatio = 1.0;
 	const double gConstant = 0.0;
+	GAXISENUM GAxis = GAXISENUM::Y;
 	// # of cells
 	const int nx = 128, ny = 128;
 	// related to initialize level set
@@ -21,11 +22,11 @@ int MAC2DTest_CavityFlow() {
 	const std::string fname_vel("testMAC2D_CavityVel_Re_" + std::to_string(Re));
 	const std::string fname_div("testMAC2D_CavityDiv_Re_" + std::to_string(Re));
 	const int iterskip = 1;
-	const TimeOrderEnum timeOrder = TimeOrderEnum::RK3;
+	const TIMEORDERENUM timeOrder = TIMEORDERENUM::RK3;
 	int stat = 0;
 
 	std::unique_ptr<MACSolver2D> MSolver;
-	MSolver = std::make_unique<MACSolver2D>(Re, We, FrX, FrY,
+	MSolver = std::make_unique<MACSolver2D>(Re, We, Fr, GAxis,
 		L, U, sigma, densityRatio, viscosityRatio, rhoH, muH,
 		nx, ny, baseX, baseY, lenX, lenY,
 		timeOrder, cfl, maxtime, maxiter, niterskip,
@@ -49,7 +50,7 @@ int MAC2DTest_CavityFlow() {
 	const int poissonMaxIter = 20000;
 
 	std::shared_ptr<LevelSetSolver2D> LSolver;
-	LSolver = std::make_shared<LevelSetSolver2D>(nx, ny, num_bc_grid, dx, dy);
+	LSolver = std::make_shared<LevelSetSolver2D>(nx, ny, num_bc_grid, baseX, baseY, dx, dy);
 	// \phi^n
 	std::vector<double> lsB((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid), 0.0);
 	// \phi^{n + 1}
@@ -175,7 +176,8 @@ int MAC2DTest_StationaryBubble() {
 	// const double rhoH = 1000, muH = 1.137e-3;
 	const double rhoH = 1000, muH = 1.137e-3, sigma = 0.0728;
 	// const double rhoL = 1000, muL = 1.137e-3, sigma = 0.0;
-	const double gConstantX = 0.0, gConstantY = 0.0;
+	const double gConstant = 0.0; 
+	GAXISENUM GAxis = GAXISENUM::Y;
 	// # of cells
 	const int nx = 128, ny = 128;
 	// related to initialize level set
@@ -190,11 +192,11 @@ int MAC2DTest_StationaryBubble() {
 	const std::string fname_vel("testMAC2D_StationaryBubbleVel_Re_" + std::to_string(Re));
 	const std::string fname_div("testMAC2D_StationaryBubbleDiv_Re_" + std::to_string(Re));
 	const int iterskip = 1;
-	const TimeOrderEnum timeOrder = TimeOrderEnum::EULER;
+	const TIMEORDERENUM timeOrder = TIMEORDERENUM::EULER;
 	int stat = 0;
 
 	std::unique_ptr<MACSolver2D> MSolver;
-	MSolver = std::make_unique<MACSolver2D>(rhoH, rhoL, muH, muL, gConstantX, gConstantY,
+	MSolver = std::make_unique<MACSolver2D>(rhoH, rhoL, muH, muL, gConstant, GAxis,
 		L, U, sigma, nx, ny, baseX, baseY, lenX, lenY,
 		timeOrder, cfl, maxtime, maxiter, niterskip, num_bc_grid, writeVTK);
 	MSolver->SetBC_U_2D("dirichlet", "dirichlet", "dirichlet", "dirichlet");
@@ -216,7 +218,7 @@ int MAC2DTest_StationaryBubble() {
 	const int poissonMaxIter = 20000;
 
 	std::shared_ptr<LevelSetSolver2D> LSolver;
-	LSolver = std::make_shared<LevelSetSolver2D>(nx, ny, num_bc_grid, dx, dy);
+	LSolver = std::make_shared<LevelSetSolver2D>(nx, ny, num_bc_grid, baseX, baseY, dx, dy);
 	// \phi^n
 	std::vector<double> lsB((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid), 0.0);
 	// \phi^{n + 1}
@@ -252,16 +254,17 @@ int MAC2DTest_StationaryBubble() {
 		x = baseX + (i + 0.5 - num_bc_grid) * dx;
 		y = baseY + (j + 0.5 - num_bc_grid) * dy;
 
+		// d - inside : -, outside : +
 		d = std::sqrt(std::pow(x - 0.02, 2.0) + std::pow(y - 0.02, 2.0)) - radius;
 
-		ls[idx3(ny, i, j)] = -d;
+		// ls - inside : -(gas), outside : +(liquid)
+		ls[idx3(ny, i, j)] = d;
 	}
 	LSolver->ApplyBC_P_2D(ls);
-
 	LSolver->Reinit_Sussman_2D(ls);
 	
 	LSolver->ApplyBC_P_2D(ls);
-
+	
 	// prevent dt == 0.0
 	MSolver->m_dt = cfl * std::min(dx, dy) / U;
 	std::cout << " dt : " << MSolver->m_dt << std::endl;
@@ -278,6 +281,7 @@ int MAC2DTest_StationaryBubble() {
 
 		lsB = ls;
 		LSolver->Solve_LevelSet_2D(ls, MSolver->m_u, MSolver->m_v, MSolver->m_dt);
+		LSolver->ApplyBC_P_2D(ls);
 		LSolver->Reinit_Sussman_2D(ls);
 		
 		LSolver->ApplyBC_P_2D(ls);
@@ -298,6 +302,7 @@ int MAC2DTest_StationaryBubble() {
 		// From intermediate velocity, get divergence
 		div = MSolver->GetDivergence(uhat, vhat);
 		MSolver->ApplyBC_P_2D(MSolver->m_ps);
+		LSolver->ApplyBC_P_2D(ls);
 
 		// Solve Poisson equation
 		// m_phi = pressure * dt
@@ -356,7 +361,8 @@ int MAC2DTest_SmallAirBubbleRising() {
 	const double L = 1.0, U = 1.0;
 	const double rhoL = 1.226, muL = 1.78e-5;
 	const double rhoH = 1000, muH = 1.137e-3, sigma = 0.0728;
-	const double gConstantX = 0.0, gConstantY = 9.81;
+	const double gConstant = 9.81;
+	GAXISENUM GAxis = GAXISENUM::Y;
 	// # of cells
 	const int nx = 80, ny = 120;
 	// related to initialize level set
@@ -373,11 +379,11 @@ int MAC2DTest_SmallAirBubbleRising() {
 	const std::string fname_vel("testMAC2D_SmallBubbleRisingVel_Re_" + std::to_string(Re));
 	const std::string fname_div("testMAC2D_SmallBubbleRisingDiv_Re_" + std::to_string(Re));
 	const int iterskip = 1;
-	const TimeOrderEnum timeOrder = TimeOrderEnum::EULER;
+	const TIMEORDERENUM timeOrder = TIMEORDERENUM::EULER;
 	int stat = 0;
 	
 	std::unique_ptr<MACSolver2D> MSolver;
-	MSolver = std::make_unique<MACSolver2D>(rhoH, rhoL, muH, muL, gConstantX, gConstantY,
+	MSolver = std::make_unique<MACSolver2D>(rhoH, rhoL, muH, muL, gConstant, GAxis,
 		L, U, sigma, nx, ny, baseX, baseY, lenX, lenY,
 		timeOrder, cfl, maxtime, maxiter, niterskip, num_bc_grid, writeVTK);
 	MSolver->SetBC_U_2D("dirichlet", "dirichlet", "dirichlet", "dirichlet");
@@ -399,7 +405,7 @@ int MAC2DTest_SmallAirBubbleRising() {
 	const int poissonMaxIter = 20000;
 
 	std::shared_ptr<LevelSetSolver2D> LSolver;
-	LSolver = std::make_shared<LevelSetSolver2D>(nx, ny, num_bc_grid, dx, dy);
+	LSolver = std::make_shared<LevelSetSolver2D>(nx, ny, num_bc_grid, baseX, baseY, dx, dy);
 	// \phi^n
 	std::vector<double> lsB((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid), 0.0);
 	// \phi^{n + 1}
@@ -537,7 +543,8 @@ int MAC2DTest_LargeAirBubbleRising() {
 	const double L = 1.0, U = 1.0;
 	const double rhoL = 1.226, muL = 1.78e-5;
 	const double rhoH = 1000, muH = 1.137e-3, sigma = 0.0728;
-	const double gConstantX = 0.0, gConstantY = 9.81;
+	const double gConstant = 9.81;
+	GAXISENUM GAxis = GAXISENUM::Y;
 	// # of cells
 	const int nx = 80, ny = 120;
 	// related to initialize level set
@@ -552,11 +559,11 @@ int MAC2DTest_LargeAirBubbleRising() {
 	const std::string fname_vel("testMAC2D_LargeBubbleRisingVel_Re_" + std::to_string(Re));
 	const std::string fname_div("testMAC2D_LargeBubbleRisingDiv_Re_" + std::to_string(Re));
 	const int iterskip = 1;
-	const TimeOrderEnum timeOrder = TimeOrderEnum::RK2;
+	const TIMEORDERENUM timeOrder = TIMEORDERENUM::RK2;
 	int stat = 0;
 
 	std::unique_ptr<MACSolver2D> MSolver;
-	MSolver = std::make_unique<MACSolver2D>(rhoH, rhoL, muH, muL, gConstantX, gConstantY,
+	MSolver = std::make_unique<MACSolver2D>(rhoH, rhoL, muH, muL, gConstant, GAxis,
 		L, U, sigma, nx, ny, baseX, baseY, lenX, lenY,
 		timeOrder, cfl, maxtime, maxiter, niterskip, num_bc_grid, writeVTK);
 	MSolver->SetBC_U_2D("dirichlet", "dirichlet", "dirichlet", "dirichlet");
@@ -578,7 +585,7 @@ int MAC2DTest_LargeAirBubbleRising() {
 	const int poissonMaxIter = 20000;
 
 	std::shared_ptr<LevelSetSolver2D> LSolver;
-	LSolver = std::make_shared<LevelSetSolver2D>(nx, ny, num_bc_grid, dx, dy);
+	LSolver = std::make_shared<LevelSetSolver2D>(nx, ny, num_bc_grid, baseX, baseY, dx, dy);
 	// \phi^n
 	std::vector<double> lsB((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid), 0.0);
 	// \phi^{n + 1}
@@ -712,11 +719,12 @@ int MAC2DTest_LargeAirBubbleRising() {
 
 int MAC2DTest_TaylorInstability() {
 	// Set initial level set
-	const double gConstantX = 0.0, gConstantY = 200;
+	const double gConstant = 200;
+	GAXISENUM GAxis = GAXISENUM::Y;
 	// Length Scale = d, Time Scale = \sqrt(d / g), Vel Scale = Length / Time
-	const double L = 1.0, U = L / (std::sqrt(L / gConstantY));
+	const double L = 1.0, U = L / (std::sqrt(L / gConstant));
 	// Froude Number : u0 / (sqrt(g0 * l0))
-	const double Re = 1000.0, We = 0.0, FrX = 0.0, FrY = U / std::sqrt(gConstantY * L);
+	const double Re = 1000.0, We = 0.0, Fr = U / std::sqrt(gConstant * L);
 	const double rhoH = 3.0, muH = rhoH / Re * std::sqrt(L * L * L * 9.8);
 	const double rhoL = 1.0, muL = rhoL / Re * std::sqrt(L * L * L * 9.8),
 		 sigma = 0.0;
@@ -734,14 +742,14 @@ int MAC2DTest_TaylorInstability() {
 	const bool writeVTK = false;
 	// length of each cell
 	const double dx = lenX / nx, dy = lenY / ny;
-	const std::string fname_vel("TaylorVel_Re_" + std::to_string(Re));
-	const std::string fname_div("TaylorDiv_Re_" + std::to_string(Re));
-	const TimeOrderEnum timeOrder = TimeOrderEnum::EULER;
+	const std::string fname_vel("testMAC2D_TaylorVel_Re_" + std::to_string(Re));
+	const std::string fname_div("testMAC2D_TaylorDiv_Re_" + std::to_string(Re));
+	const TIMEORDERENUM timeOrder = TIMEORDERENUM::EULER;
 	const int iterskip = 1;
 	int stat = 0;
 
 	std::unique_ptr<MACSolver2D> MSolver;
-	MSolver = std::make_unique<MACSolver2D>(Re, We, FrX, FrY, 
+	MSolver = std::make_unique<MACSolver2D>(Re, We, Fr, GAxis,
 		L, U, sigma, densityRatio, viscosityRatio, rhoH, muH,
 		nx, ny, baseX, baseY, lenX, lenY,
 		timeOrder, cfl, maxtime, maxiter, niterskip, num_bc_grid, writeVTK);
@@ -762,7 +770,7 @@ int MAC2DTest_TaylorInstability() {
 	const int poissonMaxIter = 20000;
 
 	std::shared_ptr<LevelSetSolver2D> LSolver;
-	LSolver = std::make_shared<LevelSetSolver2D>(nx, ny, num_bc_grid, dx, dy);
+	LSolver = std::make_shared<LevelSetSolver2D>(nx, ny, num_bc_grid, baseX, baseY, dx, dy);
 	// \phi^n
 	std::vector<double> lsB((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid), 0.0);
 	// \phi^{n + 1}

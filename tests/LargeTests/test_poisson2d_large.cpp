@@ -55,12 +55,12 @@ int test_poisson_GuassSeidel() {
 		AValsDic["N"] = -1.0 / (kDy * kDy);
 		AColsDic["N"] = (i - kNumBCGrid) + (j + 1 - kNumBCGrid) * kNx;
 
-		if (i == kNumBCGrid && PBC->m_BC_PW == BC::NEUMANN) {
+		if (i == kNumBCGrid && PBC->m_BC_PW == BC2D::NEUMANN) {
 			AColsDic["W"] = -1;
 			AValsDic["W"] = 0.0;
 			AValsDic["C"] -= 1.0 / (kDx * kDx);
 		}
-		else if (i == kNumBCGrid && PBC->m_BC_PW == BC::DIRICHLET) {
+		else if (i == kNumBCGrid && PBC->m_BC_PW == BC2D::DIRICHLET) {
 			AColsDic["W"] = -1;
 			AValsDic["W"] = 0.0;
 			AValsDic["C"] += 1.0 / (kDx * kDx);
@@ -68,36 +68,36 @@ int test_poisson_GuassSeidel() {
 		}
 
 		// East boundary
-		if (i == kNumBCGrid + kNx - 1 && PBC->m_BC_PE == BC::NEUMANN) {
+		if (i == kNumBCGrid + kNx - 1 && PBC->m_BC_PE == BC2D::NEUMANN) {
 			AColsDic["E"] = -1;
 			AValsDic["E"] = 0.0;
 			AValsDic["C"] -= 1.0 / (kDx * kDx);
 		}
-		else if (i == kNumBCGrid + kNx - 1 && PBC->m_BC_PE == BC::DIRICHLET) {
+		else if (i == kNumBCGrid + kNx - 1 && PBC->m_BC_PE == BC2D::DIRICHLET) {
 			AColsDic["E"] = -1;
 			AValsDic["E"] = 0.0;
 			AValsDic["C"] += 1.0 / (kDy * kDy);
 			b[i + j * (kNx + 2 * kNumBCGrid)] -= -1.0 / (kDx * kDx) * (PBC->m_BC_DirichletConstantPE);
 		}
 
-		if (j == kNumBCGrid && PBC->m_BC_PS == BC::NEUMANN) {
+		if (j == kNumBCGrid && PBC->m_BC_PS == BC2D::NEUMANN) {
 			AColsDic["S"] = -1;
 			AValsDic["S"] = 0.0;
 			AValsDic["C"] -= 1.0 / (kDy * kDy);
 		}
-		else if (j == kNumBCGrid && PBC->m_BC_PS == BC::DIRICHLET) {
+		else if (j == kNumBCGrid && PBC->m_BC_PS == BC2D::DIRICHLET) {
 			AColsDic["S"] = -1;
 			AValsDic["S"] = 0.0;
 			AValsDic["C"] += 1.0 / (kDy * kDy);
 			b[i + j * (kNx + 2 * kNumBCGrid)] -= -1.0 / (kDy * kDy) * (PBC->m_BC_DirichletConstantPS);
 		}
 
-		if (j == kNumBCGrid + kNy - 1 && PBC->m_BC_PN == BC::NEUMANN) {
+		if (j == kNumBCGrid + kNy - 1 && PBC->m_BC_PN == BC2D::NEUMANN) {
 			AColsDic["N"] = -1;
 			AValsDic["N"] = 0.0;
 			AValsDic["C"] -= 1.0 / (kDy * kDy);
 		}
-		else if (j == kNumBCGrid + kNy - 1 && PBC->m_BC_PN == BC::DIRICHLET) {
+		else if (j == kNumBCGrid + kNy - 1 && PBC->m_BC_PN == BC2D::DIRICHLET) {
 			AColsDic["N"] = -1;
 			AValsDic["N"] = 0.0;
 			AValsDic["C"] += 1.0 / (kDx * kDx);
@@ -230,12 +230,12 @@ int test_poisson_CG() {
 		AValsDic["N"] = -1.0 / (kDy * kDy);
 		AColsDic["N"] = (i - kNumBCGrid) + (j + 1 - kNumBCGrid) * kNx;
 
-		if (i == kNumBCGrid && PBC->m_BC_PW == BC::NEUMANN) {
+		if (i == kNumBCGrid && PBC->m_BC_PW == BC2D::NEUMANN) {
 			AColsDic["W"] = -1;
 			AValsDic["W"] = 0.0;
 			AValsDic["C"] -= 1.0 / (kDx * kDx);
 		}
-		else if (i == kNumBCGrid && PBC->m_BC_PW == BC::DIRICHLET) {
+		else if (i == kNumBCGrid && PBC->m_BC_PW == BC2D::DIRICHLET) {
 			AColsDic["W"] = -1;
 			AValsDic["W"] = 0.0;
 			AValsDic["C"] += 1.0 / (kDx * kDx);
@@ -243,36 +243,36 @@ int test_poisson_CG() {
 		}
 
 		// East boundary
-		if (i == kNumBCGrid + kNx - 1 && PBC->m_BC_PE == BC::NEUMANN) {
+		if (i == kNumBCGrid + kNx - 1 && PBC->m_BC_PE == BC2D::NEUMANN) {
 			AColsDic["E"] = -1;
 			AValsDic["E"] = 0.0;
 			AValsDic["C"] -= 1.0 / (kDx * kDx);
 		}
-		else if (i == kNumBCGrid + kNx - 1 && PBC->m_BC_PE == BC::DIRICHLET) {
+		else if (i == kNumBCGrid + kNx - 1 && PBC->m_BC_PE == BC2D::DIRICHLET) {
 			AColsDic["E"] = -1;
 			AValsDic["E"] = 0.0;
 			AValsDic["C"] += 1.0 / (kDy * kDy);
 			b[idx3(kNy, i, j)] -= -1.0 / (kDx * kDx) * (PBC->m_BC_DirichletConstantPE);
 		}
 
-		if (j == kNumBCGrid && PBC->m_BC_PS == BC::NEUMANN) {
+		if (j == kNumBCGrid && PBC->m_BC_PS == BC2D::NEUMANN) {
 			AColsDic["S"] = -1;
 			AValsDic["S"] = 0.0;
 			AValsDic["C"] -= 1.0 / (kDy * kDy);
 		}
-		else if (j == kNumBCGrid && PBC->m_BC_PS == BC::DIRICHLET) {
+		else if (j == kNumBCGrid && PBC->m_BC_PS == BC2D::DIRICHLET) {
 			AColsDic["S"] = -1;
 			AValsDic["S"] = 0.0;
 			AValsDic["C"] += 1.0 / (kDy * kDy);
 			b[idx3(kNy, i, j)] -= -1.0 / (kDy * kDy) * (PBC->m_BC_DirichletConstantPS);
 		}
 
-		if (j == kNumBCGrid + kNy - 1 && PBC->m_BC_PN == BC::NEUMANN) {
+		if (j == kNumBCGrid + kNy - 1 && PBC->m_BC_PN == BC2D::NEUMANN) {
 			AColsDic["N"] = -1;
 			AValsDic["N"] = 0.0;
 			AValsDic["C"] -= 1.0 / (kDy * kDy);
 		}
-		else if (j == kNumBCGrid + kNy - 1 && PBC->m_BC_PN == BC::DIRICHLET) {
+		else if (j == kNumBCGrid + kNy - 1 && PBC->m_BC_PN == BC2D::DIRICHLET) {
 			AColsDic["N"] = -1;
 			AValsDic["N"] = 0.0;
 			AValsDic["C"] += 1.0 / (kDx * kDx);
@@ -409,12 +409,12 @@ int test_poisson_BiCGStab() {
 		AValsDic["N"] = -1.0 / (kDy * kDy);
 		AColsDic["N"] = (i - kNumBCGrid) + (j + 1 - kNumBCGrid) * kNx;
 
-		if (i == kNumBCGrid && PBC->m_BC_PW == BC::NEUMANN) {
+		if (i == kNumBCGrid && PBC->m_BC_PW == BC2D::NEUMANN) {
 			AColsDic["W"] = -1;
 			AValsDic["W"] = 0.0;
 			AValsDic["C"] -= 1.0 / (kDx * kDx);
 		}
-		else if (i == kNumBCGrid && PBC->m_BC_PW == BC::DIRICHLET) {
+		else if (i == kNumBCGrid && PBC->m_BC_PW == BC2D::DIRICHLET) {
 			AColsDic["W"] = -1;
 			AValsDic["W"] = 0.0;
 			AValsDic["C"] += 1.0 / (kDx * kDx);
@@ -422,36 +422,36 @@ int test_poisson_BiCGStab() {
 		}
 
 		// East boundary
-		if (i == kNumBCGrid + kNx - 1 && PBC->m_BC_PE == BC::NEUMANN) {
+		if (i == kNumBCGrid + kNx - 1 && PBC->m_BC_PE == BC2D::NEUMANN) {
 			AColsDic["E"] = -1;
 			AValsDic["E"] = 0.0;
 			AValsDic["C"] -= 1.0 / (kDx * kDx);
 		}
-		else if (i == kNumBCGrid + kNx - 1 && PBC->m_BC_PE == BC::DIRICHLET) {
+		else if (i == kNumBCGrid + kNx - 1 && PBC->m_BC_PE == BC2D::DIRICHLET) {
 			AColsDic["E"] = -1;
 			AValsDic["E"] = 0.0;
 			AValsDic["C"] += 1.0 / (kDy * kDy);
 			b[idx3(kNy, i, j)] -= -1.0 / (kDx * kDx) * (PBC->m_BC_DirichletConstantPE);
 		}
 
-		if (j == kNumBCGrid && PBC->m_BC_PS == BC::NEUMANN) {
+		if (j == kNumBCGrid && PBC->m_BC_PS == BC2D::NEUMANN) {
 			AColsDic["S"] = -1;
 			AValsDic["S"] = 0.0;
 			AValsDic["C"] -= 1.0 / (kDy * kDy);
 		}
-		else if (j == kNumBCGrid && PBC->m_BC_PS == BC::DIRICHLET) {
+		else if (j == kNumBCGrid && PBC->m_BC_PS == BC2D::DIRICHLET) {
 			AColsDic["S"] = -1;
 			AValsDic["S"] = 0.0;
 			AValsDic["C"] += 1.0 / (kDy * kDy);
 			b[idx3(kNy, i, j)] -= -1.0 / (kDy * kDy) * (PBC->m_BC_DirichletConstantPS);
 		}
 
-		if (j == kNumBCGrid + kNy - 1 && PBC->m_BC_PN == BC::NEUMANN) {
+		if (j == kNumBCGrid + kNy - 1 && PBC->m_BC_PN == BC2D::NEUMANN) {
 			AColsDic["N"] = -1;
 			AValsDic["N"] = 0.0;
 			AValsDic["C"] -= 1.0 / (kDy * kDy);
 		}
-		else if (j == kNumBCGrid + kNy - 1 && PBC->m_BC_PN == BC::DIRICHLET) {
+		else if (j == kNumBCGrid + kNy - 1 && PBC->m_BC_PN == BC2D::DIRICHLET) {
 			AColsDic["N"] = -1;
 			AValsDic["N"] = 0.0;
 			AValsDic["C"] += 1.0 / (kDx * kDx);
