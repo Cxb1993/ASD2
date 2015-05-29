@@ -1,28 +1,32 @@
 #include "levelset2d.h"
 
-LevelSetSolver2D::LevelSetSolver2D(int nx, int ny, int num_bc_grid, double dx, double dy) :
+LevelSetSolver2D::LevelSetSolver2D(int nx, int ny, int num_bc_grid, double baseX, double baseY, double dx, double dy) :
 	kEps(std::min(dx, dy)),
 	kThickness(2.0 * kEps),
 	kNx(nx), kNy(ny), kNumBCGrid(num_bc_grid),
+	kArrSize(kArrSize),
+	kBaseX(baseX), kBaseY(baseY),
 	kDx(dx), kDy(dy),
 	kAdt(kEps * 0.5), m_atime(0.0), kMaxATime(1.5 * kThickness),
 	kENOSpatialOrder(2)  {
 }
 
-LevelSetSolver2D::LevelSetSolver2D(int nx, int ny, int num_bc_grid, double dx, double dy, double maxTime) :
+LevelSetSolver2D::LevelSetSolver2D(int nx, int ny, int num_bc_grid, double baseX, double baseY, double dx, double dy, double maxTime) :
 	kEps(std::min(dx, dy)),
 	kThickness(2.0 * kEps),
 	kNx(nx), kNy(ny), kNumBCGrid(num_bc_grid),
+	kArrSize(kArrSize),
+	kBaseX(baseX), kBaseY(baseY),
 	kDx(dx), kDy(dy),
 	kAdt(kEps * 0.5), m_atime(0.0), kMaxATime(maxTime),
 	kENOSpatialOrder(2)  {
 }
 
 std::vector<double> LevelSetSolver2D::UpdateKappa(const std::vector<double>& ls) {
-	std::vector<double> dLSdX((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
-	std::vector<double> dLSdY((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
-	std::vector<double> LSSize((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
-	std::vector<double> kappa((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
+	std::vector<double> dLSdX(kArrSize, 0.0);
+	std::vector<double> dLSdY(kArrSize, 0.0);
+	std::vector<double> LSSize(kArrSize, 0.0);
+	std::vector<double> kappa(kArrSize, 0.0);
 
 	const double eps = 1.0e-100;
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
@@ -69,8 +73,8 @@ int LevelSetSolver2D::Solve_LevelSet_2D(
 	std::vector<double>& ls, const std::vector<double>& u, const std::vector<double>& v, double dt) {
 
 	// Level set is a P grid, interpolate u and v to P grid
-	std::vector<double> tmpU((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
-	std::vector<double> tmpV((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
+	std::vector<double> tmpU(kArrSize, 0.0);
+	std::vector<double> tmpV(kArrSize, 0.0);
 
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
@@ -84,8 +88,8 @@ int LevelSetSolver2D::Solve_LevelSet_2D(
 	// TVD RK3
 	std::vector<double> DLS1 = HJWENO5_LS_2D(ls, tmpU, tmpV);
 	
-	std::vector<double> LS1((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
-	std::vector<double> LS2((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
+	std::vector<double> LS1(kArrSize, 0.0);
+	std::vector<double> LS2(kArrSize, 0.0);
 	
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
@@ -113,11 +117,11 @@ int LevelSetSolver2D::Solve_LevelSet_2D(
 std::vector<double> LevelSetSolver2D::HJWENO5_LS_2D(std::vector<double>& ls,
 	const std::vector<double>& u, const std::vector<double>& v) {
 
-	std::vector<double> L((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
-	std::vector<double> LXP((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
-	std::vector<double> LXM((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
-	std::vector<double> LYP((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
-	std::vector<double> LYM((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
+	std::vector<double> L(kArrSize, 0.0);
+	std::vector<double> LXP(kArrSize, 0.0);
+	std::vector<double> LXM(kArrSize, 0.0);
+	std::vector<double> LYP(kArrSize, 0.0);
+	std::vector<double> LYM(kArrSize, 0.0);
 
 	std::vector<double> vecF_LSX(kNx + 2 * kNumBCGrid, 0.0), vecF_LSY(kNy + 2 * kNumBCGrid, 0.0);
 
@@ -289,17 +293,21 @@ int LevelSetSolver2D::UnitHJWENO5(
 int LevelSetSolver2D::Reinit_Original_2D(std::vector<double>& ls) {
 	m_atime = 0.0;
 
-	std::vector<double> lsInit((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
+	std::vector<double> lsInit(kArrSize, 0.0);
 	lsInit = ls;
-	
+
+	std::vector<double> absdLS1(kArrSize, 0.0);
+	std::vector<double> absdLS2(kArrSize, 0.0);
+	std::vector<double> LS1(kArrSize, 0.0);
+	std::vector<double> LS2(kArrSize, 0.0);
+
 	while (m_atime < kMaxATime) {
 		m_atime += kAdt;
-		std::vector<double> absdLS1((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
-		std::vector<double> absdLS2((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
-		std::vector<double> LS1((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
-		std::vector<double> LS2((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
+		
+		// Apply Boundary Condition First
+		ApplyBC_P_2D(ls);
 
-		absdLS1 = ENO_ReinitABS_2D(ls, lsInit);
+		absdLS1 = ENO_DerivAbsLS_2D(ls, lsInit);
 
 		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
@@ -309,7 +317,7 @@ int LevelSetSolver2D::Reinit_Original_2D(std::vector<double>& ls) {
 					* (absdLS1[idx(i, j)] - 1.0);
 		}
 
-		absdLS2 = ENO_ReinitABS_2D(LS1, lsInit);
+		absdLS2 = ENO_DerivAbsLS_2D(LS1, lsInit);
 
 		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
@@ -337,28 +345,31 @@ int LevelSetSolver2D::Reinit_Sussman_2D(std::vector<double>& ls) {
 	// HJENO 2nd order + RK2
 	m_atime = 0.0;
 
-	std::vector<double> lsInit((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
-	double lambda = 0.0;
-	double x[3][3], y[3][3], lsFraction[3][3], lsInitFraction[3][3], Hp[3][3], L[3][3], dLSAbs[3][3], f[3][3];
-
+	std::vector<double> lsInit(kArrSize, 0.0);
 	lsInit = ls;
+
+	std::vector<double> absdLS1(kArrSize, 0.0);
+	std::vector<double> absdLS2(kArrSize, 0.0);
+	std::vector<double> L1(kArrSize, 0.0);
+	std::vector<double> L2(kArrSize, 0.0);
+	std::vector<double> tmpLS(kArrSize, 0.0);
+	std::vector<double> sussmanConstraint(kArrSize, 0.0);
 
 	while (m_atime < kMaxATime) {
 		m_atime += kAdt;
-		std::vector<double> absdLS1((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
-		std::vector<double> absdLS2((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
-		std::vector<double> L1((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
-		std::vector<double> L2((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
+		
+		// Apply Boundary Condition First
+		ApplyBC_P_2D(ls);
 
-		absdLS1 = ENO_ReinitABS_2D(ls, lsInit);
+		absdLS1 = ENO_DerivAbsLS_2D(ls, lsInit);
 
 		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
-			for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
-				L1[idx(i, j)] = ls[idx(i, j)]
-					- kAdt * sign(lsInit[idx(i, j)]) * (absdLS1[idx(i, j)] - 1.0);
-			}
+		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
+			L1[idx(i, j)] = ls[idx(i, j)]
+				- kAdt * sign(lsInit[idx(i, j)]) * (absdLS1[idx(i, j)] - 1.0);
+		}
 
-		absdLS2 = ENO_ReinitABS_2D(L1, lsInit);
+		absdLS2 = ENO_DerivAbsLS_2D(L1, lsInit);
 
 		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
@@ -368,135 +379,130 @@ int LevelSetSolver2D::Reinit_Sussman_2D(std::vector<double>& ls) {
 
 		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
-			ls[idx(i, j)] = 0.5 * (L1[idx(i, j)] + L2[idx(i, j)]);
+			tmpLS[idx(i, j)] = 0.5 * (L1[idx(i, j)] + L2[idx(i, j)]);
 		}
 
 		// Sussman's reinitialization
+		sussmanConstraint = GetSussmanReinitConstraint(tmpLS, lsInit);
 		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
-			// i - 1/2
-			x[0][0] = (i - kNumBCGrid - 0.5) * kDx;
-			x[0][1] = (i - kNumBCGrid - 0.5) * kDx;
-			x[0][2] = (i - kNumBCGrid - 0.5) * kDx;
-			// i
-			x[1][0] = (i - kNumBCGrid) * kDx;
-			x[1][1] = (i - kNumBCGrid) * kDx;
-			x[1][2] = (i - kNumBCGrid) * kDx;
-			// i + 1/2
-			x[2][0] = (i - kNumBCGrid + 0.5) * kDx;
-			x[2][1] = (i - kNumBCGrid + 0.5) * kDx;
-			x[2][2] = (i - kNumBCGrid + 0.5) * kDx;
-			// j - 1/2
-			y[0][0] = (j - kNumBCGrid - 0.5) * kDy;
-			y[0][1] = (j - kNumBCGrid - 0.5) * kDy;
-			y[0][2] = (j - kNumBCGrid - 0.5) * kDy;
-			// i
-			y[1][0] = (j - kNumBCGrid) * kDy;
-			y[1][1] = (j - kNumBCGrid) * kDy;
-			y[1][2] = (j - kNumBCGrid) * kDy;
-			// i + 1/2
-			y[2][0] = (j - kNumBCGrid + 0.5) * kDy;
-			y[2][1] = (j - kNumBCGrid + 0.5) * kDy;
-			y[2][2] = (j - kNumBCGrid + 0.5) * kDy;
-
-			// ls
-			lsFraction[0][0] = 0.25 * (ls[idx(i, j)] + ls[idx(i - 1, j)]
-				+ ls[idx(i - 1, j - 1)] + ls[idx(i, j - 1)]);
-			lsFraction[0][1] = 0.5 * (ls[idx(i, j)] + ls[idx(i, j - 1)]);
-			lsFraction[0][2] = 0.25 * (ls[idx(i, j)] + ls[idx(i + 1, j)]
-				+ ls[idx(i + 1, j - 1)] + ls[idx(i, j - 1)]);
-			lsFraction[1][0] = 0.5 * (ls[idx(i - 1, j)] + ls[idx(i, j)]);
-			lsFraction[1][1] = ls[idx(i, j)];
-			lsFraction[1][2] = 0.5 * (ls[idx(i, j)] + ls[idx(i + 1, j)]);
-			lsFraction[0][0] = 0.25 * (ls[idx(i, j)] + ls[idx(i - 1, j)]
-				+ ls[idx(i - 1, j + 1)] + ls[idx(i, j + 1)]);
-			lsFraction[0][1] = 0.5 * (ls[idx(i, j)] + ls[idx(i, j + 1)]);
-			lsFraction[0][2] = 0.25 * (ls[idx(i, j)] + ls[idx(i + 1, j)]
-				+ ls[idx(i + 1, j + 1)] + ls[idx(i, j + 1)]);
-
-			// lsOrg
-			lsInitFraction[0][0] = 0.25 * (lsInit[idx(i, j)] + lsInit[idx(i - 1, j)]
-				+ lsInit[idx(i - 1, j - 1)] + lsInit[idx(i, j - 1)]);
-			lsInitFraction[0][1] = 0.5 * (lsInit[idx(i, j)] + lsInit[idx(i, j - 1)]);
-			lsInitFraction[0][2] = 0.25 * (lsInit[idx(i, j)] + lsInit[idx(i + 1, j)]
-				+ lsInit[idx(i + 1, j - 1)] + lsInit[idx(i, j - 1)]);
-			lsInitFraction[1][0] = 0.5 * (lsInit[idx(i - 1, j)] + lsInit[idx(i, j)]);
-			lsInitFraction[1][1] = lsInit[idx(i, j)];
-			lsInitFraction[1][2] = 0.5 * (lsInit[idx(i, j)] + lsInit[idx(i + 1, j)]);
-			lsInitFraction[0][0] = 0.25 * (lsInit[idx(i, j)] + lsInit[idx(i - 1, j)]
-				+ lsInit[idx(i - 1, j + 1)] + lsInit[idx(i, j + 1)]);
-			lsInitFraction[0][1] = 0.5 * (lsInit[idx(i, j)] + lsInit[idx(i, j + 1)]);
-			lsInitFraction[0][2] = 0.25 * (lsInit[idx(i, j)] + lsInit[idx(i + 1, j)]
-				+ lsInit[idx(i + 1, j + 1)] + lsInit[idx(i, j + 1)]);
-
-			// |\nabla \phi |
-			dLSAbs[0][0]
-				= std::sqrt(std::pow(((ls[idx(i, j)] + ls[idx(i, j - 1)]) * 0.5
-				- (ls[idx(i - 1, j)] + ls[idx(i - 1, j - 1)]) * 0.5) / kDx, 2.0)
-				+ std::pow(((ls[idx(i, j)] + ls[idx(i - 1, j)]) * 0.5
-				- (ls[idx(i - 1, j - 1)] + ls[idx(i - 1, j - 1)]) * 0.5) / kDy, 2.0));
-			dLSAbs[0][1]
-				= std::sqrt(std::pow(((ls[idx(i + 1, j)] + ls[idx(i + 1, j - 1)]) * 0.5
-				- (ls[idx(i - 1, j)] + ls[idx(i - 1, j - 1)]) * 0.5) / (2.0 * kDx), 2.0)
-				+ std::pow((ls[idx(i, j)] - ls[idx(i, j - 1)]) / kDy, 2.0));
-			dLSAbs[0][2]
-				= std::sqrt(std::pow(((ls[idx(i + 1, j)] + ls[idx(i + 1, j - 1)]) * 0.5
-				- (ls[idx(i, j)] + ls[idx(i, j - 1)]) * 0.5) / kDx, 2.0)
-				+ std::pow(((ls[idx(i, j)] + ls[idx(i + 1, j)]) * 0.5
-				- (ls[idx(i, j - 1)] + ls[idx(i + 1, j - 1)]) * 0.5) / kDy, 2.0));
-			dLSAbs[1][0]
-				= std::sqrt(std::pow((ls[idx(i, j)] - ls[idx(i - 1, j)]) / kDx, 2.0)
-				+ std::pow(((ls[idx(i - 1, j + 1)] + ls[idx(i, j + 1)]) * 0.5
-				- (ls[idx(i - 1, j - 1)] + ls[idx(i, j - 1)]) * 0.5) / (2.0 * kDy), 2.0));
-			dLSAbs[1][1]
-				= std::sqrt(std::pow((ls[idx(i + 1, j)] - ls[idx(i - 1, j)]) / (2.0 * kDx), 2.0)
-				+ std::pow((ls[idx(i, j + 1)] - ls[idx(i, j - 1)]) / (2.0 * kDy), 2.0));
-			dLSAbs[1][2]
-				= std::sqrt(std::pow((ls[idx(i + 1, j)] - ls[idx(i, j)]) / kDx, 2.0)
-				+ std::pow(((ls[idx(i, j + 1)] + ls[idx(i + 1, j + 1)]) * 0.5
-				- (ls[idx(i, j - 1)] + ls[idx(i + 1, j - 1)]) * 0.5) / (2.0 * kDy), 2.0));
-			dLSAbs[2][0]
-				= std::sqrt(std::pow(((ls[idx(i, j)] + ls[idx(i, j + 1)]) * 0.5
-				- (ls[idx(i - 1, j)] + ls[idx(i - 1, j + 1)]) * 0.5) / kDx, 2.0)
-				+ std::pow(((ls[idx(i, j)] + ls[idx(i - 1, j)]) * 0.5
-				- (ls[idx(i - 1, j + 1)] + ls[idx(i - 1, j + 1)]) * 0.5) / kDy, 2.0));
-			dLSAbs[2][1]
-				= std::sqrt(std::pow(((ls[idx(i + 1, j)] + ls[idx(i + 1, j + 1)]) * 0.5
-				- (ls[idx(i - 1, j)] + ls[idx(i - 1, j + 1)]) * 0.5) / (2.0 * kDx), 2.0)
-				+ std::pow((ls[idx(i, j + 1)] - ls[idx(i, j)]) / kDy, 2.0));
-			dLSAbs[2][2]
-				= std::sqrt(std::pow(((ls[idx(i + 1, j)] + ls[idx(i + 1, j + 1)]) * 0.5
-				- (ls[idx(i, j)] + ls[idx(i, j + 1)]) * 0.5) / kDx, 2.0)
-				+ std::pow(((ls[idx(i, j + 1)] + ls[idx(i + 1, j + 1)]) * 0.5
-				- (ls[idx(i, j)] + ls[idx(i + 1, j)]) * 0.5) / kDy, 2.0));
-
-			// Hp, L
-			for (int li = 0; li < 3; li++)
-			for (int lj = 0; lj < 3; lj++)  {
-				if (std::fabs(lsFraction[li][lj]) > kThickness)
-					Hp[li][lj] = 0.0;
-				else
-					Hp[li][lj] = 0.5 / kEps + 0.5 / kEps * cos(M_PI * lsFraction[li][lj] / kEps);
-				L[li][lj] = (lsFraction[li][lj] - lsInitFraction[li][lj]) / m_atime;
-
-				f[li][lj] = Hp[li][lj] * dLSAbs[li][lj];
-			}
-
-			ls[idx(i, j)] +=
-				m_atime * f[1][1]
-				* -1.0
-				* (Hp[0][0] * L[0][0] + Hp[0][1] * L[0][1] + Hp[0][2] * L[0][2]
-				+ Hp[1][0] * L[1][0] + Hp[1][1] * L[1][1] * 16.0 + Hp[1][2] * L[1][2]
-				+ Hp[2][0] * L[2][0] + Hp[2][1] * L[2][1] + Hp[2][2] * L[2][2])
-				/ (Hp[0][0] * f[0][0] + Hp[0][1] * f[0][1] + Hp[0][2] * f[0][2]
-				+ Hp[1][0] * f[1][0] + Hp[1][1] * f[1][1] * 16.0 + Hp[1][2] * f[1][2]
-				+ Hp[2][0] * f[2][0] + Hp[2][1] * f[2][1] + Hp[2][2] * f[2][2]);
+			ls[idx(i, j)] += sussmanConstraint[idx(i, j)];
 		}
-
 	}
 
 	ApplyBC_P_2D(ls);
 	return 0;
+}
+std::vector<double> LevelSetSolver2D::GetSussmanReinitConstraint(const std::vector<double>& ls, const std::vector<double>& lsInit) {
+	double lambda = 0.0;
+	double x[3][3], y[3][3], lsFraction[3][3], lsInitFraction[3][3], Hp[3][3], L[3][3], dLSAbs[3][3], f[3][3];
+	std::vector<double> sussmanConstraint(kArrSize, 0.0);
+
+	// Sussman's reinitialization
+	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
+		for (int li = 0; li < 3; li++)
+		for (int lj = 0; lj < 3; lj++) {
+			// i - 1/2, i, i + 1/2
+			x[li][lj] = kBaseX + (i - kNumBCGrid - 0.5 * (li - 1)) * kDx;
+			// j - 1/2, i, j + 1/2
+			y[li][lj] = kBaseY + (j - kNumBCGrid - 0.5 * (lj - 1)) * kDy;
+		}
+
+		// ls
+		lsFraction[0][0] = 0.25 * (ls[idx(i, j)] + ls[idx(i - 1, j)]
+			+ ls[idx(i - 1, j - 1)] + ls[idx(i, j - 1)]);
+		lsFraction[0][1] = 0.5 * (ls[idx(i, j - 1)] + ls[idx(i, j)]);
+		lsFraction[0][2] = 0.25 * (ls[idx(i, j)] + ls[idx(i - 1, j)]
+			+ ls[idx(i - 1, j + 1)] + ls[idx(i, j + 1)]);
+		lsFraction[1][0] = 0.5 * (ls[idx(i, j - 1)] + ls[idx(i, j)]);
+		lsFraction[1][1] = ls[idx(i, j)];
+		lsFraction[1][2] = 0.5 * (ls[idx(i, j)] + ls[idx(i, j + 1)]);
+		lsFraction[2][0] = 0.25 * (ls[idx(i, j)] + ls[idx(i + 1, j)]
+			+ ls[idx(i + 1, j - 1)] + ls[idx(i, j - 1)]);
+		lsFraction[2][1] = 0.5 * (ls[idx(i, j)] + ls[idx(i + 1, j)]);
+		lsFraction[2][2] = 0.25 * (ls[idx(i, j)] + ls[idx(i + 1, j)]
+			+ ls[idx(i + 1, j + 1)] + ls[idx(i, j + 1)]);
+
+		// lsInit
+		lsInitFraction[0][0] = 0.25 * (lsInit[idx(i, j)] + lsInit[idx(i - 1, j)]
+			+ lsInit[idx(i - 1, j - 1)] + lsInit[idx(i, j - 1)]);
+		lsInitFraction[0][1] = 0.5 * (lsInit[idx(i, j - 1)] + lsInit[idx(i, j)]);
+		lsInitFraction[0][2] = 0.25 * (lsInit[idx(i, j)] + lsInit[idx(i - 1, j)]
+			+ lsInit[idx(i - 1, j + 1)] + lsInit[idx(i, j + 1)]);
+		lsInitFraction[1][0] = 0.5 * (lsInit[idx(i, j - 1)] + lsInit[idx(i, j)]);
+		lsInitFraction[1][1] = lsInit[idx(i, j)];
+		lsInitFraction[1][2] = 0.5 * (lsInit[idx(i, j)] + lsInit[idx(i, j + 1)]);
+		lsInitFraction[2][0] = 0.25 * (lsInit[idx(i, j)] + lsInit[idx(i + 1, j)]
+			+ lsInit[idx(i + 1, j - 1)] + lsInit[idx(i, j - 1)]);
+		lsInitFraction[2][1] = 0.5 * (lsInit[idx(i, j)] + lsInit[idx(i + 1, j)]);
+		lsInitFraction[2][2] = 0.25 * (lsInit[idx(i, j)] + lsInit[idx(i + 1, j)]
+			+ lsInit[idx(i + 1, j + 1)] + lsInit[idx(i, j + 1)]);
+
+		// |\nabla \phi |
+		dLSAbs[0][0]
+			= std::sqrt(std::pow(((lsInit[idx(i, j)] + lsInit[idx(i, j - 1)]) * 0.5
+			- 0.5 * (lsInit[idx(i - 1, j)] + lsInit[idx(i - 1, j - 1)])) / kDx, 2.0)
+			+ std::pow((lsInitFraction[0][1]
+			- 0.5 * (lsInit[idx(i, j - 1)] + lsInit[idx(i - 1, j - 1)])) / kDy, 2.0));
+		dLSAbs[0][1]
+			= std::sqrt(std::pow((lsInitFraction[1][1]
+			- lsInit[idx(i - 1, j)]) / kDx, 2.0)
+			+ std::pow((lsInitFraction[2][0] - lsInitFraction[0][0]) / kDy, 2.0));
+		dLSAbs[0][2]
+			= std::sqrt(std::pow((lsInitFraction[1][2] - 
+			- 0.5 * (lsInit[idx(i - 1, j)] + lsInit[idx(i - 1, j + 1)])) / kDx, 2.0)
+			+ std::pow((0.5 * (lsInit[idx(i - 1, j + 1)] + lsInit[idx(i, j + 1)])
+			- lsInitFraction[0][1]) / kDy, 2.0));
+		dLSAbs[1][0]
+			= std::sqrt(std::pow((lsInitFraction[2][0] - lsInitFraction[0][0]) / kDx, 2.0)
+			+ std::pow((lsInitFraction[1][1]
+			- 0.5 * (lsInit[idx(i, j - 1)] + lsInit[idx(i, j)])) / kDy, 2.0));
+		dLSAbs[1][1]
+			= std::sqrt(std::pow((lsInitFraction[2][1] - lsInitFraction[0][1]) / kDx, 2.0)
+			+ std::pow((lsInitFraction[1][2] - lsInitFraction[1][0]) / kDy, 2.0));
+		dLSAbs[1][2]
+			= std::sqrt(std::pow((lsInitFraction[2][2] - lsInitFraction[0][2]) / kDx, 2.0)
+			+ std::pow((lsInit[idx(i, j + 1)] - lsInitFraction[1][1]) / kDy, 2.0));
+		dLSAbs[2][0]
+			= std::sqrt(std::pow((0.5 * (lsInit[idx(i + 1, j)] + lsInit[idx(i + 1, j - 1)])
+			- lsInitFraction[1][0]) / kDx, 2.0)
+			+ std::pow((lsInitFraction[2][1]
+			- 0.5 * (lsInit[idx(i, j - 1)] + lsInit[idx(i + 1, j - 1)])) / kDy, 2.0));
+		dLSAbs[2][1]
+			= std::sqrt(std::pow((lsInit[idx(i + 1, j)]	- lsInitFraction[1][1]) / (2.0 * kDx), 2.0)
+			+ std::pow((lsInitFraction[2][2] - lsInitFraction[2][0]) / kDy, 2.0));
+		dLSAbs[2][2]
+			= std::sqrt(std::pow((0.5 * (lsInit[idx(i + 1, j)]  + lsInit[idx(i + 1, j + 1)])
+			- lsInitFraction[1][1]) / kDx, 2.0)
+			+ std::pow((0.5 * (lsInit[idx(i, j + 1)] + lsInit[idx(i + 1, j + 1)])
+			- lsInitFraction[2][1]) / kDy, 2.0));
+
+		// Hp, L
+		for (int li = 0; li < 3; li++)
+		for (int lj = 0; lj < 3; lj++)  {
+			if (std::fabs(lsFraction[li][lj]) > kThickness)
+				Hp[li][lj] = 0.0;
+			else
+				Hp[li][lj] = 0.5 / kEps + 0.5 / kEps * cos(M_PI * lsFraction[li][lj] / kEps);
+			L[li][lj] = (lsFraction[li][lj] - lsInitFraction[li][lj]) / kAdt;
+
+			f[li][lj] = Hp[li][lj] * dLSAbs[li][lj];
+		}
+		// Simpson's Rule with 9 point stencil
+		double sum1 = 0.0, sum2 = 0.0;
+		for (int li = 0; li < 3; li++)
+		for (int lj = 0; lj < 3; lj++) {
+			sum1 += Hp[li][lj] * L[li][lj];
+			sum2 += Hp[li][lj] * f[li][lj];
+		}
+		sum1 += 15.0 * Hp[1][1] * L[1][1];
+		sum2 += 15.0 * Hp[1][1] * f[1][1];
+
+		sussmanConstraint[idx(i, j)] -= kAdt * f[1][1] * sum1 / sum2;
+	}
+
+	return sussmanConstraint;
 }
 
 int LevelSetSolver2D::FirstTimeOnlyReinit_Sussman_2D(std::vector<double>& ls) {
@@ -506,15 +512,15 @@ int LevelSetSolver2D::FirstTimeOnlyReinit_Sussman_2D(std::vector<double>& ls) {
 
 	// HJENO 2nd order + RK2
 	m_atime = 0.0;
-	std::vector<double> lsInit((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
+	std::vector<double> lsInit(kArrSize, 0.0);
 	lsInit = ls;
 
-	std::vector<double> absdLS1((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
-	std::vector<double> absdLS2((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
-	std::vector<double> L1((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
-	std::vector<double> L2((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
+	std::vector<double> absdLS1(kArrSize, 0.0);
+	std::vector<double> absdLS2(kArrSize, 0.0);
+	std::vector<double> L1(kArrSize, 0.0);
+	std::vector<double> L2(kArrSize, 0.0);
 
-	absdLS1 = ENO_ReinitABS_2D(lsInit, lsInit);
+	absdLS1 = ENO_DerivAbsLS_2D(lsInit, lsInit);
 
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
@@ -525,12 +531,10 @@ int LevelSetSolver2D::FirstTimeOnlyReinit_Sussman_2D(std::vector<double>& ls) {
 	while (m_atime < std::max(kDx * kNx, kDy * kNy)) {
 		m_atime += kAdt;
 		
-		std::vector<double> absdLS1((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
-		std::vector<double> absdLS2((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
-		std::vector<double> L1((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
-		std::vector<double> L2((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
+		// Apply Boundary Condition First
+		ApplyBC_P_2D(ls);
 
-		absdLS1 = ENO_ReinitABS_2D(ls, lsInit);
+		absdLS1 = ENO_DerivAbsLS_2D(ls, lsInit);
 
 		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 			for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
@@ -538,7 +542,7 @@ int LevelSetSolver2D::FirstTimeOnlyReinit_Sussman_2D(std::vector<double>& ls) {
 					- kAdt * sign(lsInit[idx(i, j)]) * (absdLS1[idx(i, j)] - 1.0);
 			}
 
-		absdLS2 = ENO_ReinitABS_2D(L1, lsInit);
+		absdLS2 = ENO_DerivAbsLS_2D(L1, lsInit);
 
 		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 			for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
@@ -561,20 +565,24 @@ int LevelSetSolver2D::FirstTimeOnlyReinit_Sussman_2D(std::vector<double>& ls) {
 int LevelSetSolver2D::Reinit_MinRK2_2D(std::vector<double>& ls) {
 	m_atime = 0.0;
 
-	std::vector<double> lsInit((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
+	std::vector<double> lsInit(kArrSize, 0.0);
+	lsInit = ls;
+
+
 	double lambda = 0.0;
 	double x[3][3], y[3][3], lsFraction[3][3], lsInitFraction[3][3], Hp[3][3], L[3][3], dLSAbs[3][3], f[3][3];
+	std::vector<double> absdLS1(kArrSize, 0.0);
+	std::vector<double> absdLS2(kArrSize, 0.0);
+	std::vector<double> LS1(kArrSize, 0.0);
+	std::vector<double> LS2(kArrSize, 0.0);
 
-	lsInit = ls;
-	
 	while (m_atime < kMaxATime) {
 		m_atime += kAdt;
-		std::vector<double> absdLS1((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
-		std::vector<double> absdLS2((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
-		std::vector<double> LS1((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
-		std::vector<double> LS2((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
+		
+		// Apply Boundary Condition First
+		ApplyBC_P_2D(ls);
 
-		absdLS1 = Subcell_ReinitABS_2D(ls, lsInit);
+		absdLS1 = Subcell_DerivAbsLS_2D(ls, lsInit);
 
 		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
@@ -584,7 +592,7 @@ int LevelSetSolver2D::Reinit_MinRK2_2D(std::vector<double>& ls) {
 				* (absdLS1[idx(i, j)] - 1.0);
 		}
 
-		absdLS2 = Subcell_ReinitABS_2D(LS1, lsInit);
+		absdLS2 = Subcell_DerivAbsLS_2D(LS1, lsInit);
 
 		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
@@ -606,12 +614,9 @@ int LevelSetSolver2D::Reinit_MinRK2_2D(std::vector<double>& ls) {
 }
 
 std::vector<double>
-LevelSetSolver2D::ENO_ReinitABS_2D(std::vector<double>& ls, std::vector<double>& lsInit) {
+LevelSetSolver2D::ENO_DerivAbsLS_2D(const std::vector<double>& ls, const std::vector<double>& lsInit) {
 	// Use Newton Polynomial
 	double x = 0.0, y = 0.0;
-
-	// Apply Boundary Condition First
-	ApplyBC_P_2D(ls);
 
 	// Divided Difference Table (a.k.a. DDT)
 	std::vector<double>
@@ -619,16 +624,16 @@ LevelSetSolver2D::ENO_ReinitABS_2D(std::vector<double>& ls, std::vector<double>&
 		DDTY((2 * kENOSpatialOrder + 1) * (kENOSpatialOrder + 1), 0.0);
 	
 	std::vector<double>
-		dPX((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0),
-		dMX((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0),
-		dPY((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0),
-		dMY((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
+		dPX(kArrSize, 0.0),
+		dMX(kArrSize, 0.0),
+		dPY(kArrSize, 0.0),
+		dMY(kArrSize, 0.0);
 
 	std::vector<double>
-		dLSdX((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0),
-		dLSdY((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
+		dLSdX(kArrSize, 0.0),
+		dLSdY(kArrSize, 0.0);
 
-	std::vector<double> absdLS((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
+	std::vector<double> absdLS(kArrSize, 0.0);
 
 	//	const int kDDTRows = 2 * kENOSpatialOrder + 1;
 	// general divided difference table, but not used in this method
@@ -713,12 +718,9 @@ LevelSetSolver2D::ENO_ReinitABS_2D(std::vector<double>& ls, std::vector<double>&
 }
 
 std::vector<double>
-LevelSetSolver2D::Subcell_ReinitABS_2D(std::vector<double>& ls, std::vector<double>& lsInit) {
+LevelSetSolver2D::Subcell_DerivAbsLS_2D(const std::vector<double>& ls, const std::vector<double>& lsInit) {
 	// Use Newton Polynomial
 	double x = 0.0, y = 0.0;
-
-	// Apply Boundary Condition First
-	ApplyBC_P_2D(ls);
 
 	// Divided Difference Table (a.k.a. DDT)
 	std::vector<double>
@@ -726,16 +728,16 @@ LevelSetSolver2D::Subcell_ReinitABS_2D(std::vector<double>& ls, std::vector<doub
 		DDTY((2 * kENOSpatialOrder + 1) * (kENOSpatialOrder + 1), 0.0);
 
 	std::vector<double>
-		dPX((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0),
-		dMX((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0),
-		dPY((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0),
-		dMY((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
+		dPX(kArrSize, 0.0),
+		dMX(kArrSize, 0.0),
+		dPY(kArrSize, 0.0),
+		dMY(kArrSize, 0.0);
 
 	std::vector<double>
-		dLSdX((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0),
-		dLSdY((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
+		dLSdX(kArrSize, 0.0),
+		dLSdY(kArrSize, 0.0);
 
-	std::vector<double> absdLS((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
+	std::vector<double> absdLS(kArrSize, 0.0);
 
 	// new dx or dy using subcell resolution
 	double newDxP = 0.0, newDxM = 0.0, newDyP = 0.0, newDyM = 0.0;
@@ -885,7 +887,6 @@ LevelSetSolver2D::Subcell_ReinitABS_2D(std::vector<double>& ls, std::vector<doub
 
 	return absdLS;
 }
-
 
 std::vector<int> LevelSetSolver2D::GetSignedLSNormalized(const std::vector<double> &v) {
 	std::vector<int> r(v.size());

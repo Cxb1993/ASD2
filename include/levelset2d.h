@@ -16,8 +16,10 @@
 
 class LevelSetSolver2D {
 public:
-	LevelSetSolver2D(int nx, int ny, int num_bc_grid, double dx, double dy);
-	LevelSetSolver2D(int nx, int ny, int num_bc_grid, double dx, double dy, double maxTime);
+	LevelSetSolver2D(int nx, int ny, int num_bc_grid,
+		double baseX, double baseY, double dx, double dy);
+	LevelSetSolver2D(int nx, int ny, int num_bc_grid,
+		double baseX, double baseY, double dx, double dy, double maxTime);
 	
 	std::vector<double> UpdateKappa(const std::vector<double>& ls);
 
@@ -28,6 +30,8 @@ public:
 	int Reinit_Sussman_FirstTime_2D(std::vector<double>& ls);
 	int FirstTimeOnlyReinit_Sussman_2D(std::vector<double>& ls);
 	int Reinit_MinRK2_2D(std::vector<double>& ls);
+	
+	std::vector<double> GetSussmanReinitConstraint(const std::vector<double>& ls, const std::vector<double>& lsInit);
 
 	int sign(const double& val);
 	double MinAbs(const double& val1, const double& val2);
@@ -39,9 +43,9 @@ public:
 	int UnitHJWENO5(
 		const std::vector<double> &F, std::vector<double> &FP, std::vector<double> &FM, const double d, const int n);
 	std::vector<double>
-		ENO_ReinitABS_2D(std::vector<double>& ls, std::vector<double>& lsInit);
+		ENO_DerivAbsLS_2D(const std::vector<double>& ls, const std::vector<double>& lsInit);
 	std::vector<double>
-		Subcell_ReinitABS_2D(std::vector<double>& ls, std::vector<double>& lsInit);
+		Subcell_DerivAbsLS_2D(const std::vector<double>& ls, const std::vector<double>& lsInit);
 
 	// BC
 	int SetBC_U_2D(std::string BC_W, std::string BC_E, std::string BC_S, std::string BC_N);
@@ -67,6 +71,8 @@ public:
 	
 	const double kEps, kThickness, kMaxATime;
 	const int kNx, kNy, kNumBCGrid, kENOSpatialOrder;
+	const int64_t kArrSize;
+	const double kBaseX, kBaseY;
 	const double kDx, kDy;
 	
 	// artificial dt for reinitialization only 
