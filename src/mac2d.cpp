@@ -1,13 +1,13 @@
-#include "mac2d.h"
+﻿#include "mac2d.h"
 
-MACSolver2D::MACSolver2D(double Re, double We, double FrX, double FrY,
+MACSolver2D::MACSolver2D(double Re, double We, double Fr, GAXISENUM GAxis,
 	double L, double U, double sigma, double densityRatio, double viscosityRatio, double rhoH, double muH,
 	int nx, int ny, double baseX, double baseY, double lenX, double lenY,
-	TimeOrderEnum timeOrder, double cfl, double maxtime, int maxIter, int niterskip, int num_bc_grid,
+	TIMEORDERENUM timeOrder, double cfl, double maxtime, int maxIter, int niterskip, int num_bc_grid,
 	bool writeVTK) :
-	kRe(Re), kWe(We), kFrX(FrX), kFrY(FrY),
+	kRe(Re), kWe(We), kFr(Fr),
 	kLScale(L), kUScale(U), kSigma(sigma),
-	kGX(kFrX * L / (U * U)), kGY(kFrY * L / (U * U)), kRhoScale(We * sigma / (L * U * U)), kMuScale(kRhoScale * L * U / Re),
+	kG(kFr * L / (U * U)), kGAxis(GAxis), kRhoScale(We * sigma / (L * U * U)), kMuScale(kRhoScale * L * U / Re),
 	kRhoH(rhoH), kRhoL(rhoH * densityRatio), kRhoRatio(densityRatio),
 	kMuH(muH), kMuL(muH * viscosityRatio), kMuRatio(viscosityRatio),
 	kNx(nx), kNy(ny), kBaseX(baseX), kBaseY(baseY), kLenX(lenX), kLenY(lenY),
@@ -22,14 +22,14 @@ MACSolver2D::MACSolver2D(double Re, double We, double FrX, double FrY,
 	m_dt = std::min(0.005, kCFL * std::min(lenX / static_cast<double>(nx), lenY / static_cast<double>(ny)) / U);
 }
 
-MACSolver2D::MACSolver2D(double rhoH, double rhoL, double muH, double muL, double gConstantX, double gConstantY,
+MACSolver2D::MACSolver2D(double rhoH, double rhoL, double muH, double muL, double gConstant, GAXISENUM GAxis,
 	double L, double U, double sigma, int nx, int ny, double baseX, double baseY, double lenX, double lenY,
-	TimeOrderEnum timeOrder, double cfl, double maxtime, int maxIter, int niterskip, int num_bc_grid,
+	TIMEORDERENUM timeOrder, double cfl, double maxtime, int maxIter, int niterskip, int num_bc_grid,
 	bool writeVTK) :
-	kRhoScale(rhoH), kMuScale(muH), kGX(gConstantX), kGY(gConstantY), kLScale(L), kUScale(U), kSigma(sigma),
+	kRhoScale(rhoH), kMuScale(muH), kG(gConstant), kLScale(L), kUScale(U), kSigma(sigma),
 	kRhoH(rhoH), kRhoL(rhoL), kRhoRatio(rhoL / rhoH), 
 	kMuH(muH), kMuL(muL), kMuRatio(muL / muH),
-	kRe(rhoH * L * U / muH), kWe(rhoH * L * U * U / sigma), kFrX(U * U / (gConstantX * L)), kFrY(U * U / (gConstantY * L)),
+	kRe(rhoH * L * U / muH), kWe(rhoH * L * U * U / sigma), kFr(U * U / (gConstant * L)), kGAxis(GAxis),
 	kNx(nx), kNy(ny), kBaseX(baseX), kBaseY(baseY), kLenX(lenX), kLenY(lenY),
 	kDx(lenX / static_cast<double>(nx)), kDy(lenY / static_cast<double>(ny)),
 	kTimeOrder(timeOrder), kCFL(cfl), kMaxTime(maxtime), kMaxIter(maxIter), kNIterSkip(niterskip),
@@ -64,6 +64,17 @@ int MACSolver2D::AllocateVariables() {
 	m_J21 = std::vector<double>((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0);
 	m_J22 = std::vector<double>((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0);
 
+	m_nx = std::vector<double>((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0);
+	m_ny = std::vector<double>((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0);
+
+	m_t1x = std::vector<double>((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0);
+	m_t1y = std::vector<double>((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0);
+	m_t1z = std::vector<double>((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0);
+
+	m_t2x = std::vector<double>((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0);
+	m_t2y = std::vector<double>((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0);
+	m_t2z = std::vector<double>((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0);
+
 	return 0;
 }
 
@@ -71,8 +82,8 @@ std::vector<double> MACSolver2D::UpdateHeavisideFunc(const std::vector<double>& 
 	std::vector<double> Heaviside((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
 	const double eps = std::min(kDx, kDy) * 1.5;
 
-	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
-	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
+	for (int i = 0; i < kNx + 2 * kNumBCGrid; i++)
+	for (int j = 0; j < kNy + 2 * kNumBCGrid; j++) {
 		// inside
 		if (ls[idx(i, j)] >= 0.0)
 			Heaviside[idx(i, j)] = 1.0;
@@ -87,8 +98,8 @@ std::vector<double> MACSolver2D::UpdateSmoothHeavisideFunc(const std::vector<dou
 	std::vector<double> Heaviside((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
 	const double eps = std::min(kDx, kDy) * 1.5;
 
-	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
-	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
+	for (int i = 0; i < kNx + 2 * kNumBCGrid; i++)
+	for (int j = 0; j < kNy + 2 * kNumBCGrid; j++) {
 		// inside
 		if (ls[idx(i, j)] > eps)
 			Heaviside[idx(i, j)] = 1.0;
@@ -102,6 +113,104 @@ std::vector<double> MACSolver2D::UpdateSmoothHeavisideFunc(const std::vector<dou
 	}
 		
 	return Heaviside;
+}
+
+int MACSolver2D::UpdateNTK(const std::shared_ptr<LevelSetSolver2D>& LSolver, const std::vector<double>& ls,
+	std::tuple<std::vector<double>&, std::vector<double>&> normalVec,
+	std::tuple<std::vector<double>&, std::vector<double>&, std::vector<double>&> t1Vec,
+	std::tuple<std::vector<double>&, std::vector<double>&, std::vector<double>&> t2Vec,
+	std::vector<double>& kappa) {
+	// Lervåg, Karl Yngve, Bernhard Müller, and Svend Tollak Munkejord.
+	// "Calculation of the interface curvature and normal vector with the level-set method."
+	//  Computers & Fluids 84 (2013) : 218 - 230.
+	//
+	// Macklin, Paul, and John S. Lowengrub.
+	//  "A new ghost cell/level set method for moving boundary problems: application to tumor growth."
+	// Journal of scientific computing 35.2-3 (2008): 266-299.
+	const double eta = 0.0001;
+	const double eps = 1.0e-100;
+
+	std::vector<double> Q((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0),
+		absDerivLS((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
+
+	absDerivLS = LSolver->ENO_DerivAbsLS_2D(ls, ls);
+
+	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
+		Q[idx(i, j)] = std::fabs(1.0 - absDerivLS[idx(i, j)]);
+	}
+	
+	double dLSdX = 0.0, dLSdY = 0.0;
+	// determination function
+	int Dx = 0.0, Dy = 0.0;
+	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
+		// complex level set, such as droplet merging
+		if (Q[idx(i, j)] > eta) {
+			// Using Dierctional Direction First
+			if (Q[idx(i - 1, j)] < eta && Q[idx(i + 1, j)] >= eta)
+				Dx = -1;
+			else if (Q[idx(i - 1, j)] >= eta && Q[idx(i + 1, j)] < eta)
+				Dx = 1;
+			else if (Q[idx(i - 1, j)] < eta && Q[idx(i, j)] < eta && Q[idx(i + 1, j)] < eta)
+				Dx = 0;
+			else if (Q[idx(i - 1, j)] >= eta && Q[idx(i, j)] >= eta && Q[idx(i + 1, j)] >= eta)
+				Dx = 0;
+			else
+				Dx = 2;
+
+			// determination funciton
+			if (Q[idx(i, j - 1)] < eta && Q[idx(i, j + 1)] >= eta)
+				Dy = -1;
+			else if (Q[idx(i, j - 1)] >= eta && Q[idx(i, j + 1)] < eta)
+				Dy = 1;
+			else if (Q[idx(i, j - 1)] < eta && Q[idx(i, j)] < eta && Q[idx(i, j + 1)] < eta)
+				Dy = 0;
+			else if (Q[idx(i, j - 1)] >= eta && Q[idx(i, j)] >= eta && Q[idx(i, j + 1)] >= eta)
+				Dy = 0;
+			else
+				// undetermined
+				Dy = 2;
+
+			if (Dx == -1)
+				dLSdX = (ls[idx(i, j)] - ls[idx(i - 1, j)]) / kDx;
+			else if (Dx == 1)
+				dLSdX = (ls[idx(i + 1, j)] - ls[idx(i, j)]) / kDx;
+			else if (Dx == 0)
+				dLSdX = (ls[idx(i + 1, j)] - ls[idx(i - 1, j)]) / (2.0 * kDx);
+
+			if (Dy == -1)
+				dLSdY = (ls[idx(i, j)] - ls[idx(i, j - 1)]) / kDy;
+			else if (Dy == 1)
+				dLSdY = (ls[idx(i, j + 1)] - ls[idx(i, j)]) / kDy;
+			else if (Dy == 0)
+				dLSdY = (ls[idx(i, j + 1)] - ls[idx(i, j - 1)]) / (2.0 * kDy);
+
+			// Curve Fitting Method
+			if (Dx == 2) {
+				// Breadfirst Search
+
+				// Curve Fitting
+
+				// Normal Vector
+
+				// Tangent Vector
+
+				// Curvature
+
+			}
+
+		}
+		// simple level set
+		else {
+			dLSdX = (ls[idx(i + 1, j)] - ls[idx(i - 1, j)]) / (2.0 * kDx);
+			dLSdY = (ls[idx(i, j + 1)] - ls[idx(i, j - 1)]) / (2.0 * kDy);
+			std::get<0>(normalVec)[idx(i, j)] = 1.0 / std::sqrt(dLSdX * dLSdX + dLSdY * dLSdY + eps) * dLSdX;
+			std::get<1>(normalVec)[idx(i, j)] = 1.0 / std::sqrt(dLSdX * dLSdX + dLSdY * dLSdY + eps) * dLSdY;
+		}
+	}
+
+	return 0;
 }
 
 int MACSolver2D::UpdateKappa(const std::vector<double>& ls) {
@@ -133,16 +242,14 @@ int MACSolver2D::UpdateKappa(const std::vector<double>& ls) {
 	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
 		m_kappa[idx(i, j)]
 			= -(dLSdX[idx(i, j)] * dLSdX[idx(i, j)] * (ls[idx(i, j - 1)] - 2.0 * ls[idx(i, j)] + ls[idx(i, j + 1)]) / (kDy * kDy) // phi^2_x \phi_yy
-			- 2.0 * dLSdX[idx(i, j)] * dLSdY[idx(i, j)] * (dLSdX[idx(i, j + 1)] - dLSdX[idx(i, j - 1)]) / (2.0 * kDy) //2 \phi_x \phi_y \phi_xy
+			- 2.0 * dLSdX[idx(i, j)] * dLSdY[idx(i, j)] * (ls[idx(i + 1, j + 1)] - ls[idx(i - 1, j + 1)] -ls[idx(i + 1, j - 1)] + ls[idx(i - 1, j - 1)]) / (4.0 * kDx * kDy) //2 \phi_x \phi_y \phi_xy
+			// - 2.0 * dLSdX[idx(i, j)] * dLSdY[idx(i, j)] * (dLSdX[idx(i, j + 1)] - dLSdX[idx(i, j - 1)]) / (2.0 * kDy) //2 \phi_x \phi_y \phi_xy
 			+ dLSdY[idx(i, j)] * dLSdY[idx(i, j)] * (ls[idx(i - 1, j)] - 2.0 * ls[idx(i, j)] + ls[idx(i + 1, j)]) / (kDx * kDx)) // phi^2_y \phi_xx
 				/ std::pow(LSSize[idx(i, j)], 3.0);
 
 		// curvature is limiited so that under-resolved regions do not erroneously contribute large surface tensor forces
-		if (m_kappa[idx(i, j)] > 0)
-			m_kappa[idx(i, j)] = std::min(std::fabs(m_kappa[idx(i, j)]), 1.0 / std::min(kDx, kDy));
-		else
-			m_kappa[idx(i, j)] = -std::min(std::fabs(m_kappa[idx(i, j)]), 1.0 / std::min(kDx, kDy));
-
+		m_kappa[idx(i, j)] = std::fabs(std::min(std::fabs(m_kappa[idx(i, j)]), 1.0 / std::min(kDx, kDy)));
+		
 		assert(m_kappa[idx(i, j)] == m_kappa[idx(i, j)]);
 	}
 
@@ -335,49 +442,7 @@ int MACSolver2D::UpdateJumpCond(const std::vector<double>& u, const std::vector<
 		assert(m_J21[idx(i, j)] == m_J21[idx(i, j)]);
 		assert(m_J22[idx(i, j)] == m_J22[idx(i, j)]);
 	}
-	/*
-	std::ofstream outF;
-	std::string fname("Jump_ASCII.plt");
-	if (m_iter == 1) {
-		outF.open(fname.c_str(), std::ios::out);
-
-		outF << "TITLE = VEL" << std::endl;
-		outF << "VARIABLES = \"X\", \"Y\", \"U\", \"V\", \"LS\", \"nX\", \"nY\", \"t1X\", \"t1Y\", \"t2Z\",\"J11\", \"J12\", \"J21\", \"J22\", \"dUDX\", \"dUDY\", \"dVDX\", \"dVDY\",  " << std::endl;
-		outF.close();
-	}
-
-	outF.open(fname.c_str(), std::ios::app);
-
-	outF << std::string("ZONE T=\"") << m_iter
-		<< std::string("\", I=") << kNx << std::string(", J=") << kNy
-		<< std::string(", SOLUTIONTIME=") << m_iter * 0.1
-		<< std::string(", STRANDID=") << m_iter + 1
-		<< std::endl;
-
-	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
-			outF << kBaseX + static_cast<double>(i + 0.5 - kNumBCGrid) * kDx << std::string(",")
-			<< kBaseY + static_cast<double>(j + 0.5 - kNumBCGrid) * kDy << std::string(",")
-			<< static_cast<double>(u[idx(i, j)]) << std::string(",")
-			<< static_cast<double>(v[idx(i, j)]) << std::string(",")
-			<< static_cast<double>(ls[idx(i, j)]) << std::string(",")
-			<< static_cast<double>(nX[idx(i, j)]) << std::string(",")
-			<< static_cast<double>(nY[idx(i, j)]) << std::string(",")
-			<< static_cast<double>(t1X[idx(i, j)]) << std::string(",")
-			<< static_cast<double>(t1Y[idx(i, j)]) << std::string(",")
-			<< static_cast<double>(t2Z[idx(i, j)]) << std::string(",")
-			<< static_cast<double>(m_J11[idx(i, j)]) << std::string(",")
-			<< static_cast<double>(m_J12[idx(i, j)]) << std::string(",")
-			<< static_cast<double>(m_J21[idx(i, j)]) << std::string(",")
-			<< static_cast<double>(m_J22[idx(i, j)]) << std::string(",")
-			<< static_cast<double>(dudX[idx(i, j)]) << std::string(",")
-			<< static_cast<double>(dudY[idx(i, j)]) << std::string(",")
-			<< static_cast<double>(dvdX[idx(i, j)]) << std::string(",")
-			<< static_cast<double>(dvdY[idx(i, j)]) 
-			<< std::endl;
-
-	outF.close();
-	*/
+	
 	return 0;
 }
 
@@ -477,7 +542,7 @@ std::vector<double> MACSolver2D::AddConvectionFU(const std::vector<double>& u, c
 	std::vector<double> FYP(kNy + 2 * kNumBCGrid, 0.0), FYM(kNy + 2 * kNumBCGrid, 0.0);
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++) {
 		for (int j = 0; j < kNy + 2 *kNumBCGrid; j++) {
-			vecF_UY[j] = u[idx(i, j)] * v[idx(i, j)];
+			vecF_UY[j] = u[idx(i, j)] * tmpV[idx(i, j)];
 		}
 
 		UnitHJWENO5(vecF_UY, FYP, FYM, kDy, kNy);
@@ -540,7 +605,7 @@ std::vector<double> MACSolver2D::AddConvectionFV(const std::vector<double>& u, c
 	std::vector<double> FXP(kNx + 2 * kNumBCGrid, 0.0), FXM(kNx + 2 * kNumBCGrid, 0.0);
 	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
 		for (int i = 0; i < kNx + 2 * kNumBCGrid; i++) {
-			vecF_VX[i] = v[idx(i, j)] * u[idx(i, j)];
+			vecF_VX[i] = v[idx(i, j)] * tmpU[idx(i, j)];
 		}
 
 		UnitHJWENO5(vecF_VX, FXP, FXM, kDx, kNx);
@@ -1711,7 +1776,7 @@ std::vector<double> MACSolver2D::AddViscosityFV(const std::vector<double>& u, co
 std::vector<double> MACSolver2D::AddGravityFU() {
 	std::vector<double> gU((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
 
-	if ((kFrX == 0 || kGX == 0.0) && !isnan(kFrX) && !isinf(kFrX)) {
+	if ((kFr == 0 || kG == 0.0) && !isnan(kFr) && !isinf(kFr) && kGAxis != GAXISENUM::X) {
 		for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
 		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
 			gU[idx(i, j)] = 0.0;
@@ -1720,7 +1785,7 @@ std::vector<double> MACSolver2D::AddGravityFU() {
 	else {
 		for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
 		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
-			gU[idx(i, j)] = -1.0 / kFrX;
+			gU[idx(i, j)] = -1.0 / kFr;
 		}
 	}
 
@@ -1730,7 +1795,7 @@ std::vector<double> MACSolver2D::AddGravityFU() {
 std::vector<double> MACSolver2D::AddGravityFV() {
 	std::vector<double> gV((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
 
-	if ((kFrY == 0 || kGY == 0.0) && !isnan(kFrY) && !isinf(kFrY)) {
+	if ((kFr == 0 || kG == 0.0) && !isnan(kFr) && !isinf(kFr) && kGAxis != GAXISENUM::Y) {
 		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 		for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++) {
 			gV[idx(i, j)] = 0.0;
@@ -1739,7 +1804,7 @@ std::vector<double> MACSolver2D::AddGravityFV() {
 	else {
 		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 		for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++) {
-			gV[idx(i, j)] = -1.0 / kFrY;
+			gV[idx(i, j)] = -1.0 / kFr;
 		}
 	}
 
@@ -1751,7 +1816,7 @@ int MACSolver2D::GetIntermediateVel(const std::shared_ptr<LevelSetSolver2D>& LSo
 	std::vector<double>& uhat, std::vector<double>& vhat, const std::vector<double>& H) {
 		
 	// Update rhs
-	if (kTimeOrder == TimeOrderEnum::EULER) {
+	if (kTimeOrder == TIMEORDERENUM::EULER) {
 		std::vector<double> FU1((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
 		std::vector<double> FV1((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
 
@@ -1767,7 +1832,7 @@ int MACSolver2D::GetIntermediateVel(const std::shared_ptr<LevelSetSolver2D>& LSo
 			vhat[idx(i, j)] = v[idx(i, j)] + m_dt * FV1[idx(i, j)];
 		}
 	}
-	else if (kTimeOrder == TimeOrderEnum::RK2) {
+	else if (kTimeOrder == TIMEORDERENUM::RK2) {
 		std::vector<double> FU1((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0),
 			FV1((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0),
 			FU2((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0),
@@ -1812,7 +1877,7 @@ int MACSolver2D::GetIntermediateVel(const std::shared_ptr<LevelSetSolver2D>& LSo
 			vhat[idx(i, j)] = 0.5 * v[idx(i, j)] + 0.5 * FV2[idx(i, j)];
 		}
 	}
-	else if (kTimeOrder == TimeOrderEnum::RK3) {
+	else if (kTimeOrder == TIMEORDERENUM::RK3) {
 		std::vector<double> FU1((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0),
 			FV1((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0),
 			FU2((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0),
@@ -2323,15 +2388,16 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 			
 		rhoEff = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
 		// coefficient
-		iRhoW[idx(i, j)] = -1.0 / rhoEff;
+		iRhoW[idx(i, j)] = 1.0 / rhoEff;
 		kappaEff = m_kappa[idx(i, j)] * theta + m_kappa[idx(i - 1, j)] * (1.0 - theta);
 		
 		// pressure jump = Liquid - Gas = -sigma * kappa - [\rho] * normal * gvector
 		// kRhoH - Liquid, kRhoL - Gas
-		// + level set : H = 1, - level set : H = 0; 
-		// Bubble : (+ls)-kRhoL-Gas, (-ls)-kRhoH-Liquid
-		FW = m_dt * (-kSigma * kappaEff) * (H[idx(i, j)] - H[idx(i - 1, j)]);
+		// - level set : H = 1, + level set : H = 0;
+		// Bubble : (-ls)-kRhoL-Gas, (+ls)-kRhoH-Liquid
+		FW = -m_dt * (-kSigma * kappaEff) * (H[idx(i, j)] - H[idx(i - 1, j)]);
 		FW *= iRhoW[idx(i, j)] / (kDx * kDx);
+	
 		// thetaH = portion of kRhoH
 		// theta = portion of fluid cell adjacent to lsM, such as |lsW| / (|lsW| + |lsM|), |lsE| / (|lsWE| + |lsM|), and so on
 		if (lsM >= 0.0 && lsE >= 0.0)  {
@@ -2350,13 +2416,13 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 		}
 
 		rhoEff = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
-		iRhoE[idx(i, j)] = -1.0 / rhoEff;
+		iRhoE[idx(i, j)] = 1.0 / rhoEff;
 		kappaEff = m_kappa[idx(i, j)] * theta + m_kappa[idx(i + 1, j)] * (1.0 - theta);
 
 		// pressure jump = Liquid - Gas = -sigma * kappa - [\rho] * normal * gvector
-		// + level set : H = 1, - level set : H = 0; 
-		// Bubble : (+ls)-kRhoL-Gas, (-ls)-kRhoH-Liquid
-		FE = -m_dt * (-kSigma * kappaEff) * (H[idx(i + 1, j)] - H[idx(i, j)]);
+		// - level set : H = 1, + level set : H = 0; 
+		// Bubble : (-ls)-kRhoL-Gas, (+ls)-kRhoH-Liquid
+		FE = m_dt * (-kSigma * kappaEff) * (H[idx(i + 1, j)] - H[idx(i, j)]);
 		FE *= iRhoE[idx(i, j)] / (kDx * kDx);
 		
 		// thetaH = portion of kRhoH
@@ -2377,14 +2443,14 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 		}
 
 		rhoEff = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
-		iRhoS[idx(i, j)] = -1.0 / rhoEff;
+		iRhoS[idx(i, j)] = 1.0 / rhoEff;
 		kappaEff = m_kappa[idx(i, j)] * theta + m_kappa[idx(i, j - 1)] * (1.0 - theta);
 		
 		// pressure jump = Liquid - Gas = -sigma * kappa - [\rho] * normal * gvector
 		// kRhoH - Liquid, kRhoL - Gas
-		// + level set : H = 1, - level set : H = 0; 
-		// Bubble : (+ls)-kRhoL-Gas, (-ls)-kRhoH-Liquid
-		FS = m_dt * (-kSigma * kappaEff) * (H[idx(i, j)] - H[idx(i, j - 1)]);
+		// - level set : H = 1, + level set : H = 0; 
+		// Bubble : (-ls)-kRhoL-Gas, (+ls)-kRhoH-Liquid
+		FS = -m_dt * (-kSigma * kappaEff) * (H[idx(i, j)] - H[idx(i, j - 1)]);
 		FS *= iRhoS[idx(i, j)] / (kDy * kDy);
 		
 		// if (FS != 0.0)
@@ -2411,20 +2477,20 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 		}
 
 		rhoEff = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
-		iRhoN[idx(i, j)] = -1.0 / rhoEff;
+		iRhoN[idx(i, j)] = 1.0 / rhoEff;
 		kappaEff = m_kappa[idx(i, j)] * theta + m_kappa[idx(i, j + 1)] * (1.0 - theta);
 		// pressure jump = Liquid - Gas = -sigma * kappa - [\rho] * normal * gvector
 		// kRhoH - Liquid, kRhoL - Gas
-		// + level set : H = 1, - level set : H = 0; 
-		// Bubble : (+ls)-kRhoL-Gas, (-ls)-kRhoH-Liquid
-		FN = -m_dt * (-kSigma * kappaEff) * (H[idx(i, j + 1)] - H[idx(i, j)]);
+		// - level set : H = 1, + level set : H = 0; 
+		// Bubble : (-ls)-kRhoL-Gas, (+ls)-kRhoH-Liquid
+		FN = m_dt * (-kSigma * kappaEff) * (H[idx(i, j + 1)] - H[idx(i, j)]);
 		FN *= iRhoN[idx(i, j)] / (kDy * kDy);
 		
 		// poisson equation form should be -\beta \nabla p = f
 		// iRhoEff has already negative value of rhoEff, then it is just a coefficient.
 		// For discretization of pressure gradient, additional term is negative and it goes to RHS
 		// Then it is a positive value and don't worrry about the sign
-		rhs[idx(i, j)] += FW + FE + FS + FN;
+		rhs[idx(i, j)] -= FW + FE + FS + FN;
 		FWVec[idx(i, j)] = FW;
 		FEVec[idx(i, j)] = FE;
 		FSVec[idx(i, j)] = FS;
@@ -2457,6 +2523,11 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 		ARowIdx.push_back(rowIdx);
 		DiagRowIdx.push_back(MRowIdx);
 
+		iRhoS[idx(i, j)] *= -1.0;
+		iRhoW[idx(i, j)] *= -1.0;
+		iRhoE[idx(i, j)] *= -1.0;
+		iRhoN[idx(i, j)] *= -1.0;
+
 		// Set default values, if a current pointer is in interior, it will not be changed.
 		AValsDic["S"] = iRhoS[idx(i, j)] / (kDy * kDy);
 		AColsDic["S"] = (i - kNumBCGrid) + (j - 1 - kNumBCGrid) * kNx;
@@ -2470,64 +2541,64 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 		AValsDic["N"] = iRhoN[idx(i, j)] / (kDy * kDy);
 		AColsDic["N"] = (i - kNumBCGrid) + (j + 1 - kNumBCGrid) * kNx;
 		
-		if (i == kNumBCGrid && m_BC->m_BC_PW == BC::NEUMANN) {
+		if (i == kNumBCGrid && m_BC->m_BC_PW == BC2D::NEUMANN) {
 			AColsDic["W"] = -1;
 			AValsDic["W"] = 0.0;
 			AValsDic["C"] += iRhoW[idx(i, j)] / (kDx * kDx);
 		}
-		else if (i == kNumBCGrid && m_BC->m_BC_PW == BC::DIRICHLET) {
+		else if (i == kNumBCGrid && m_BC->m_BC_PW == BC2D::DIRICHLET) {
 			AColsDic["W"] = -1;
 			AValsDic["W"] = 0.0;
 			AValsDic["C"] -= iRhoW[idx(i, j)] / (kDx * kDx);
 			rhs[idx(i, j)] -= iRhoW[idx(i, j)] / (kDx * kDx) * (m_BC->m_BC_DirichletConstantPW);
 		}
-		else if (i == kNumBCGrid && m_BC->m_BC_PW == BC::PERIODIC) {
+		else if (i == kNumBCGrid && m_BC->m_BC_PW == BC2D::PERIODIC) {
 			AValsDic["W"] = iRhoW[idx(kNumBCGrid + kNx - 1, j)];
 		}
 
 		// East boundary
-		if (i == kNumBCGrid + kNx - 1 && m_BC->m_BC_PE == BC::NEUMANN) {
+		if (i == kNumBCGrid + kNx - 1 && m_BC->m_BC_PE == BC2D::NEUMANN) {
 			AColsDic["E"] = -1;
 			AValsDic["E"] = 0.0;
 			AValsDic["C"] += iRhoE[idx(i, j)] / (kDx * kDx);
 		}
-		else if (i == kNumBCGrid + kNx - 1 && m_BC->m_BC_PE == BC::DIRICHLET) {
+		else if (i == kNumBCGrid + kNx - 1 && m_BC->m_BC_PE == BC2D::DIRICHLET) {
 			AColsDic["E"] = -1;
 			AValsDic["E"] = 0.0;
 			AValsDic["C"] -= iRhoE[idx(i, j)] / (kDx * kDx);
 			rhs[idx(i, j)] -= iRhoE[idx(i, j)] / (kDx * kDx) * (m_BC->m_BC_DirichletConstantPE);
 		}
-		else if (i == kNumBCGrid + kNx - 1 && m_BC->m_BC_PE == BC::PERIODIC) {
+		else if (i == kNumBCGrid + kNx - 1 && m_BC->m_BC_PE == BC2D::PERIODIC) {
 			AValsDic["E"] = iRhoE[idx(kNumBCGrid, j)];
 		}
 
-		if (j == kNumBCGrid && m_BC->m_BC_PS == BC::NEUMANN) {
+		if (j == kNumBCGrid && m_BC->m_BC_PS == BC2D::NEUMANN) {
 			AColsDic["S"] = -1;
 			AValsDic["S"] = 0.0;
 			AValsDic["C"] += iRhoS[idx(i, j)] / (kDy * kDy);
 		}
-		else if (j == kNumBCGrid && m_BC->m_BC_PS == BC::DIRICHLET) {
+		else if (j == kNumBCGrid && m_BC->m_BC_PS == BC2D::DIRICHLET) {
 			AColsDic["S"] = -1;
 			AValsDic["S"] = 0.0;
 			AValsDic["C"] -= iRhoS[idx(i, j)] / (kDy * kDy);
 			rhs[idx(i, j)] -= iRhoS[idx(i, j)] / (kDy * kDy) * (m_BC->m_BC_DirichletConstantPS);
 		}
-		else if (j == kNumBCGrid && m_BC->m_BC_PS == BC::PERIODIC) {
+		else if (j == kNumBCGrid && m_BC->m_BC_PS == BC2D::PERIODIC) {
 			AValsDic["S"] = iRhoS[idx(i, kNumBCGrid + kNy - 1)];
 		}
 
-		if (j == kNumBCGrid + kNy - 1 && m_BC->m_BC_PN == BC::NEUMANN) {
+		if (j == kNumBCGrid + kNy - 1 && m_BC->m_BC_PN == BC2D::NEUMANN) {
 			AColsDic["N"] = -1;
 			AValsDic["N"] = 0.0;
 			AValsDic["C"] += iRhoN[idx(i, j)] / (kDy * kDy);
 		}
-		else if (j == kNumBCGrid + kNy - 1 && m_BC->m_BC_PN == BC::DIRICHLET) {
+		else if (j == kNumBCGrid + kNy - 1 && m_BC->m_BC_PN == BC2D::DIRICHLET) {
 			AColsDic["N"] = -1;
 			AValsDic["N"] = 0.0;
 			AValsDic["C"] -= iRhoN[idx(i, j)] / (kDy * kDy);
 			rhs[idx(i, j)] -= iRhoN[idx(i, j)] / (kDy * kDy) * (m_BC->m_BC_DirichletConstantPN);
 		}
-		else if (j == kNumBCGrid + kNy - 1 && m_BC->m_BC_PN == BC::PERIODIC) {
+		else if (j == kNumBCGrid + kNy - 1 && m_BC->m_BC_PN == BC2D::PERIODIC) {
 			AValsDic["N"] = iRhoN[idx(i, kNumBCGrid + kNy + 1)];
 		}
 		// add non zero values to AVals and ACols
@@ -2655,13 +2726,15 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 	outF.open(fname.c_str(), std::ios::app);
 	
 	outF << std::string("ZONE T=\"") << m_iter
-		<< std::string("\", I=") << kNx << std::string(", J=") << kNy
+		<< std::string("\", I=") << kNx + 6 << std::string(", J=") << kNy + 6
 		<< std::string(", SOLUTIONTIME=") << m_iter * 0.1
 		<< std::string(", STRANDID=") << m_iter + 1
 		<< std::endl;
 
-	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+	// for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
+	// 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+	for (int j = 0; j < kNy + 2 * kNumBCGrid; j++)
+				for (int i = 0; i < kNx + 2 * kNumBCGrid; i++)
 			outF << kBaseX + static_cast<double>(i + 0.5 - kNumBCGrid) * kDx << std::string(",")
 			<< kBaseY + static_cast<double>(j + 0.5 - kNumBCGrid) * kDy << std::string(",")
 			<< static_cast<double>(FWVec[idx(i, j)]) << std::string(",")
@@ -2844,7 +2917,9 @@ int MACSolver2D::UpdateVel(std::vector<double>& u, std::vector<double>& v,
 		kappaEff = m_kappa[idx(i, j)] * theta + m_kappa[idx(i - 1, j)] * (1.0 - theta);
 		
 		// pressure jump = Liquid - Gas = -sigma * kappa - [\rho] * normal * gvector
-		u[idx(i, j)] = (-kSigma * kappaEff) * (H[idx(i, j)] - H[idx(i - 1, j)]);
+		// + level set : H = 1, - level set : H = 0; 
+		// Bubble : (+ls)-kRhoL-Gas, (-ls)-kRhoH-Liquid
+		u[idx(i, j)] = m_dt * (-kSigma * kappaEff) * (H[idx(i, j)] - H[idx(i - 1, j)]);
 		u[idx(i, j)] *= iRhoEff / kDx;
 
 		/*
@@ -2932,9 +3007,10 @@ int MACSolver2D::UpdateVel(std::vector<double>& u, std::vector<double>& v,
 		kappaEff = m_kappa[idx(i, j)] * theta + m_kappa[idx(i, j - 1)] * (1.0 - theta);
 		
 		// pressure jump = Liquid - Gas = -sigma * kappa - [\rho] * normal * gvector
-		// droplet : kRhoH - Liquid, kRhoL - Gas
-		// bubble : kRhoH - Liquid, kRhoL - Gas
-		v[idx(i, j)] = (-kSigma * kappaEff) * (H[idx(i, j)] - H[idx(i, j - 1)]);
+		// + level set : H = 1, - level set : H = 0; 
+		// Bubble : (+ls)-kRhoL-Gas, (-ls)-kRhoH-Liquid
+
+		v[idx(i, j)] = m_dt * (-kSigma * kappaEff) * (H[idx(i, j)] - H[idx(i, j - 1)]);
 		v[idx(i, j)] *= iRhoEff / kDy;
 
 		/*
@@ -2986,6 +3062,7 @@ int MACSolver2D::UpdateVel(std::vector<double>& u, std::vector<double>& v,
 		*/
 		v[idx(i, j)] += vs[idx(i, j)] - iRhoEff * (ps[idx(i, j)] - ps[idx(i, j - 1)]) / kDy;
 	}
+	
 	/*
 	std::ofstream outF;
 	std::string fname("VUpdate_ASCII.plt");
@@ -3053,7 +3130,7 @@ double MACSolver2D::UpdateDt(const std::vector<double>& u, const std::vector<dou
 	
 	Cefl = uAMax / kDx + vAMax / kDy;
 	Vefl = std::max(kMuH / kRhoH, kMuL / kRhoL) * (2.0 / (kDx * kDx) + 2.0 / (kDy * kDy));
-	Gefl = std::max(std::sqrt(std::fabs(kGY) / kDy), std::sqrt(std::fabs(kGX) / kDx));
+	Gefl = std::max(std::sqrt(std::fabs(kG) / kDy), std::sqrt(std::fabs(kG) / kDx));
 	
 	dt = std::min(dt,
 		1.0 / (0.5 * (Cefl + Vefl +

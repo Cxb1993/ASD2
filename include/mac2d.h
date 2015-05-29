@@ -33,18 +33,19 @@ public:
 	const int kNx, kNy, kNumBCGrid;
 	const double kBaseX, kBaseY, kLenX, kLenY, kDx, kDy;
 
-	const double kRe, kWe, kFrX, kFrY;
-	const double kLScale, kUScale, kSigma, kGX, kGY, kMuScale, kRhoScale;
+	const double kRe, kWe, kFr;
+	const double kLScale, kUScale, kSigma, kG, kMuScale, kRhoScale;
 	// *H : Heavy fluid(such as liquid), *L : light fluid (such as gas)
 	const double kRhoH, kRhoL, kRhoRatio;
 	const double kMuH, kMuL, kMuRatio;
 	
 	const int kMaxIter, kNIterSkip;
-	const TimeOrderEnum kTimeOrder;
+	const TIMEORDERENUM kTimeOrder;
 	const double kCFL, kMaxTime;
 	const bool kWriteVTK;
 	POISSONTYPE m_PoissonSolverType;
 	PLTTYPE m_PLTType;
+	GAXISENUM kGAxis;
 
 	const double kEps_div = 1.0e-6;
 
@@ -63,17 +64,22 @@ public:
 
 	// Jump condition
 	std::vector<double> m_J11, m_J12, m_J21, m_J22;
+	
+	// normal vector & tangent vector
+	std::vector<double> m_nx, m_ny;
+	std::vector<double> m_t1x, m_t1y, m_t1z;
+	std::vector<double> m_t2x, m_t2y, m_t2z;
 
 	MACSolver2D();
-	MACSolver2D(double Re, double We, double FrX, double FrY,
+	MACSolver2D(double Re, double We, double Fr, GAXISENUM GAxis,
 		double L, double U, double sigma, double densityRatio, double viscosityRatio, double rhoI, double mu1,
 		int nx, int ny, double baseX, double baseY, double lenX, double lenY, 
-		TimeOrderEnum RKOrder, double cfl, double maxtime, int maxiter, int niterskip,
+		TIMEORDERENUM RKOrder, double cfl, double maxtime, int maxiter, int niterskip,
 		int num_bc_grid, bool writeVTK);
-	MACSolver2D(double rhoI, double rhoO, double muI, double muO, double gConstantX, double gConstantY,
+	MACSolver2D(double rhoI, double rhoO, double muI, double muO, double gConstant, GAXISENUM GAxis,
 		double L, double U, double sigma,
 		int nx, int ny, double baseX, double baseY, double lenX, double lenY, 
-		TimeOrderEnum RKOrder, double cfl, double maxtime, int maxiter, int niterskip,
+		TIMEORDERENUM RKOrder, double cfl, double maxtime, int maxiter, int niterskip,
 		int num_bc_grid, bool writeVTK);
 	~MACSolver2D();
 
@@ -82,6 +88,11 @@ public:
 	// Related to Level Set Related
 	std::vector<double> UpdateSmoothHeavisideFunc(const std::vector<double>& ls);
 	std::vector<double> UpdateHeavisideFunc(const std::vector<double>& ls);
+	int UpdateNTK(const std::shared_ptr<LevelSetSolver2D>& LSolver, const std::vector<double>& ls,
+		std::tuple<std::vector<double>&, std::vector<double>&> normalVec,
+		std::tuple<std::vector<double>&, std::vector<double>&, std::vector<double>&> t1Vec,
+		std::tuple<std::vector<double>&, std::vector<double>&, std::vector<double>&> t2Vec,
+		std::vector<double>& kappa);
 	int UpdateKappa(const std::vector<double>& ls);
 	int UpdateJumpCond(const std::vector<double>& u, const std::vector<double>& v, 
 		const std::vector<double>& ls);
