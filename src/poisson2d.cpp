@@ -100,32 +100,32 @@ int PoissonSolver2D::MKL_2FUniform_2D(std::vector<double>& ps, const std::vector
 	MKL_INT ipar[128];
 	DFTI_DESCRIPTOR_HANDLE xhandle = 0;
 	char *BCtype = new char[5];
-	if (PBC->m_BC_PW == BC::DIRICHLET)
+	if (PBC->m_BC_PW == BC2D::DIRICHLET)
 		BCtype[0] = 'D';
-	else if (PBC->m_BC_PW == BC::NEUMANN)
+	else if (PBC->m_BC_PW == BC2D::NEUMANN)
 		BCtype[0] = 'N';
-	else if (PBC->m_BC_PW == BC::PERIODIC)
+	else if (PBC->m_BC_PW == BC2D::PERIODIC)
 		BCtype[0] = 'P';
 
-	if (PBC->m_BC_PE == BC::DIRICHLET)
+	if (PBC->m_BC_PE == BC2D::DIRICHLET)
 		BCtype[1] = 'D';
-	else if (PBC->m_BC_PE == BC::NEUMANN)
+	else if (PBC->m_BC_PE == BC2D::NEUMANN)
 		BCtype[1] = 'N';
-	else if (PBC->m_BC_PE == BC::PERIODIC)
+	else if (PBC->m_BC_PE == BC2D::PERIODIC)
 		BCtype[1] = 'P';
 
-	if (PBC->m_BC_PS == BC::DIRICHLET)
+	if (PBC->m_BC_PS == BC2D::DIRICHLET)
 		BCtype[2] = 'D';
-	else if (PBC->m_BC_PS == BC::NEUMANN)
+	else if (PBC->m_BC_PS == BC2D::NEUMANN)
 		BCtype[2] = 'N';
-	else if (PBC->m_BC_PS == BC::PERIODIC)
+	else if (PBC->m_BC_PS == BC2D::PERIODIC)
 		BCtype[2] = 'P';
 
-	if (PBC->m_BC_PN == BC::DIRICHLET)
+	if (PBC->m_BC_PN == BC2D::DIRICHLET)
 		BCtype[3] = 'D';
-	else if (PBC->m_BC_PN == BC::NEUMANN)
+	else if (PBC->m_BC_PN == BC2D::NEUMANN)
 		BCtype[3] = 'N';
-	else if (PBC->m_BC_PN == BC::PERIODIC)
+	else if (PBC->m_BC_PN == BC2D::PERIODIC)
 		BCtype[3] = 'P';
 
 	// insert null character 
@@ -156,10 +156,10 @@ int PoissonSolver2D::MKL_2FUniform_2D(std::vector<double>& ps, const std::vector
 		bd_ax[j] = 0.0;
 		bd_bx[j] = 0.0;
 
-		if (PBC->m_BC_PW == BC::DIRICHLET)
+		if (PBC->m_BC_PW == BC2D::DIRICHLET)
 			bd_ax[j] = 2.0 * PBC->m_BC_DirichletConstantPW
 			- ps[idx(kNumBCGrid, j + kNumBCGrid)];
-		if (PBC->m_BC_PE == BC::DIRICHLET)
+		if (PBC->m_BC_PE == BC2D::DIRICHLET)
 			bd_bx[j] = 2.0 * PBC->m_BC_DirichletConstantPE
 			- ps[idx(kNx + kNumBCGrid, j + kNumBCGrid)];
 	}
@@ -171,10 +171,10 @@ int PoissonSolver2D::MKL_2FUniform_2D(std::vector<double>& ps, const std::vector
 		bd_ay[i] = 0.0;
 		bd_by[i] = 0.0;
 
-		if (PBC->m_BC_PS == BC::DIRICHLET)
+		if (PBC->m_BC_PS == BC2D::DIRICHLET)
 			bd_ay[i] = 2.0 * PBC->m_BC_DirichletConstantPS
 			- ps[idx(i + kNumBCGrid, kNumBCGrid)];
-		if (PBC->m_BC_PN == BC::DIRICHLET)
+		if (PBC->m_BC_PN == BC2D::DIRICHLET)
 			bd_by[i] = 2.0 * PBC->m_BC_DirichletConstantPN
 			- ps[idx(i + kNumBCGrid, kNy + kNumBCGrid)];
 	}
