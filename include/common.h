@@ -1,9 +1,11 @@
 #ifndef __COMMON_H_
 #define __COMMON_H_
 
-enum class TimeOrderEnum { EULER, RK2, RK3 };
-enum class BC { PERIODIC, NEUMANN, DIRICHLET, CUSTOM };
+enum class TIMEORDERENUM { EULER, RK2, RK3 };
+enum class BC2D { PERIODIC, NEUMANN, DIRICHLET, AXISSYM, CUSTOM };
+enum class BC3D { PERIODIC, NEUMANN, DIRICHLET, CUSTOM };
 enum class PLTTYPE { ASCII, BINARY, BOTH, NONE };
 enum class POISSONTYPE { MKL, CG, GS, BICGSTAB, ICPCG };
+enum class GAXISENUM { X, Y, Z };
 
 #endif __COMMON_H_

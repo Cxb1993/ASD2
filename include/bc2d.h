@@ -26,9 +26,9 @@ public:
 
 	// Boundary Condition Variables
 	
-	BC m_BC_UW, m_BC_UE, m_BC_US, m_BC_UN;
-	BC m_BC_VW, m_BC_VE, m_BC_VS, m_BC_VN;
-	BC m_BC_PW, m_BC_PE, m_BC_PS, m_BC_PN;
+	BC2D m_BC_UW, m_BC_UE, m_BC_US, m_BC_UN;
+	BC2D m_BC_VW, m_BC_VE, m_BC_VS, m_BC_VN;
+	BC2D m_BC_PW, m_BC_PE, m_BC_PS, m_BC_PN;
 	double m_BC_DirichletConstantUW, m_BC_DirichletConstantUE, m_BC_DirichletConstantUS, m_BC_DirichletConstantUN;
 	double m_BC_DirichletConstantVW, m_BC_DirichletConstantVE, m_BC_DirichletConstantVS, m_BC_DirichletConstantVN;
 	double m_BC_DirichletConstantPW, m_BC_DirichletConstantPE, m_BC_DirichletConstantPS, m_BC_DirichletConstantPN;

@@ -16,44 +16,44 @@ int BoundaryCondition2D::SetBC_U_2D(std::string BC_W, std::string BC_E, std::str
 	std::transform(BC_N.begin(), BC_N.end(), BC_N.begin(), ::tolower);
 	
 	if (BC_W == "periodic")
-		m_BC_UW = BC::PERIODIC;
+		m_BC_UW = BC2D::PERIODIC;
 	else if (BC_W == "neumann")
-		m_BC_UW = BC::NEUMANN;
+		m_BC_UW = BC2D::NEUMANN;
 	else if (BC_W == "wall" || BC_W == "dirichlet")
-		m_BC_UW = BC::DIRICHLET;
+		m_BC_UW = BC2D::DIRICHLET;
 	// not supported
 	else
-		m_BC_UW = BC::CUSTOM;
+		m_BC_UW = BC2D::CUSTOM;
 
 	if (BC_E == "periodic")
-		m_BC_UE = BC::PERIODIC;
+		m_BC_UE = BC2D::PERIODIC;
 	else if (BC_E == "neumann")
-		m_BC_UE = BC::NEUMANN;
+		m_BC_UE = BC2D::NEUMANN;
 	else if (BC_E == "wall" || BC_E == "dirichlet")
-		m_BC_UE = BC::DIRICHLET;
+		m_BC_UE = BC2D::DIRICHLET;
 	// not supported
 	else
-		m_BC_UE = BC::CUSTOM;
+		m_BC_UE = BC2D::CUSTOM;
 
 	if (BC_S == "periodic")
-		m_BC_US = BC::PERIODIC;
+		m_BC_US = BC2D::PERIODIC;
 	else if (BC_S == "neumann")
-		m_BC_US = BC::NEUMANN;
+		m_BC_US = BC2D::NEUMANN;
 	else if (BC_S == "wall" || BC_S == "dirichlet")
-		m_BC_US = BC::DIRICHLET;
+		m_BC_US = BC2D::DIRICHLET;
 	// not supported
 	else
-		m_BC_US = BC::CUSTOM;
+		m_BC_US = BC2D::CUSTOM;
 
 	if (BC_N == "periodic")
-		m_BC_UN = BC::PERIODIC;
+		m_BC_UN = BC2D::PERIODIC;
 	else if (BC_N == "neumann")
-		m_BC_UN = BC::NEUMANN;
+		m_BC_UN = BC2D::NEUMANN;
 	else if (BC_N == "wall" || BC_N == "dirichlet")
-		m_BC_UN = BC::DIRICHLET;
+		m_BC_UN = BC2D::DIRICHLET;
 	// not supported
 	else
-		m_BC_UN = BC::CUSTOM;
+		m_BC_UN = BC2D::CUSTOM;
 
 	return 0;
 }
@@ -75,44 +75,44 @@ int BoundaryCondition2D::SetBC_V_2D(std::string BC_W, std::string BC_E, std::str
 	std::transform(BC_N.begin(), BC_N.end(), BC_N.begin(), ::tolower);
 	
 	if (BC_W == "periodic")
-		m_BC_VW = BC::PERIODIC;
+		m_BC_VW = BC2D::PERIODIC;
 	else if (BC_W == "neumann")
-		m_BC_VW = BC::NEUMANN;
+		m_BC_VW = BC2D::NEUMANN;
 	else if (BC_W == "wall" || BC_W == "dirichlet")
-		m_BC_VW = BC::DIRICHLET;
+		m_BC_VW = BC2D::DIRICHLET;
 	// not supported
 	else
-		m_BC_VW = BC::CUSTOM;
+		m_BC_VW = BC2D::CUSTOM;
 
 	if (BC_E == "periodic")
-		m_BC_VE = BC::PERIODIC;
+		m_BC_VE = BC2D::PERIODIC;
 	else if (BC_E == "neumann")
-		m_BC_VE = BC::NEUMANN;
+		m_BC_VE = BC2D::NEUMANN;
 	else if (BC_E == "wall" || BC_E == "dirichlet")
-		m_BC_VE = BC::DIRICHLET;
+		m_BC_VE = BC2D::DIRICHLET;
 	// not supported
 	else
-		m_BC_VE = BC::CUSTOM;
+		m_BC_VE = BC2D::CUSTOM;
 
 	if (BC_S == "periodic")
-		m_BC_VS = BC::PERIODIC;
+		m_BC_VS = BC2D::PERIODIC;
 	else if (BC_S == "neumann")
-		m_BC_VS = BC::NEUMANN;
+		m_BC_VS = BC2D::NEUMANN;
 	else if (BC_S == "wall" || BC_S == "dirichlet")
-		m_BC_VS = BC::DIRICHLET;
+		m_BC_VS = BC2D::DIRICHLET;
 	// not supported
 	else
-		m_BC_VS = BC::CUSTOM;
+		m_BC_VS = BC2D::CUSTOM;
 
 	if (BC_N == "periodic")
-		m_BC_VN = BC::PERIODIC;
+		m_BC_VN = BC2D::PERIODIC;
 	else if (BC_N == "neumann")
-		m_BC_VN = BC::NEUMANN;
+		m_BC_VN = BC2D::NEUMANN;
 	else if (BC_N == "wall" || BC_N == "dirichlet")
-		m_BC_VN = BC::DIRICHLET;
+		m_BC_VN = BC2D::DIRICHLET;
 	// not supported
 	else
-		m_BC_VN = BC::CUSTOM;
+		m_BC_VN = BC2D::CUSTOM;
 
 	return 0;
 }
@@ -133,44 +133,44 @@ int BoundaryCondition2D::SetBC_P_2D(std::string BC_W, std::string BC_E,	std::str
 	std::transform(BC_S.begin(), BC_S.end(), BC_S.begin(), ::tolower);
 	std::transform(BC_N.begin(), BC_N.end(), BC_N.begin(), ::tolower);
 	if (BC_W == "periodic")
-		m_BC_PW = BC::PERIODIC;
+		m_BC_PW = BC2D::PERIODIC;
 	else if (BC_W == "neumann")
-		m_BC_PW = BC::NEUMANN;
+		m_BC_PW = BC2D::NEUMANN;
 	else if (BC_W == "wall" || BC_W == "dirichlet")
-		m_BC_PW = BC::DIRICHLET;
+		m_BC_PW = BC2D::DIRICHLET;
 	// not supported
 	else
-		m_BC_PW = BC::CUSTOM;
+		m_BC_PW = BC2D::CUSTOM;
 
 	if (BC_E == "periodic")
-		m_BC_PE = BC::PERIODIC;
+		m_BC_PE = BC2D::PERIODIC;
 	else if (BC_E == "neumann")
-		m_BC_PE = BC::NEUMANN;
+		m_BC_PE = BC2D::NEUMANN;
 	else if (BC_E == "wall" || BC_E == "dirichlet")
-		m_BC_PE = BC::DIRICHLET;
+		m_BC_PE = BC2D::DIRICHLET;
 	// not supported
 	else
-		m_BC_PE = BC::CUSTOM;
+		m_BC_PE = BC2D::CUSTOM;
 
 	if (BC_S == "periodic")
-		m_BC_PS = BC::PERIODIC;
+		m_BC_PS = BC2D::PERIODIC;
 	else if (BC_S == "neumann")
-		m_BC_PS = BC::NEUMANN;
+		m_BC_PS = BC2D::NEUMANN;
 	else if (BC_S == "wall" || BC_S == "dirichlet")
-		m_BC_PS = BC::DIRICHLET;
+		m_BC_PS = BC2D::DIRICHLET;
 	// not supported
 	else
-		m_BC_PS = BC::CUSTOM;
+		m_BC_PS = BC2D::CUSTOM;
 
 	if (BC_N == "periodic")
-		m_BC_PN = BC::PERIODIC;
+		m_BC_PN = BC2D::PERIODIC;
 	else if (BC_N == "neumann")
-		m_BC_PN = BC::NEUMANN;
+		m_BC_PN = BC2D::NEUMANN;
 	else if (BC_N == "wall" || BC_N == "dirichlet")
-		m_BC_PN = BC::DIRICHLET;
+		m_BC_PN = BC2D::DIRICHLET;
 	// not supported
 	else
-		m_BC_PN = BC::CUSTOM;
+		m_BC_PN = BC2D::CUSTOM;
 
 	return 0;
 }
@@ -185,110 +185,110 @@ int BoundaryCondition2D::ApplyBC_P_2D(std::vector<double>& arr) {
 }
 
 void BoundaryCondition2D::BC_UW(std::vector<double>& arr) {
-	if (m_BC_UW == BC::PERIODIC)
+	if (m_BC_UW == BC2D::PERIODIC)
 		BC_PeriodicUW(arr);
-	else if (m_BC_UW == BC::NEUMANN)
+	else if (m_BC_UW == BC2D::NEUMANN)
 		BC_NeumannUW(arr);
-	else if (m_BC_UW == BC::DIRICHLET)
+	else if (m_BC_UW == BC2D::DIRICHLET)
 		BC_DirichletUW(arr);
 }
 
 void BoundaryCondition2D::BC_UE(std::vector<double>& arr) {
-	if (m_BC_UE == BC::PERIODIC)
+	if (m_BC_UE == BC2D::PERIODIC)
 		BC_PeriodicUE(arr);
-	else if (m_BC_UE == BC::NEUMANN)
+	else if (m_BC_UE == BC2D::NEUMANN)
 		BC_NeumannUE(arr);
-	else if (m_BC_UE == BC::DIRICHLET)
+	else if (m_BC_UE == BC2D::DIRICHLET)
 		BC_DirichletUE(arr);
 }
 
 void BoundaryCondition2D::BC_US(std::vector<double>& arr) {
-	if (m_BC_US == BC::PERIODIC)
+	if (m_BC_US == BC2D::PERIODIC)
 		BC_PeriodicUS(arr);
-	else if (m_BC_US == BC::NEUMANN)
+	else if (m_BC_US == BC2D::NEUMANN)
 		BC_NeumannUS(arr);
-	else if (m_BC_US == BC::DIRICHLET)
+	else if (m_BC_US == BC2D::DIRICHLET)
 		BC_DirichletUS(arr);
 }
 
 void BoundaryCondition2D::BC_UN(std::vector<double>& arr) {
-	if (m_BC_UN == BC::PERIODIC)
+	if (m_BC_UN == BC2D::PERIODIC)
 		BC_PeriodicUN(arr);
-	else if (m_BC_UN == BC::NEUMANN)
+	else if (m_BC_UN == BC2D::NEUMANN)
 		BC_NeumannUN(arr);
-	else if (m_BC_UN == BC::DIRICHLET)
+	else if (m_BC_UN == BC2D::DIRICHLET)
 		BC_DirichletUN(arr);
 }
 
 void BoundaryCondition2D::BC_VW(std::vector<double>& arr) {
-	if (m_BC_VW == BC::PERIODIC)
+	if (m_BC_VW == BC2D::PERIODIC)
 		BC_PeriodicVW(arr);
-	else if (m_BC_VW == BC::NEUMANN)
+	else if (m_BC_VW == BC2D::NEUMANN)
 		BC_NeumannVW(arr);
-	else if (m_BC_VW == BC::DIRICHLET)
+	else if (m_BC_VW == BC2D::DIRICHLET)
 		BC_DirichletVW(arr);
 }
 
 void BoundaryCondition2D::BC_VE(std::vector<double>& arr) {
-	if (m_BC_VE == BC::PERIODIC)
+	if (m_BC_VE == BC2D::PERIODIC)
 		BC_PeriodicVE(arr);
-	else if (m_BC_VE == BC::NEUMANN)
+	else if (m_BC_VE == BC2D::NEUMANN)
 		BC_NeumannVE(arr);
-	else if (m_BC_VE == BC::DIRICHLET)
+	else if (m_BC_VE == BC2D::DIRICHLET)
 		BC_DirichletVE(arr);
 }
 
 void BoundaryCondition2D::BC_VS(std::vector<double>& arr) {
-	if (m_BC_VS == BC::PERIODIC)
+	if (m_BC_VS == BC2D::PERIODIC)
 		BC_PeriodicVS(arr);
-	else if (m_BC_VS == BC::NEUMANN)
+	else if (m_BC_VS == BC2D::NEUMANN)
 		BC_NeumannVS(arr);
-	else if (m_BC_VS == BC::DIRICHLET)
+	else if (m_BC_VS == BC2D::DIRICHLET)
 		BC_DirichletVS(arr);
 }
 
 void BoundaryCondition2D::BC_VN(std::vector<double>& arr) {
-	if (m_BC_VN == BC::PERIODIC)
+	if (m_BC_VN == BC2D::PERIODIC)
 		BC_PeriodicVN(arr);
-	else if (m_BC_VN == BC::NEUMANN)
+	else if (m_BC_VN == BC2D::NEUMANN)
 		BC_NeumannVN(arr);
-	else if (m_BC_VN == BC::DIRICHLET)
+	else if (m_BC_VN == BC2D::DIRICHLET)
 		BC_DirichletVN(arr);
 }
 
 void BoundaryCondition2D::BC_PW(std::vector<double>& arr) {
-	if (m_BC_PW == BC::PERIODIC)
+	if (m_BC_PW == BC2D::PERIODIC)
 		BC_PeriodicPW(arr);
-	else if (m_BC_PW == BC::NEUMANN)
+	else if (m_BC_PW == BC2D::NEUMANN)
 		BC_NeumannPW(arr);
-	else if (m_BC_PW == BC::DIRICHLET)
+	else if (m_BC_PW == BC2D::DIRICHLET)
 		BC_DirichletPW(arr);
 }
 
 void BoundaryCondition2D::BC_PE(std::vector<double>& arr) {
-	if (m_BC_PE == BC::PERIODIC)
+	if (m_BC_PE == BC2D::PERIODIC)
 		BC_PeriodicPE(arr);
-	else if (m_BC_PE == BC::NEUMANN)
+	else if (m_BC_PE == BC2D::NEUMANN)
 		BC_NeumannPE(arr);
-	else if (m_BC_PE == BC::DIRICHLET)
+	else if (m_BC_PE == BC2D::DIRICHLET)
 		BC_DirichletPE(arr);
 }
 
 void BoundaryCondition2D::BC_PS(std::vector<double>& arr) {
-	if (m_BC_PS == BC::PERIODIC)
+	if (m_BC_PS == BC2D::PERIODIC)
 		BC_PeriodicPS(arr);
-	else if (m_BC_PS == BC::NEUMANN)
+	else if (m_BC_PS == BC2D::NEUMANN)
 		BC_NeumannPS(arr);
-	else if (m_BC_PS == BC::DIRICHLET)
+	else if (m_BC_PS == BC2D::DIRICHLET)
 		BC_DirichletPS(arr);
 }
 
 void BoundaryCondition2D::BC_PN(std::vector<double>& arr) {
-	if (m_BC_PN == BC::PERIODIC)
+	if (m_BC_PN == BC2D::PERIODIC)
 		BC_PeriodicPN(arr);
-	else if (m_BC_PN == BC::NEUMANN)
+	else if (m_BC_PN == BC2D::NEUMANN)
 		BC_NeumannPN(arr);
-	else if (m_BC_PN == BC::DIRICHLET)
+	else if (m_BC_PN == BC2D::DIRICHLET)
 		BC_DirichletPN(arr);
 }
 
@@ -301,7 +301,7 @@ void BoundaryCondition2D::BC_PeriodicUW(std::vector<double>& arr) {
 void BoundaryCondition2D::BC_PeriodicUE(std::vector<double>& arr) {
 	for (int i = 0; i < kNumBCGrid; i++)
 		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-			arr[idx(i, j)] = arr[idx(kNx - 1 + i, j)];
+			arr[idx(kNx + i + kNumBCGrid, j)] = arr[idx(i + kNumBCGrid, j)];
 }
 
 void BoundaryCondition2D::BC_PeriodicUS(std::vector<double>& arr) {
@@ -343,7 +343,7 @@ void BoundaryCondition2D::BC_NeumannUS(std::vector<double>& arr) {
 void BoundaryCondition2D::BC_NeumannUN(std::vector<double>& arr) {
 	for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
 		for (int j = 0; j < kNumBCGrid; j++)
-			arr[idx(i, kNy + kNumBCGrid - j - 1)] = arr[idx(i, kNy + j)];
+			arr[idx(i, kNy + kNumBCGrid * 2 - j - 1)] = arr[idx(i, kNy + j)];
 }
 
 // Prescribed bounadry condition (Dirichlet) for U grid
@@ -411,13 +411,13 @@ void BoundaryCondition2D::BC_PeriodicVE(std::vector<double>& arr) {
 void BoundaryCondition2D::BC_PeriodicVS(std::vector<double>& arr) {
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 		for (int j = 0; j <= kNumBCGrid; j++)
-			arr[idx(i, j)] = arr[idx(kNx + i, j)];
+			arr[idx(i, j)] = arr[idx(i, kNy - 1 + j)];
 }
 
 void BoundaryCondition2D::BC_PeriodicVN(std::vector<double>& arr) {
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 		for (int j = 0; j < kNumBCGrid; j++)
-			arr[idx(i, kNy + j + kNumBCGrid)] = arr[idx(i, j + kNumBCGrid + 1)];
+			arr[idx(i, kNy + j + kNumBCGrid)] = arr[idx(i, j + kNumBCGrid)];
 }
 
 void BoundaryCondition2D::BC_NeumannVW(std::vector<double>& arr) {
