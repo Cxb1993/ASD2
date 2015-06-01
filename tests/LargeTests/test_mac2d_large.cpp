@@ -63,10 +63,10 @@ int MAC2DTest_CavityFlow() {
 
 	for (int i = 0; i < nx + 2 * num_bc_grid; i++)
 	for (int j = 0; j < ny + 2 * num_bc_grid; j++) {
-		MSolver->m_u[idx3(ny, i, j)] = 0.0;
-		MSolver->m_v[idx3(ny, i, j)] = 0.0;
-		MSolver->m_p[idx3(ny, i, j)] = 0.0;
-		MSolver->m_ps[idx3(ny, i, j)] = 0.0;
+		MSolver->m_u[idx3_2D(ny, i, j)] = 0.0;
+		MSolver->m_v[idx3_2D(ny, i, j)] = 0.0;
+		MSolver->m_p[idx3_2D(ny, i, j)] = 0.0;
+		MSolver->m_ps[idx3_2D(ny, i, j)] = 0.0;
 	}
 
 	MSolver->ApplyBC_U_2D(MSolver->m_u);
@@ -86,7 +86,7 @@ int MAC2DTest_CavityFlow() {
 		x = baseX + (i + 0.5 - num_bc_grid) * dx;
 		y = baseY + (j + 0.5 - num_bc_grid) * dy;
 
-		ls[idx3(ny, i, j)] = 1.0;
+		ls[idx3_2D(ny, i, j)] = 1.0;
 	}
 	LSolver->ApplyBC_P_2D(ls);
 	lsB = ls;
@@ -231,10 +231,10 @@ int MAC2DTest_StationaryBubble() {
 
 	for (int i = 0; i < nx + 2 * num_bc_grid; i++)
 	for (int j = 0; j < ny + 2 * num_bc_grid; j++) {
-		MSolver->m_u[idx3(ny, i, j)] = 0.0;
-		MSolver->m_v[idx3(ny, i, j)] = 0.0;
-		MSolver->m_p[idx3(ny, i, j)] = 0.0;
-		MSolver->m_ps[idx3(ny, i, j)] = 0.0;
+		MSolver->m_u[idx3_2D(ny, i, j)] = 0.0;
+		MSolver->m_v[idx3_2D(ny, i, j)] = 0.0;
+		MSolver->m_p[idx3_2D(ny, i, j)] = 0.0;
+		MSolver->m_ps[idx3_2D(ny, i, j)] = 0.0;
 	}
 
 	MSolver->ApplyBC_U_2D(MSolver->m_u);
@@ -258,7 +258,7 @@ int MAC2DTest_StationaryBubble() {
 		d = std::sqrt(std::pow(x - 0.02, 2.0) + std::pow(y - 0.02, 2.0)) - radius;
 
 		// ls - inside : -(gas), outside : +(liquid)
-		ls[idx3(ny, i, j)] = d;
+		ls[idx3_2D(ny, i, j)] = d;
 	}
 	LSolver->ApplyBC_P_2D(ls);
 	LSolver->Reinit_Sussman_2D(ls);
@@ -418,10 +418,10 @@ int MAC2DTest_SmallAirBubbleRising() {
 
 	for (int i = 0; i < nx + 2 * num_bc_grid; i++)
 	for (int j = 0; j < ny + 2 * num_bc_grid; j++) {
-		MSolver->m_u[idx3(ny, i, j)] = 0.0;
-		MSolver->m_v[idx3(ny, i, j)] = 0.0;
-		MSolver->m_p[idx3(ny, i, j)] = 0.0;
-		MSolver->m_ps[idx3(ny, i, j)] = 0.0;
+		MSolver->m_u[idx3_2D(ny, i, j)] = 0.0;
+		MSolver->m_v[idx3_2D(ny, i, j)] = 0.0;
+		MSolver->m_p[idx3_2D(ny, i, j)] = 0.0;
+		MSolver->m_ps[idx3_2D(ny, i, j)] = 0.0;
 	}
 	
 	MSolver->ApplyBC_U_2D(MSolver->m_u);
@@ -443,7 +443,7 @@ int MAC2DTest_SmallAirBubbleRising() {
 		
 		d = std::sqrt(x * x + y * y) - radius;
 		
-		ls[idx3(ny, i, j)] = -d;
+		ls[idx3_2D(ny, i, j)] = -d;
 	}
 	LSolver->ApplyBC_P_2D(ls);
 	LSolver->Reinit_Original_2D(ls);
@@ -598,10 +598,10 @@ int MAC2DTest_LargeAirBubbleRising() {
 
 	for (int i = 0; i < nx + 2 * num_bc_grid; i++)
 	for (int j = 0; j < ny + 2 * num_bc_grid; j++) {
-		MSolver->m_u[idx3(ny, i, j)] = 0.0;
-		MSolver->m_v[idx3(ny, i, j)] = 0.0;
-		MSolver->m_p[idx3(ny, i, j)] = 0.0;
-		MSolver->m_ps[idx3(ny, i, j)] = 0.0;
+		MSolver->m_u[idx3_2D(ny, i, j)] = 0.0;
+		MSolver->m_v[idx3_2D(ny, i, j)] = 0.0;
+		MSolver->m_p[idx3_2D(ny, i, j)] = 0.0;
+		MSolver->m_ps[idx3_2D(ny, i, j)] = 0.0;
 	}
 
 	MSolver->ApplyBC_U_2D(MSolver->m_u);
@@ -623,7 +623,7 @@ int MAC2DTest_LargeAirBubbleRising() {
 
 		d = std::sqrt(x * x + y * y) - radius;
 
-		ls[idx3(ny, i, j)] = -d;
+		ls[idx3_2D(ny, i, j)] = -d;
 	}
 	LSolver->ApplyBC_P_2D(ls);
 	
@@ -783,10 +783,10 @@ int MAC2DTest_TaylorInstability() {
 
 	for (int i = 0; i < nx + 2 * num_bc_grid; i++)
 	for (int j = 0; j < ny + 2 * num_bc_grid; j++) {
-		MSolver->m_u[idx3(ny, i, j)] = 0.0;
-		MSolver->m_v[idx3(ny, i, j)] = 0.0;
-		MSolver->m_p[idx3(ny, i, j)] = 0.0;
-		MSolver->m_ps[idx3(ny, i, j)] = 0.0;
+		MSolver->m_u[idx3_2D(ny, i, j)] = 0.0;
+		MSolver->m_v[idx3_2D(ny, i, j)] = 0.0;
+		MSolver->m_p[idx3_2D(ny, i, j)] = 0.0;
+		MSolver->m_ps[idx3_2D(ny, i, j)] = 0.0;
 	}
 
 	MSolver->ApplyBC_U_2D(MSolver->m_u);
@@ -807,7 +807,7 @@ int MAC2DTest_TaylorInstability() {
 		x = baseX + (i + 0.5 - num_bc_grid) * dx;
 		y = baseY + (j + 0.5 - num_bc_grid) * dy;
 		
-		ls[idx3(ny, i, j)] = -y - 0.1 * cos(2.0 * M_PI * x);
+		ls[idx3_2D(ny, i, j)] = -y - 0.1 * cos(2.0 * M_PI * x);
 	}
 	LSolver->Reinit_Sussman_2D(ls);
 	LSolver->ApplyBC_P_2D(ls);

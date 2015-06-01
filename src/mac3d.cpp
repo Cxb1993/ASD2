@@ -13,7 +13,11 @@ MACSolver3D::MACSolver3D(double Re, double We, double Fr, GAXISENUM GAxis,
 	kNx(nx), kNy(ny), kNz(nz), kBaseX(baseX), kBaseY(baseY), kBaseZ(baseZ), kLenX(lenX), kLenY(lenY), kLenZ(lenZ),
 	kDx(lenX / static_cast<double>(nx)), kDy(lenY / static_cast<double>(ny)), kDz(lenZ / static_cast<double>(nz)),
 	kTimeOrder(timeOrder), kCFL(cfl), kMaxTime(maxtime), kMaxIter(maxIter), kNIterSkip(niterskip),
-	kNumBCGrid(num_bc_grid), kWriteVTK(writeVTK), kArrSize(kArrSize * (kNz + 2 * kNumBCGrid)) {
+	kNumBCGrid(num_bc_grid), kWriteVTK(writeVTK),
+	kArrSize(
+	static_cast<int64_t>(kNx + 2 * kNumBCGrid) *
+	static_cast<int64_t>(kNy + 2 * kNumBCGrid) *
+	static_cast<int64_t>(kNz + 2 * kNumBCGrid)) {
 
 	// positive level set : inside
 	// negative level set : outside
@@ -35,7 +39,11 @@ MACSolver3D::MACSolver3D(double rhoH, double rhoL, double muH, double muL, doubl
 	kNx(nx), kNy(ny), kNz(nz), kBaseX(baseX), kBaseY(baseY), kBaseZ(baseZ), kLenX(lenX), kLenY(lenY), kLenZ(lenZ),
 	kDx(lenX / static_cast<double>(nx)), kDy(lenY / static_cast<double>(ny)), kDz(lenZ / static_cast<double>(nz)),
 	kTimeOrder(timeOrder), kCFL(cfl), kMaxTime(maxtime), kMaxIter(maxIter), kNIterSkip(niterskip),
-	kNumBCGrid(num_bc_grid), kWriteVTK(writeVTK), kArrSize(kArrSize * (kNz + 2 * kNumBCGrid)) {
+	kNumBCGrid(num_bc_grid), kWriteVTK(writeVTK),
+	kArrSize(
+	static_cast<int64_t>(kNx + 2 * kNumBCGrid) *
+	static_cast<int64_t>(kNy + 2 * kNumBCGrid) *
+	static_cast<int64_t>(kNz + 2 * kNumBCGrid)) {
 
 	// positive level set : inside
 	// negative level set : outside
@@ -247,7 +255,7 @@ int MACSolver3D::UpdateKappa(const std::vector<double>& ls) {
 	const double eps = 1.0e-100;
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-	for (int k = kNumBCGrid; j < kNz + kNumBCGrid; k++) {
+	for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
 		dLSdX[idx(i, j, k)] = (ls[idx(i + 1, j, k)] - ls[idx(i - 1, j, k)]) / (2.0 * kDx);
 		dLSdY[idx(i, j, k)] = (ls[idx(i, j + 1, k)] - ls[idx(i, j - 1, k)]) / (2.0 * kDy);
 		dLSdZ[idx(i, j, k)] = (ls[idx(i, j, k + 1)] - ls[idx(i, j, k - 1)]) / (2.0 * kDz);
@@ -281,7 +289,7 @@ int MACSolver3D::UpdateKappa(const std::vector<double>& ls) {
 
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-	for (int k = kNumBCGrid; j < kNz + kNumBCGrid; k++) {
+	for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
 		m_kappa[idx(i, j, k)]
 			= -(dLSdX[idx(i, j, k)] * dLSdX[idx(i, j, k)] * (ls[idx(i, j - 1, k)] - 2.0 * ls[idx(i, j, k)] + ls[idx(i, j + 1, k)]) / (kDy * kDy) // phi^2_x \phi_yy
 			- 2.0 * dLSdX[idx(i, j, k)] * dLSdY[idx(i, j, k)] * (ls[idx(i + 1, j + 1, k)] - ls[idx(i - 1, j + 1, k)] - ls[idx(i + 1, j - 1, k)] + ls[idx(i - 1, j - 1, k)]) / (4.0 * kDx * kDy) //2 \phi_x \phi_y \phi_yx
@@ -327,7 +335,7 @@ std::vector<double> MACSolver3D::UpdateFU(const std::shared_ptr<LevelSetSolver3D
 	double theta = 0.0, iRhoEff = 0.0;
 	for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
 	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-	for (int k = kNumBCGrid; j < kNz + kNumBCGrid; k++) {
+	for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
 		rhsU[idx(i, j, k)] = -cU[idx(i, j, k)] + vU[idx(i, j, k)] + gU[idx(i, j, k)];
 	}
 	
@@ -358,7 +366,7 @@ std::vector<double> MACSolver3D::UpdateFV(const std::shared_ptr<LevelSetSolver3D
 	double theta = 0.0, iRhoEff = 0.0;
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 	for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++)
-	for (int k = kNumBCGrid; j < kNz + kNumBCGrid; k++) {
+	for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
 		rhsV[idx(i, j, k)] = -cV[idx(i, j, k)] + vV[idx(i, j, k)] + gV[idx(i, j, k)];
 	}
 	
@@ -389,7 +397,7 @@ std::vector<double> MACSolver3D::UpdateFW(const std::shared_ptr<LevelSetSolver3D
 	double theta = 0.0, iRhoEff = 0.0;
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 	for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++)
-	for (int k = kNumBCGrid; j < kNz + kNumBCGrid; k++) {
+	for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
 		rhsW[idx(i, j, k)] = -cW[idx(i, j, k)] + vW[idx(i, j, k)] + gW[idx(i, j, k)];
 	}
 
@@ -405,7 +413,7 @@ std::vector<double> MACSolver3D::AddConvectionFU(const std::vector<double>& u, c
 	
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-	for (int k = kNumBCGrid; j < kNz + kNumBCGrid; k++) {
+	for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
 		tmpV[idx(i, j, k)] = (v[idx(i, j, k)] + v[idx(i - 1, j, k)] + v[idx(i - 1, j + 1, k)] + v[idx(i, j + 1, k)]) * 0.25;
 		tmpW[idx(i, j, k)] = (w[idx(i, j, k)] + w[idx(i - 1, j, k)] + w[idx(i - 1, j, k + 1)] + w[idx(i, j, k + 1)]) * 0.25;
 	}
@@ -561,8 +569,7 @@ std::vector<double> MACSolver3D::AddConvectionFV(const std::vector<double>& u, c
 		std::fill(FYM.begin(), FYM.end(), 0.0);
 		std::fill(vecF_VY.begin(), vecF_VY.end(), 0.0);
 	}
-
-
+	
 	// V : Z direction	
 	std::vector<double> FZP(kNz + 2 * kNumBCGrid, 0.0), FZM(kNz + 2 * kNumBCGrid, 0.0);
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
@@ -678,7 +685,7 @@ std::vector<double> MACSolver3D::AddConvectionFW(const std::vector<double>& u, c
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
 		for (int k = 0; k < kNz + 2 * kNumBCGrid; k++) {
-			vecF_VZ[k] = v[idx(i, j, k)] * w[idx(i, j, k)];
+			vecF_VZ[k] = w[idx(i, j, k)] * w[idx(i, j, k)];
 		}
 
 		UnitHJWENO5(vecF_VZ, FZP, FZM, kDz, kNz);
@@ -1783,13 +1790,13 @@ int MACSolver3D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
 	for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
-		lsM = lsBackup[idx(i, j, k)];
-		lsW = lsBackup[idx(i - 1, j, k)];
-		lsE = lsBackup[idx(i + 1, j, k)];
-		lsS = lsBackup[idx(i, j - 1, k)];
-		lsN = lsBackup[idx(i, j + 1, k)];
-		lsB = lsBackup[idx(i, j, k - 1)];
-		lsT = lsBackup[idx(i, j, k + 1)];
+		lsM = ls[idx(i, j, k)];
+		lsW = ls[idx(i - 1, j, k)];
+		lsE = ls[idx(i + 1, j, k)];
+		lsS = ls[idx(i, j - 1, k)];
+		lsN = ls[idx(i, j + 1, k)];
+		lsB = ls[idx(i, j, k - 1)];
+		lsT = ls[idx(i, j, k + 1)];
 
 		dldX[idx(i, j, k)] = (lsE - lsW) / (2.0 * kDx);
 		dldY[idx(i, j, k)] = (lsN - lsS) / (2.0 * kDy);
@@ -1998,7 +2005,6 @@ int MACSolver3D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 			theta = std::fabs(lsT) / (std::fabs(lsT) + std::fabs(lsM));
 		}
 
-
 		rhoEff = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
 		iRhoT[idx(i, j, k)] = 1.0 / rhoEff;
 		kappaEff = m_kappa[idx(i, j, k)] * theta + m_kappa[idx(i, j, k + 1)] * (1.0 - theta);
@@ -2008,7 +2014,7 @@ int MACSolver3D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 		// - level set : H = 1, + level set : H = 0; 
 		// Bubble : (-ls)-kRhoL-Gas, (+ls)-kRhoH-Liquid
 		FT = m_dt * (-kSigma * kappaEff) * (H[idx(i, j, k + 1)] - H[idx(i, j, k)]);
-		FT *= iRhoN[idx(i, j, k)] / (kDz * kDz);
+		FT *= iRhoT[idx(i, j, k)] / (kDz * kDz);
 		
 		// poisson equation form should be -\beta \nabla p = f
 		// iRhoEff has already negative value of rhoEff, then it is just a coefficient.
@@ -2045,10 +2051,12 @@ int MACSolver3D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 		ARowIdx.push_back(rowIdx);
 		DiagRowIdx.push_back(MRowIdx);
 
+		iRhoB[idx(i, j, k)] *= -1.0;
 		iRhoS[idx(i, j, k)] *= -1.0;
 		iRhoW[idx(i, j, k)] *= -1.0;
 		iRhoE[idx(i, j, k)] *= -1.0;
 		iRhoN[idx(i, j, k)] *= -1.0;
+		iRhoT[idx(i, j, k)] *= -1.0;
 
 		// Set default values, if a current pointer is in interior, it will not be changed.
 		AValsDic["B"] = iRhoB[idx(i, j, k)] / (kDz * kDz);
@@ -2058,7 +2066,8 @@ int MACSolver3D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 		AValsDic["W"] = iRhoW[idx(i, j, k)] / (kDx * kDx);
 		AColsDic["W"] = (k - kNumBCGrid) + kNz * (j - kNumBCGrid) + kNz * kNy * (i - 1 - kNumBCGrid);
 		AValsDic["C"] = -(iRhoW[idx(i, j, k)] + iRhoE[idx(i, j, k)]) / (kDx * kDx)
-			- (iRhoS[idx(i, j, k)] + iRhoN[idx(i, j, k)]) / (kDy * kDy);
+			- (iRhoS[idx(i, j, k)] + iRhoN[idx(i, j, k)]) / (kDy * kDy)
+			- (iRhoB[idx(i, j, k)] + iRhoT[idx(i, j, k)]) / (kDz * kDz);
 		AColsDic["C"] = (k - kNumBCGrid) + kNz * (j - kNumBCGrid) + kNz * kNy * (i - kNumBCGrid);
 		AValsDic["E"] = iRhoE[idx(i, j, k)] / (kDx * kDx);
 		AColsDic["E"] = (k - kNumBCGrid) + kNz * (j - kNumBCGrid) + kNz * kNy * (i  + 1 - kNumBCGrid);
@@ -2157,6 +2166,7 @@ int MACSolver3D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 		else if (k == kNumBCGrid + kNz - 1 && m_BC->m_BC_PT == BC3D::PERIODIC) {
 			AValsDic["T"] = iRhoT[idx(i, j, kNumBCGrid + kNz + 1)];
 		}
+
 		// add non zero values to AVals and ACols
 		// KEEP ORDER OF PUSH_BACK!!
 		if (AColsDic["B"] >= 0) {
@@ -2203,7 +2213,7 @@ int MACSolver3D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 		tmpMRowIdx++;
 		DiagVals.push_back(AValsDic["C"]);
 		DiagCols.push_back(AColsDic["C"]);
-		// std::cout << AValsDic["S"] << " " << AValsDic["W"] << " " << AValsDic["C"] << " " << AValsDic["E"] << " " << AValsDic["N"] << std::endl;
+		
 		rowIdx += tmpRowIdx;
 		MRowIdx += tmpMRowIdx;
 		assert(rhs[idx(i, j, k)] == rhs[idx(i, j, k)]);
@@ -2300,17 +2310,6 @@ int MACSolver3D::UpdateVel(std::vector<double>& u, std::vector<double>& v, std::
 		lsW = ls[idx(i - 1, j, k)];
 		lsM = ls[idx(i, j, k)];
 		
-		// normal vector = (\nabla \phi) / |\nabla \phi|
-		nXW = dldX[idx(i - 1, j, k)] / (std::sqrt(std::pow(dldX[idx(i - 1, j, k)], 2.0) + std::pow(dldY[idx(i - 1, j, k)], 2.0) + std::pow(dldZ[idx(i - 1, j, k)], 2.0)) + eps);
-		nYW = dldY[idx(i - 1, j, k)] / (std::sqrt(std::pow(dldX[idx(i - 1, j, k)], 2.0) + std::pow(dldY[idx(i - 1, j, k)], 2.0) + std::pow(dldZ[idx(i - 1, j, k)], 2.0)) + eps);
-		nZW = dldZ[idx(i - 1, j, k)] / (std::sqrt(std::pow(dldX[idx(i - 1, j, k)], 2.0) + std::pow(dldY[idx(i - 1, j, k)], 2.0) + std::pow(dldZ[idx(i - 1, j, k)], 2.0)) + eps);
-		nXS = dldX[idx(i, j - 1, k)] / (std::sqrt(std::pow(dldX[idx(i, j - 1, k)], 2.0) + std::pow(dldY[idx(i, j - 1, k)], 2.0) + std::pow(dldZ[idx(i, j - 1, k)], 2.0)) + eps);
-		nYS = dldY[idx(i, j - 1, k)] / (std::sqrt(std::pow(dldX[idx(i, j - 1, k)], 2.0) + std::pow(dldY[idx(i, j - 1, k)], 2.0) + std::pow(dldZ[idx(i, j - 1, k)], 2.0)) + eps);
-		nZS = dldZ[idx(i, j - 1, k)] / (std::sqrt(std::pow(dldX[idx(i, j - 1, k)], 2.0) + std::pow(dldY[idx(i, j - 1, k)], 2.0) + std::pow(dldZ[idx(i, j - 1, k)], 2.0)) + eps);
-		nXM = dldX[idx(i, j, k)] / (std::sqrt(std::pow(dldX[idx(i, j, k)], 2.0) + std::pow(dldY[idx(i, j, k)], 2.0) + std::pow(dldZ[idx(i, j, k)], 2.0)) + eps);
-		nYM = dldY[idx(i, j, k)] / (std::sqrt(std::pow(dldX[idx(i, j, k)], 2.0) + std::pow(dldY[idx(i, j, k)], 2.0) + std::pow(dldZ[idx(i, j, k)], 2.0)) + eps);
-		nZM = dldZ[idx(i, j, k)] / (std::sqrt(std::pow(dldX[idx(i, j, k)], 2.0) + std::pow(dldY[idx(i, j, k)], 2.0) + std::pow(dldZ[idx(i, j, k)], 2.0)) + eps);
-
 		// thetaH = portion of kRhoH
 		// theta = portion of fluid adjacent to lsM, such as |lsW| / (|lsW| + |lsM|), |lsE| / (|lsWE| + |lsM|), and so on
 		if (lsW >= 0 && lsM >= 0) {
@@ -2344,12 +2343,6 @@ int MACSolver3D::UpdateVel(std::vector<double>& u, std::vector<double>& v, std::
 		lsM = ls[idx(i, j, k)];
 		lsS = ls[idx(i, j - 1, k)];
 		
-		nXS = dldX[idx(i, j - 1, k)] / (std::sqrt(std::pow(dldX[idx(i, j - 1, k)], 2.0) + std::pow(dldY[idx(i, j - 1, k)], 2.0) + std::pow(dldZ[idx(i, j - 1, k)], 2.0)) + eps);
-		nYS = dldY[idx(i, j - 1, k)] / (std::sqrt(std::pow(dldX[idx(i, j - 1, k)], 2.0) + std::pow(dldY[idx(i, j - 1, k)], 2.0) + std::pow(dldZ[idx(i, j - 1, k)], 2.0)) + eps);
-		nZS = dldZ[idx(i, j - 1, k)] / (std::sqrt(std::pow(dldX[idx(i, j - 1, k)], 2.0) + std::pow(dldY[idx(i, j - 1, k)], 2.0) + std::pow(dldZ[idx(i, j - 1, k)], 2.0)) + eps);
-		nXM = dldX[idx(i, j, k)] / (std::sqrt(std::pow(dldX[idx(i, j, k)], 2.0) + std::pow(dldY[idx(i, j, k)], 2.0) + std::pow(dldZ[idx(i, j, k)], 2.0)) + eps);
-		nYM = dldY[idx(i, j, k)] / (std::sqrt(std::pow(dldX[idx(i, j, k)], 2.0) + std::pow(dldY[idx(i, j, k)], 2.0) + std::pow(dldZ[idx(i, j, k)], 2.0)) + eps);
-		nZM = dldZ[idx(i, j, k)] / (std::sqrt(std::pow(dldX[idx(i, j, k)], 2.0) + std::pow(dldY[idx(i, j, k)], 2.0) + std::pow(dldZ[idx(i, j, k)], 2.0)) + eps);
 		// thetaH = portion of kRhoH
 		// theta = portion of fluid adjacent to lsM, such as |lsW| / (|lsW| + |lsM|), |lsE| / (|lsWE| + |lsM|), and so on
 		if (lsS >= 0.0 && lsM >= 0.0)  {
@@ -2383,12 +2376,6 @@ int MACSolver3D::UpdateVel(std::vector<double>& u, std::vector<double>& v, std::
 		lsM = ls[idx(i, j, k)];
 		lsB = ls[idx(i, j, k - 1)];
 
-		nXB = dldX[idx(i, j, k - 1)] / (std::sqrt(std::pow(dldX[idx(i, j, k - 1)], 2.0) + std::pow(dldY[idx(i, j, k - 1)], 2.0) + std::pow(dldZ[idx(i, j, k - 1)], 2.0)) + eps);
-		nYB = dldY[idx(i, j, k - 1)] / (std::sqrt(std::pow(dldX[idx(i, j, k - 1)], 2.0) + std::pow(dldY[idx(i, j, k - 1)], 2.0) + std::pow(dldZ[idx(i, j, k - 1)], 2.0)) + eps);
-		nZB = dldZ[idx(i, j, k - 1)] / (std::sqrt(std::pow(dldX[idx(i, j, k - 1)], 2.0) + std::pow(dldY[idx(i, j, k - 1)], 2.0) + std::pow(dldZ[idx(i, j, k - 1)], 2.0)) + eps);
-		nXM = dldX[idx(i, j, k)] / (std::sqrt(std::pow(dldX[idx(i, j, k)], 2.0) + std::pow(dldY[idx(i, j, k)], 2.0) + std::pow(dldZ[idx(i, j, k)], 2.0)) + eps);
-		nYM = dldY[idx(i, j, k)] / (std::sqrt(std::pow(dldX[idx(i, j, k)], 2.0) + std::pow(dldY[idx(i, j, k)], 2.0) + std::pow(dldZ[idx(i, j, k)], 2.0)) + eps);
-		nZM = dldZ[idx(i, j, k)] / (std::sqrt(std::pow(dldX[idx(i, j, k)], 2.0) + std::pow(dldY[idx(i, j, k)], 2.0) + std::pow(dldZ[idx(i, j, k)], 2.0)) + eps);
 		// thetaH = portion of kRhoH
 		// theta = portion of fluid adjacent to lsM, such as |lsW| / (|lsW| + |lsM|), |lsE| / (|lsWE| + |lsM|), and so on
 		if (lsB >= 0.0 && lsM >= 0.0)  {
@@ -2417,7 +2404,7 @@ int MACSolver3D::UpdateVel(std::vector<double>& u, std::vector<double>& v, std::
 	}
 	ApplyBC_U_3D(u);
 	ApplyBC_V_3D(v);
-	ApplyBC_V_3D(w);
+	ApplyBC_W_3D(w);
 
 	return 0;
 }

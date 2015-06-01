@@ -23,6 +23,7 @@ public:
 		double baseX, double baseY, double baseZ, double dx, double dy, double dz, double maxTime);
 	
 	std::vector<double> UpdateKappa(const std::vector<double>& ls);
+	std::vector<double> UpdateHeavisideFuncDeriv(const std::vector<double>& ls);
 
 	int Solve_LevelSet_3D(std::vector<double>& ls,
 		const std::vector<double>& u, const std::vector<double>& v, const std::vector<double>& w, double dt);
@@ -33,7 +34,8 @@ public:
 	int FirstTimeOnlyReinit_Sussman_3D(std::vector<double>& ls);
 	int Reinit_MinRK2_3D(std::vector<double>& ls);
 	
-	std::vector<double> GetSussmanReinitConstraint(const std::vector<double>& ls, const std::vector<double>& lsInit);
+	std::vector<double> GetSussmanReinitConstraint(const std::vector<double>& ls,
+		const std::vector<double>& lsInit, const std::vector<double>& heavisideDeriv);
 
 	int sign(const double& val);
 	double MinAbs(const double& val1, const double& val2);
@@ -86,8 +88,9 @@ public:
 	int idx(int i, int j, int k);
 	
 	const double kEps, kThickness, kMaxATime;
-	const int64_t kNx, kNy, kNz, kArrSize;
+	const int kNx, kNy, kNz;
 	const int kNumBCGrid, kENOSpatialOrder;
+	const int64_t kArrSize;
 	const double kBaseX, kBaseY, kBaseZ;
 	const double kDx, kDy, kDz;
 	

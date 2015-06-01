@@ -1,5 +1,5 @@
-#ifndef __TEST_MAC2D2DLARGE_H__
-#define __TEST_MAC2D2DLARGE_H__
+#ifndef __TEST_MAC2DLARGE_H__
+#define __TEST_MAC2DLARGE_H__
 
 #define _USE_MATH_DEFINES
 #include <cmath>

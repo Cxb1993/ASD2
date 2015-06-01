@@ -4,7 +4,8 @@ LevelSetSolver2D::LevelSetSolver2D(int nx, int ny, int num_bc_grid, double baseX
 	kEps(std::min(dx, dy)),
 	kThickness(2.0 * kEps),
 	kNx(nx), kNy(ny), kNumBCGrid(num_bc_grid),
-	kArrSize(kArrSize),
+	kArrSize(static_cast<int64_t>(kNx + 2 * kNumBCGrid) *
+	static_cast<int64_t>(kNy + 2 * kNumBCGrid)),
 	kBaseX(baseX), kBaseY(baseY),
 	kDx(dx), kDy(dy),
 	kAdt(kEps * 0.5), m_atime(0.0), kMaxATime(1.5 * kThickness),
@@ -15,13 +16,29 @@ LevelSetSolver2D::LevelSetSolver2D(int nx, int ny, int num_bc_grid, double baseX
 	kEps(std::min(dx, dy)),
 	kThickness(2.0 * kEps),
 	kNx(nx), kNy(ny), kNumBCGrid(num_bc_grid),
-	kArrSize(kArrSize),
+	kArrSize(static_cast<int64_t>(kNx + 2 * kNumBCGrid) *
+	static_cast<int64_t>(kNy + 2 * kNumBCGrid)),
 	kBaseX(baseX), kBaseY(baseY),
 	kDx(dx), kDy(dy),
 	kAdt(kEps * 0.5), m_atime(0.0), kMaxATime(maxTime),
 	kENOSpatialOrder(2)  {
 }
 
+std::vector<double> LevelSetSolver2D::UpdateHeavisideFuncDeriv(const std::vector<double>& ls) {
+	std::vector<double> HeavisideDeriv(kArrSize, 0.0);
+	
+	for (int i = 0; i < kNx + 2 * kNumBCGrid; i++)
+	for (int j = 0; j < kNy + 2 * kNumBCGrid; j++) {
+		if (std::fabs(ls[idx(i, j)]) > kEps)
+			HeavisideDeriv[idx(i, j)] = 0.0;
+		else
+			HeavisideDeriv[idx(i, j)]
+			= 0.5 * (1.0 / kEps
+			+ cos(M_PI * ls[idx(i, j)] / kEps));
+	}
+
+	return HeavisideDeriv;
+}
 std::vector<double> LevelSetSolver2D::UpdateKappa(const std::vector<double>& ls) {
 	std::vector<double> dLSdX(kArrSize, 0.0);
 	std::vector<double> dLSdY(kArrSize, 0.0);
@@ -354,6 +371,7 @@ int LevelSetSolver2D::Reinit_Sussman_2D(std::vector<double>& ls) {
 	std::vector<double> L2(kArrSize, 0.0);
 	std::vector<double> tmpLS(kArrSize, 0.0);
 	std::vector<double> sussmanConstraint(kArrSize, 0.0);
+	std::vector<double> heavisideDeriv(kArrSize, 0.0);
 
 	while (m_atime < kMaxATime) {
 		m_atime += kAdt;
@@ -383,7 +401,8 @@ int LevelSetSolver2D::Reinit_Sussman_2D(std::vector<double>& ls) {
 		}
 
 		// Sussman's reinitialization
-		sussmanConstraint = GetSussmanReinitConstraint(tmpLS, lsInit);
+		heavisideDeriv = UpdateHeavisideFuncDeriv(tmpLS);
+		sussmanConstraint = GetSussmanReinitConstraint(tmpLS, lsInit, heavisideDeriv);
 		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
 			ls[idx(i, j)] += sussmanConstraint[idx(i, j)];
@@ -393,7 +412,8 @@ int LevelSetSolver2D::Reinit_Sussman_2D(std::vector<double>& ls) {
 	ApplyBC_P_2D(ls);
 	return 0;
 }
-std::vector<double> LevelSetSolver2D::GetSussmanReinitConstraint(const std::vector<double>& ls, const std::vector<double>& lsInit) {
+std::vector<double> LevelSetSolver2D::GetSussmanReinitConstraint(const std::vector<double>& ls,
+	const std::vector<double>& lsInit, const std::vector<double>& heavisideDeriv) {
 	double lambda = 0.0;
 	double x[3][3], y[3][3], lsFraction[3][3], lsInitFraction[3][3], Hp[3][3], L[3][3], dLSAbs[3][3], f[3][3];
 	std::vector<double> sussmanConstraint(kArrSize, 0.0);
@@ -401,6 +421,9 @@ std::vector<double> LevelSetSolver2D::GetSussmanReinitConstraint(const std::vect
 	// Sussman's reinitialization
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
+		if (heavisideDeriv[idx(i, j)] == 0.0)
+			continue;
+
 		for (int li = 0; li < 3; li++)
 		for (int lj = 0; lj < 3; lj++) {
 			// i - 1/2, i, i + 1/2

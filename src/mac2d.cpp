@@ -472,6 +472,36 @@ std::vector<double> MACSolver2D::UpdateFU(const std::shared_ptr<LevelSetSolver2D
 		rhsU[idx(i, j)] = -cU[idx(i, j)] + vU[idx(i, j)] + gU[idx(i, j)];
 	}
 	
+	std::ofstream outF;
+	std::string fname("FU_ASCII.plt");
+	if (m_iter == 1) {
+	outF.open(fname.c_str(), std::ios::out);
+
+	outF << "TITLE = VEL" << std::endl;
+	outF << "VARIABLES = \"X\", \"Y\", \"-cU\", \"vV\", \"gU\", \"rhsU\"" << std::endl;
+	outF.close();
+	}
+
+	outF.open(fname.c_str(), std::ios::app);
+
+	outF << std::string("ZONE T=\"") << m_iter
+	<< std::string("\", I=") << kNx << std::string(", J=") << kNy
+	<< std::string(", SOLUTIONTIME=") << m_iter * 0.1
+	<< std::string(", STRANDID=") << m_iter + 1
+	<< std::endl;
+
+	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
+	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+	outF << kBaseX + static_cast<double>(i + 0.5 - kNumBCGrid) * kDx << std::string(",")
+	<< kBaseY + static_cast<double>(j + 0.5 - kNumBCGrid) * kDy << std::string(",")
+	<< static_cast<double>(-cU[idx(i, j)]) << std::string(",")
+	<< static_cast<double>(vU[idx(i, j)]) << std::string(",")
+	<< static_cast<double>(gU[idx(i, j)]) << std::string(",")
+	<< static_cast<double>(rhsU[idx(i, j)])
+	<< std::endl;
+
+	outF.close();
+	
 	return rhsU;
 }
 
@@ -1285,6 +1315,8 @@ std::vector<double> MACSolver2D::AddViscosityFV(const std::vector<double>& u, co
 
 	std::vector<double> visXVec((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0),
 		visYVec((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0),
+		visX2Vec((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0),
+		visY2Vec((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0),
 		UxyVec((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0),
 		UxyWVec((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0),
 		UxyEVec((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0),
@@ -1300,12 +1332,6 @@ std::vector<double> MACSolver2D::AddViscosityFV(const std::vector<double>& u, co
 		muV_N((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0),
 		muU_S((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0),
 		muU_N((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0),
-		resJ21W((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0),
-		resJ21E((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0),
-		resJ22S((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0),
-		resJ22N((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0),
-		resJ12S((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0),
-		resJ12N((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0),
 		checkDiv((kNx + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid), 0.0);
 
 	if (kRe <= 0.0) {
@@ -1693,7 +1719,8 @@ std::vector<double> MACSolver2D::AddViscosityFV(const std::vector<double>& u, co
 			rhoEffSN = kRhoL * theta + kRhoH * (1.0 - theta);
 			iRhoEffSN = 1.0 / (kRhoH * kRhoL) / (1.0 / kRhoH * theta + 1.0 / kRhoL * (1.0 - theta));
 		}
-
+		iRhoEffWE = 1.0 / rhoEffWE;
+		iRhoEffSN = 1.0 / rhoEffSN;
 		muU_Y_W = 0.25 * (mu[idx(i, j)] + mu[idx(i - 1, j)] + mu[idx(i - 1, j - 1)] + mu[idx(i, j - 1)])
 			* (uM - uS) / kDy;
 		muU_Y_E = 0.25 * (mu[idx(i, j)] + mu[idx(i + 1, j)] + mu[idx(i + 1, j - 1)] + mu[idx(i, j - 1)])
@@ -1716,14 +1743,15 @@ std::vector<double> MACSolver2D::AddViscosityFV(const std::vector<double>& u, co
 		visY = 2.0 * (muV_Y_N - muV_Y_S) / kDy;
 		checkDiv[idx(i, j)] = (muV_Y_N - muV_Y_S) / kDy + (muU_Y_E - muU_Y_W) / kDx;
 		
-		// dV[idx(i, j)] = visX / rhoEffWE + visY / rhoEffSN;
 		dV[idx(i, j)] = visX * iRhoEffWE + visY * iRhoEffSN;
-		// dV[idx(i, j)] = visX + visY;
-
+		
 		iRhoHVec[idx(i, j)] = iRhoEffWE;
 		iRhoVVec[idx(i, j)] = iRhoEffSN;
+		
 		visXVec[idx(i, j)] = visX * iRhoEffWE;
 		visYVec[idx(i, j)] = visY * iRhoEffSN;
+		visX2Vec[idx(i, j)] = visX;
+		visY2Vec[idx(i, j)] = visY;
 		assert(dV[idx(i, j)] == dV[idx(i, j)]);
 		if (std::isnan(dV[idx(i, j)]) || std::isinf(dV[idx(i, j)])) {
 			std::cout << "V-viscosity term nan/inf error : " << i << " " << j << " " << dV[idx(i, j)] << std::endl;
@@ -1737,7 +1765,7 @@ std::vector<double> MACSolver2D::AddViscosityFV(const std::vector<double>& u, co
 		outF.open(fname.c_str(), std::ios::out);
 
 		outF << "TITLE = VEL" << std::endl;
-		outF << "VARIABLES = \"X\", \"Y\", \"U\", \"V\", \"LS\", \"mu\", \"dV\", \"muU_S\", \"muU_N\", \"muV_W\", \"muV_E\",\"muV_S\", \"muV_N\", \"visX\", \"visY\" " << std::endl;
+		outF << "VARIABLES = \"X\", \"Y\", \"U\", \"V\", \"LS\", \"mu\", \"dV\",  \"muU_N - muU_S\",  \"muV_E -muV_W\",\"muV_N - muV_S\", \"iRhoEffWE\", \"iRhoEffSN\", \"visX\", \"visY\", \"visXNoRho\", \"visYNoRho\" " << std::endl;
 		outF.close();
 	}
 
@@ -1758,14 +1786,15 @@ std::vector<double> MACSolver2D::AddViscosityFV(const std::vector<double>& u, co
 			<< static_cast<double>(ls[idx(i, j)]) << std::string(",")
 			<< static_cast<double>(mu[idx(i, j)]) << std::string(",")
 			<< static_cast<double>(dV[idx(i, j)]) << std::string(",")
-			<< static_cast<double>(muU_S[idx(i, j)]) << std::string(",")
-			<< static_cast<double>(muU_N[idx(i, j)]) << std::string(",")
-			<< static_cast<double>(muV_W[idx(i, j)]) << std::string(",")
-			<< static_cast<double>(muV_E[idx(i, j)]) << std::string(",")
-			<< static_cast<double>(muV_S[idx(i, j)]) << std::string(",")
-			<< static_cast<double>(muV_N[idx(i, j)]) << std::string(",")
+			<< static_cast<double>(muU_N[idx(i, j)] - muU_S[idx(i, j)]) << std::string(",")
+			<< static_cast<double>(muV_E[idx(i, j)] - muV_W[idx(i, j)]) << std::string(",")
+			<< static_cast<double>(muV_N[idx(i, j)] - muV_S[idx(i, j)]) << std::string(",")
+			<< static_cast<double>(iRhoHVec[idx(i, j)]) << std::string(",")
+			<< static_cast<double>(iRhoVVec[idx(i, j)]) << std::string(",")
 			<< static_cast<double>(visXVec[idx(i, j)]) << std::string(",")
 			<< static_cast<double>(visYVec[idx(i, j)]) << std::string(",")
+			<< static_cast<double>(visX2Vec[idx(i, j)]) << std::string(",")
+			<< static_cast<double>(visY2Vec[idx(i, j)])
 			<< std::endl;
 
 	outF.close();
@@ -2385,7 +2414,7 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 			thetaH = std::fabs(lsM) / (std::fabs(lsW) + std::fabs(lsM));
 			theta = std::fabs(lsW) / (std::fabs(lsW) + std::fabs(lsM));
 		}
-			
+		
 		rhoEff = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
 		// coefficient
 		iRhoW[idx(i, j)] = 1.0 / rhoEff;
@@ -2397,6 +2426,10 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 		// Bubble : (-ls)-kRhoL-Gas, (+ls)-kRhoH-Liquid
 		FW = -m_dt * (-kSigma * kappaEff) * (H[idx(i, j)] - H[idx(i - 1, j)]);
 		FW *= iRhoW[idx(i, j)] / (kDx * kDx);
+		aWVec[idx(i, j)] = -m_dt * (-kSigma * kappaEff) * (H[idx(i, j)] - H[idx(i - 1, j)]);
+		if (std::fabs(FW) > 20.0 && m_iter == 1)
+			std::cout << i << " " << j << " " << FW <<" "<<  thetaH << " " << theta << " " << kRhoH << " " << kRhoL
+			<< " " << kRhoH * thetaH << " " << kRhoL * (1.0 - thetaH) << " " << rhoEff <<" " <<  iRhoW[idx(i, j)] << std::endl;
 	
 		// thetaH = portion of kRhoH
 		// theta = portion of fluid cell adjacent to lsM, such as |lsW| / (|lsW| + |lsM|), |lsE| / (|lsWE| + |lsM|), and so on
@@ -2424,7 +2457,7 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 		// Bubble : (-ls)-kRhoL-Gas, (+ls)-kRhoH-Liquid
 		FE = m_dt * (-kSigma * kappaEff) * (H[idx(i + 1, j)] - H[idx(i, j)]);
 		FE *= iRhoE[idx(i, j)] / (kDx * kDx);
-		
+		aEVec[idx(i, j)] = m_dt * (-kSigma * kappaEff) * (H[idx(i + 1, j)] - H[idx(i, j)]);
 		// thetaH = portion of kRhoH
 		// theta = portion of fluid adjacent to lsM, such as |lsW| / (|lsW| + |lsM|), |lsE| / (|lsWE| + |lsM|), and so on
 		if (lsS >= 0.0 && lsM >= 0.0)  {
@@ -2453,12 +2486,6 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 		FS = -m_dt * (-kSigma * kappaEff) * (H[idx(i, j)] - H[idx(i, j - 1)]);
 		FS *= iRhoS[idx(i, j)] / (kDy * kDy);
 		
-		// if (FS != 0.0)
-		// 	std::cout << "FS " << i << " " << j << " " << FS << " " << FN << " " 
-		// 	<< m_dt * (-kSigma * kappaEff) * (H[idx(i, j)] - H[idx(i, j - 1)])
-		// 	<< " " << iRhoS[idx(i, j)]
-		// 	<< " " << (H[idx(i, j)] - H[idx(i, j - 1)])
-		// 	<< " " << m_dt * (-kSigma * kappaEff) * (H[idx(i, j)] - H[idx(i, j - 1)]) << std::endl;
 		// thetaH = portion of kRhoH
 		// theta = portion of fluid adjacent to lsM, such as |lsW| / (|lsW| + |lsM|), |lsE| / (|lsWE| + |lsM|), and so on
 		if (lsM >= 0.0 && lsN >= 0.0)  {
@@ -2719,7 +2746,7 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 		outF.open(fname.c_str(), std::ios::out);
 
 		outF << "TITLE = VEL" << std::endl;
-		outF << "VARIABLES = \"X\", \"Y\", \"FW\", \"FE\", \"FS\", \"FN\", \"F\",\"RW\", \"RE\", \"RS\", \"RN\", \"H\", \"LS\", \"PS\", \"HatDIV\", \"RHS\", \"P_W\", \"P_S\",\"KAPPA\"" << std::endl;
+		outF << "VARIABLES = \"X\", \"Y\", \"FW\",\"RW\", \"AW\",\"FE\",\"RE\", \"AE\", \"FS\", \"FN\", \"F\",  \"RS\", \"RN\", \"LS\", \"PS\", \"HatDIV\", \"RHS\", \"P_W\", \"P_S\",\"KAPPA\"" << std::endl;
 		outF.close();
 	}
 
@@ -2734,19 +2761,20 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 	// for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
 	// 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 	for (int j = 0; j < kNy + 2 * kNumBCGrid; j++)
-				for (int i = 0; i < kNx + 2 * kNumBCGrid; i++)
+	for (int i = 0; i < kNx + 2 * kNumBCGrid; i++)
 			outF << kBaseX + static_cast<double>(i + 0.5 - kNumBCGrid) * kDx << std::string(",")
 			<< kBaseY + static_cast<double>(j + 0.5 - kNumBCGrid) * kDy << std::string(",")
 			<< static_cast<double>(FWVec[idx(i, j)]) << std::string(",")
+			<< static_cast<double>(iRhoW[idx(i, j)]) << std::string(",")
+			<< static_cast<double>(aWVec[idx(i, j)]) << std::string(",")
 			<< static_cast<double>(FEVec[idx(i, j)]) << std::string(",")
+			<< static_cast<double>(iRhoE[idx(i, j)]) << std::string(",")
+			<< static_cast<double>(aEVec[idx(i, j)]) << std::string(",")
 			<< static_cast<double>(FSVec[idx(i, j)]) << std::string(",")
 			<< static_cast<double>(FNVec[idx(i, j)]) << std::string(",")
 			<< static_cast<double>(FWVec[idx(i, j)] + FEVec[idx(i, j)] + FSVec[idx(i, j)] + FNVec[idx(i, j)]) << std::string(",")
-			<< static_cast<double>(iRhoW[idx(i, j)]) << std::string(",")
-			<< static_cast<double>(iRhoE[idx(i, j)]) << std::string(",")
 			<< static_cast<double>(iRhoS[idx(i, j)]) << std::string(",")
 			<< static_cast<double>(iRhoN[idx(i, j)]) << std::string(",")
-			<< static_cast<double>(H[idx(i, j)]) << std::string(",")
 			<< static_cast<double>(ls[idx(i, j)]) << std::string(",")
 			<< static_cast<double>(ps[idx(i, j)]) << std::string(",")
 			<< static_cast<double>(div[idx(i, j)]) << std::string(",")
@@ -2968,9 +2996,9 @@ int MACSolver2D::UpdateVel(std::vector<double>& u, std::vector<double>& v,
 			u[idx(i, j)] = aEff * iRhoEff / kDx;
 		}
 
-		iRhoEffWVec[idx(i, j)] = iRhoEff;
-		aWEff[idx(i, j)] = u[idx(i, j)];
 		*/
+		aWEff[idx(i, j)] = u[idx(i, j)];
+		iRhoEffWVec[idx(i, j)] = iRhoEff;
 		u[idx(i, j)] += us[idx(i, j)] - iRhoEff * (ps[idx(i, j)] - ps[idx(i - 1, j)]) / kDx;
 	}
 
@@ -3056,14 +3084,13 @@ int MACSolver2D::UpdateVel(std::vector<double>& u, std::vector<double>& v,
 			iRhoEff = 1.0 / (kRhoH * kRhoL) / (1.0 / kRhoH * theta + 1.0 / kRhoL * (1.0 - theta));
 			v[idx(i, j)] = aEff * iRhoEff / kDy;
 		}
+		*/
 
 		aSEff[idx(i, j)] = v[idx(i, j)];
 		iRhoEffSVec[idx(i, j)] = iRhoEff;
-		*/
 		v[idx(i, j)] += vs[idx(i, j)] - iRhoEff * (ps[idx(i, j)] - ps[idx(i, j - 1)]) / kDy;
 	}
 	
-	/*
 	std::ofstream outF;
 	std::string fname("VUpdate_ASCII.plt");
 	if (m_iter == 1) {
@@ -3108,7 +3135,7 @@ int MACSolver2D::UpdateVel(std::vector<double>& u, std::vector<double>& v,
 			<< static_cast<double>(m_kappa[idx(i, j)]) << std::endl;
 
 	outF.close();
-	*/
+	
 	ApplyBC_U_2D(u);
 	ApplyBC_V_2D(v);
 	

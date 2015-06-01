@@ -31,8 +31,8 @@
 
 class MACSolver3D {
 public:
-	const int64_t kNx, kNy, kNz, kArrSize;
-	const int kNumBCGrid;
+	const int kNx, kNy, kNz, kNumBCGrid;
+	const int64_t kArrSize;
 	const double kBaseX, kBaseY, kBaseZ, kLenX, kLenY, kLenZ, kDx, kDy, kDz;
 
 	const double kRe, kWe, kFr;

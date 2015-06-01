@@ -22,6 +22,7 @@ public:
 		double baseX, double baseY, double dx, double dy, double maxTime);
 	
 	std::vector<double> UpdateKappa(const std::vector<double>& ls);
+	std::vector<double> UpdateHeavisideFuncDeriv(const std::vector<double>& ls);
 
 	int Solve_LevelSet_2D(std::vector<double>& ls, const std::vector<double>& u, const std::vector<double>& v, double dt);
 
@@ -31,7 +32,8 @@ public:
 	int FirstTimeOnlyReinit_Sussman_2D(std::vector<double>& ls);
 	int Reinit_MinRK2_2D(std::vector<double>& ls);
 	
-	std::vector<double> GetSussmanReinitConstraint(const std::vector<double>& ls, const std::vector<double>& lsInit);
+	std::vector<double> GetSussmanReinitConstraint(const std::vector<double>& ls,
+		const std::vector<double>& lsInit, const std::vector<double>& heavisideDeriv);
 
 	int sign(const double& val);
 	double MinAbs(const double& val1, const double& val2);

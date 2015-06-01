@@ -53,6 +53,7 @@
     <InterproceduralOptimization>true</InterproceduralOptimization>
     <UseIntelMKL>Parallel</UseIntelMKL>
     <UseILP64Interfaces>true</UseILP64Interfaces>
+    <UseIntelIPP>false</UseIntelIPP>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -162,14 +163,18 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\tests\LargeTests\test_levelset2d_large.cpp" />
     <ClCompile Include="..\..\..\tests\LargeTests\test_mac2d_large.cpp" />
+    <ClCompile Include="..\..\..\tests\LargeTests\test_mac3d_large.cpp" />
     <ClCompile Include="..\..\..\tests\LargeTests\test_poisson2d_large.cpp" />
+    <ClCompile Include="..\..\..\tests\LargeTests\test_poisson3d_large.cpp" />
     <ClCompile Include="..\..\..\tests\tests.cpp" />
     <ClCompile Include="..\..\..\tests\test_common.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\tests\LargeTests\test_levelset2d_large.h" />
     <ClInclude Include="..\..\..\tests\LargeTests\test_mac2d_large.h" />
+    <ClInclude Include="..\..\..\tests\LargeTests\test_mac3d_large.h" />
     <ClInclude Include="..\..\..\tests\LargeTests\test_poisson2d_large.h" />
+    <ClInclude Include="..\..\..\tests\LargeTests\test_poisson3d_large.h" />
     <ClInclude Include="..\..\..\tests\test_common.h" />
   </ItemGroup>
   <ItemGroup>

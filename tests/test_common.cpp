@@ -1,10 +1,14 @@
 #include "test_common.h"
 
-inline int idx3(int ny, int i, int j) {
-	return (j + (ny + 2 * NBC3) * (i));
+int idx3_2D(int ny, int i, int j) {
+	return (static_cast<int64_t>(j) +(ny + 2 * NBC3) * static_cast<int64_t>(i));
 }
 
-int OutRes(int iter, double curTime, const std::string fname_vel_base, const std::string fname_div_base,
+int idx3_3D(int ny, int nz, int i, int j, int k) {
+	return (static_cast<int64_t>(k) + (nz + 2 * NBC3) * static_cast<int64_t>(j) + (nz + 2 * NBC3) * (ny + 2 * NBC3) * static_cast<int64_t>(i));
+}
+
+int OutRes_2D(int iter, double curTime, const std::string fname_vel_base, const std::string fname_div_base,
 	const std::vector<double>& u, const std::vector<double>& v,
 	const std::vector<double>& phi, const std::vector<double>& div,
 	const std::vector<double>& ls, const int nx, const int ny,
@@ -35,11 +39,11 @@ int OutRes(int iter, double curTime, const std::string fname_vel_base, const std
 
 		for (int i = NBC3; i < nx + NBC3; i++)
 		for (int j = NBC3; j < ny + NBC3; j++)
-			resU[idx3(nx, i, j)] = (u[idx3(nx, i, j)] + u[idx3(nx, i + 1, j)]) * 0.5;
+			resU[idx3_2D(nx, i, j)] = (u[idx3_2D(nx, i, j)] + u[idx3_2D(nx, i + 1, j)]) * 0.5;
 
 		for (int i = NBC3; i < nx + NBC3; i++)
 		for (int j = NBC3; j < ny + NBC3; j++)
-			resV[idx3(nx, i, j)] = (v[idx3(nx, i, j)] + v[idx3(nx, i, j + 1)]) * 0.5;
+			resV[idx3_2D(nx, i, j)] = (v[idx3_2D(nx, i, j)] + v[idx3_2D(nx, i, j + 1)]) * 0.5;
 
 		outF.open(fname_vel.c_str(), std::ios::app);
 
@@ -54,10 +58,10 @@ int OutRes(int iter, double curTime, const std::string fname_vel_base, const std
 		for (int i = NBC3; i < nx + NBC3; i++)
 			outF << baseX + static_cast<double>(i + 0.5 - NBC3) * dx << std::string(",")
 			<< baseY + static_cast<double>(j + 0.5 - NBC3) * dy << std::string(",")
-			<< static_cast<double>(resU[idx3(nx, i, j)]) << std::string(",")
-			<< static_cast<double>(resV[idx3(nx, i, j)]) << std::string(",")
-			<< static_cast<double>(ls[idx3(nx, i, j)]) << std::string(",")
-			<< static_cast<double>(phi[idx3(nx, i, j)]) << std::endl;
+			<< static_cast<double>(resU[idx3_2D(nx, i, j)]) << std::string(",")
+			<< static_cast<double>(resV[idx3_2D(nx, i, j)]) << std::string(",")
+			<< static_cast<double>(ls[idx3_2D(nx, i, j)]) << std::string(",")
+			<< static_cast<double>(phi[idx3_2D(nx, i, j)]) << std::endl;
 
 		outF.close();
 
@@ -74,9 +78,9 @@ int OutRes(int iter, double curTime, const std::string fname_vel_base, const std
 		for (int i = NBC3; i < nx + NBC3; i++)
 			outF << baseX + static_cast<double>(i + 0.5 - NBC3) * dx << std::string(",")
 			<< baseY + static_cast<double>(j + 0.5 - NBC3) * dy << std::string(",")
-			<< static_cast<double>(ls[idx3(nx, i, j)]) << std::string(",")
-			<< static_cast<double>(resDiv[idx3(nx, i, j)]) << std::string(",")
-			<< static_cast<double>(phi[idx3(nx, i, j)]) << std::endl;
+			<< static_cast<double>(ls[idx3_2D(nx, i, j)]) << std::string(",")
+			<< static_cast<double>(resDiv[idx3_2D(nx, i, j)]) << std::string(",")
+			<< static_cast<double>(phi[idx3_2D(nx, i, j)]) << std::endl;
 
 		outF.close();
 	}
@@ -100,10 +104,10 @@ int OutRes(int iter, double curTime, const std::string fname_vel_base, const std
 		for (int j = NBC3; j < ny + NBC3; j++) {
 			resX[(i - NBC3) + nx * (j - NBC3)] = baseX + (i + 0.5 - NBC3) * dx;
 			resY[(i - NBC3) + nx * (j - NBC3)] = baseY + (j + 0.5 - NBC3) * dy;
-			resU[(i - NBC3) + nx * (j - NBC3)] = (u[idx3(nx, i, j)] + u[idx3(nx, i + 1, j)]) * 0.5;
-			resV[(i - NBC3) + nx * (j - NBC3)] = (v[idx3(nx, i, j)] + v[idx3(nx, i, j + 1)]) * 0.5;
-			resLS[(i - NBC3) + nx * (j - NBC3)] = ls[idx3(nx, i, j)];
-			resPhi[(i - NBC3) + nx * (j - NBC3)] = phi[idx3(nx, i, j)];
+			resU[(i - NBC3) + nx * (j - NBC3)] = (u[idx3_2D(nx, i, j)] + u[idx3_2D(nx, i + 1, j)]) * 0.5;
+			resV[(i - NBC3) + nx * (j - NBC3)] = (v[idx3_2D(nx, i, j)] + v[idx3_2D(nx, i, j + 1)]) * 0.5;
+			resLS[(i - NBC3) + nx * (j - NBC3)] = ls[idx3_2D(nx, i, j)];
+			resPhi[(i - NBC3) + nx * (j - NBC3)] = phi[idx3_2D(nx, i, j)];
 		}
 
 		INTEGER4 Debug = 1;

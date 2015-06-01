@@ -18,9 +18,8 @@
 #include "../include/common.h"
 #include "../include/poisson2d.h"
 
-int test_VBC();
-int test_poisson_GuassSeidel();
-int test_poisson_CG();
-int test_poisson_BiCGStab();
+int test_poisson2D_GuassSeidel();
+int test_poisson2D_CG();
+int test_poisson2D_BiCGStab();
 
 #endif __TEST_POISSON2DLARGE_H__

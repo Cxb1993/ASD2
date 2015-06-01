@@ -4,7 +4,10 @@ LevelSetSolver3D::LevelSetSolver3D(int nx, int ny, int nz, int num_bc_grid, doub
 	kEps(std::min(std::min(dx, dy), dz)),
 	kThickness(2.0 * kEps),
 	kNx(nx), kNy(ny), kNz(nz), kNumBCGrid(num_bc_grid),  
-	kArrSize(kArrSize * (kNz + 2 * kNumBCGrid)),
+	kArrSize(
+	static_cast<int64_t>(kNx + 2 * kNumBCGrid) *
+	static_cast<int64_t>(kNy + 2 * kNumBCGrid) * 
+	static_cast<int64_t>(kNz + 2 * kNumBCGrid)),
 	kBaseX(baseX), kBaseY(baseY), kBaseZ(baseZ),
 	kDx(dx), kDy(dy), kDz(dz),
 	kAdt(kEps * 0.5), m_atime(0.0), kMaxATime(1.5 * kThickness),
@@ -15,11 +18,32 @@ LevelSetSolver3D::LevelSetSolver3D(int nx, int ny, int nz, int num_bc_grid, doub
 	kEps(std::min(std::min(dx, dy), dz)),
 	kThickness(2.0 * kEps),
 	kNx(nx), kNy(ny), kNz(nz), kNumBCGrid(num_bc_grid),
-	kArrSize(kArrSize * (kNz + 2 * kNumBCGrid)),
+	kArrSize(
+	static_cast<int64_t>(kNx + 2 * kNumBCGrid) *
+	static_cast<int64_t>(kNy + 2 * kNumBCGrid) *
+	static_cast<int64_t>(kNz + 2 * kNumBCGrid)),
 	kDx(dx), kDy(dy), kDz(dz),
 	kBaseX(baseX), kBaseY(baseY), kBaseZ(baseZ),
 	kAdt(kEps * 0.5), m_atime(0.0), kMaxATime(maxTime),
 	kENOSpatialOrder(2)  {
+}
+
+std::vector<double> LevelSetSolver3D::UpdateHeavisideFuncDeriv(const std::vector<double>& ls) {
+	std::vector<double> HeavisideDeriv(kArrSize, 0.0);
+	const double eps = std::min(std::min(kDx, kDy), kDz) * 1.5;
+
+	for (int i = 0; i < kNx + 2 * kNumBCGrid; i++)
+	for (int j = 0; j < kNy + 2 * kNumBCGrid; j++)
+	for (int k = 0; k < kNz + 2 * kNumBCGrid; k++) {
+		if (std::fabs(ls[idx(i, j, k)]) > kEps)
+			HeavisideDeriv[idx(i, j, k)] = 0.0;
+		else
+			HeavisideDeriv[idx(i, j, k)]
+			= 0.5 * (1.0 / kEps
+			+ cos(M_PI * ls[idx(i, j, k)] / kEps));
+	}
+
+	return HeavisideDeriv;
 }
 
 std::vector<double> LevelSetSolver3D::UpdateKappa(const std::vector<double>& ls) {
@@ -30,7 +54,7 @@ std::vector<double> LevelSetSolver3D::UpdateKappa(const std::vector<double>& ls)
 	const double eps = 1.0e-100;
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-	for (int k = kNumBCGrid; j < kNz + kNumBCGrid; k++) {
+	for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
 		dLSdX[idx(i, j, k)] = (ls[idx(i + 1, j, k)] - ls[idx(i - 1, j, k)]) / (2.0 * kDx);
 		dLSdY[idx(i, j, k)] = (ls[idx(i, j + 1, k)] - ls[idx(i, j - 1, k)]) / (2.0 * kDy);
 		dLSdZ[idx(i, j, k)] = (ls[idx(i, j, k + 1)] - ls[idx(i, j, k - 1)]) / (2.0 * kDz);
@@ -64,7 +88,7 @@ std::vector<double> LevelSetSolver3D::UpdateKappa(const std::vector<double>& ls)
 
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-	for (int k = kNumBCGrid; j < kNz + kNumBCGrid; k++) {
+	for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
 		kappa[idx(i, j, k)]
 			= -(dLSdX[idx(i, j, k)] * dLSdX[idx(i, j, k)] * (ls[idx(i, j - 1, k)] - 2.0 * ls[idx(i, j, k)] + ls[idx(i, j + 1, k)]) / (kDy * kDy) // phi^2_x \phi_yy
 			- 2.0 * dLSdX[idx(i, j, k)] * dLSdY[idx(i, j, k)] * (ls[idx(i + 1, j + 1, k)] - ls[idx(i - 1, j + 1, k)] - ls[idx(i + 1, j - 1, k)] + ls[idx(i - 1, j - 1, k)]) / (4.0 * kDx * kDy) //2 \phi_x \phi_y \phi_yx
@@ -147,7 +171,7 @@ std::vector<double> LevelSetSolver3D::HJWENO5_LS_3D(std::vector<double>& ls,
 	// U : X direction
 	std::vector<double> FXP(kNx + 2 * kNumBCGrid, 0.0), FXM(kNx + 2 * kNumBCGrid, 0.0);
 	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-	for (int k = kNumBCGrid; j < kNz + kNumBCGrid; k++) {
+	for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
 		for (int i = 0; i < kNx + 2 * kNumBCGrid; i++) {
 			vecF_LSX[i] = ls[idx(i, j, k)] * u[idx(i, j, k)];
 		}
@@ -392,7 +416,7 @@ int LevelSetSolver3D::Reinit_Sussman_3D(std::vector<double>& ls) {
 
 	// HJENO 2nd order + RK2
 	m_atime = 0.0;
-
+	
 	std::vector<double> lsInit(kArrSize, 0.0);
 	lsInit = ls;
 
@@ -402,6 +426,7 @@ int LevelSetSolver3D::Reinit_Sussman_3D(std::vector<double>& ls) {
 	std::vector<double> L2(kArrSize, 0.0);
 	std::vector<double> tmpLS(kArrSize, 0.0);
 	std::vector<double> sussmanConstraint(kArrSize, 0.0);
+	std::vector<double> heavisideDeriv(kArrSize, 0.0);
 	
 	while (m_atime < kMaxATime) {
 		m_atime += kAdt;
@@ -435,7 +460,8 @@ int LevelSetSolver3D::Reinit_Sussman_3D(std::vector<double>& ls) {
 			tmpLS[idx(i, j, k)] = 0.5 * (L1[idx(i, j, k)] + L2[idx(i, j, k)]);
 		}
 
-		sussmanConstraint = GetSussmanReinitConstraint(tmpLS, lsInit);
+		heavisideDeriv = UpdateHeavisideFuncDeriv(tmpLS);
+		sussmanConstraint = GetSussmanReinitConstraint(tmpLS, lsInit, heavisideDeriv);
 		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
 		for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
@@ -447,7 +473,8 @@ int LevelSetSolver3D::Reinit_Sussman_3D(std::vector<double>& ls) {
 	return 0;
 }
 
-std::vector<double> LevelSetSolver3D::GetSussmanReinitConstraint(const std::vector<double>& ls, const std::vector<double>& lsInit) {
+std::vector<double> LevelSetSolver3D::GetSussmanReinitConstraint(const std::vector<double>& ls,
+	const std::vector<double>& lsInit, const std::vector<double>& heavisideDeriv) {
 	double x[3][3][3], y[3][3][3], z[3][3][3], lsFraction[3][3][3], lsInitFraction[3][3][3],
 		Hp[3][3][3], L[3][3][3], dLSAbs[3][3][3], f[3][3][3];
 	std::vector<double> sussmanConstraint(kArrSize, 0.0);
@@ -456,6 +483,9 @@ std::vector<double> LevelSetSolver3D::GetSussmanReinitConstraint(const std::vect
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
 	for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
+		if (heavisideDeriv[idx(i, j, k)] == 0.0)
+			continue;
+
 		for (int li = 0; li < 3; li++)
 		for (int lj = 0; lj < 3; lj++)
 		for (int lk = 0; lk < 3; lk++) {

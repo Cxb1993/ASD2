@@ -1,6 +1,6 @@
 #include "test_poisson2d_large.h"
 
-int test_poisson_GuassSeidel() {
+int test_poisson2D_GuassSeidel() {
 	// http://farside.ph.utexas.edu/teaching/329/lectures/node71.html
 	const int kNx = 64, kNy = 64, kNumBCGrid = 3;
 	const double kBaseX = 0.0, kBaseY = 0.0, kLenX = 1.0, kLenY = 1.0;
@@ -142,7 +142,7 @@ int test_poisson_GuassSeidel() {
 	
 	PSolver->GS_2FUniform_2D(u, b, AVals, ACols, ARowIdx, kLenX, kLenY, kDx, kDy, PBC, 10000);
 	
-	std::string fname_p_base("TestPoisson_GS");
+	std::string fname_p_base("TestPoisson2D_GS");
 	std::ofstream outF;
 	std::string fname_p(fname_p_base + "_ASCII.plt");
 
@@ -171,7 +171,7 @@ int test_poisson_GuassSeidel() {
 	return 0;
 }
 
-int test_poisson_CG() {
+int test_poisson2D_CG() {
 	const int kNx = 64, kNy = 64, kNumBCGrid = 3;
 	const double kBaseX = 0.0, kBaseY = 0.0, kLenX = 1.0, kLenY = 1.0;
 	const double kDx = kLenX / kNx, kDy = kLenY / kNy;
@@ -192,7 +192,7 @@ int test_poisson_CG() {
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++) {
 		x = kBaseX + (i - kNumBCGrid) * kDx;
 		y = kBaseY + (j - kNumBCGrid) * kDy;
-		b[idx3(kNy, i, j)] = 0.0;
+		b[idx3_2D(kNy, i, j)] = 0.0;
 	}
 
 	std::vector<double> AVals, DiagVals, MVals;
@@ -239,7 +239,7 @@ int test_poisson_CG() {
 			AColsDic["W"] = -1;
 			AValsDic["W"] = 0.0;
 			AValsDic["C"] += 1.0 / (kDx * kDx);
-			b[idx3(kNy, i, j)] -= -1.0 / (kDx * kDx) * (PBC->m_BC_DirichletConstantPW);
+			b[idx3_2D(kNy, i, j)] -= -1.0 / (kDx * kDx) * (PBC->m_BC_DirichletConstantPW);
 		}
 
 		// East boundary
@@ -252,7 +252,7 @@ int test_poisson_CG() {
 			AColsDic["E"] = -1;
 			AValsDic["E"] = 0.0;
 			AValsDic["C"] += 1.0 / (kDy * kDy);
-			b[idx3(kNy, i, j)] -= -1.0 / (kDx * kDx) * (PBC->m_BC_DirichletConstantPE);
+			b[idx3_2D(kNy, i, j)] -= -1.0 / (kDx * kDx) * (PBC->m_BC_DirichletConstantPE);
 		}
 
 		if (j == kNumBCGrid && PBC->m_BC_PS == BC2D::NEUMANN) {
@@ -264,7 +264,7 @@ int test_poisson_CG() {
 			AColsDic["S"] = -1;
 			AValsDic["S"] = 0.0;
 			AValsDic["C"] += 1.0 / (kDy * kDy);
-			b[idx3(kNy, i, j)] -= -1.0 / (kDy * kDy) * (PBC->m_BC_DirichletConstantPS);
+			b[idx3_2D(kNy, i, j)] -= -1.0 / (kDy * kDy) * (PBC->m_BC_DirichletConstantPS);
 		}
 
 		if (j == kNumBCGrid + kNy - 1 && PBC->m_BC_PN == BC2D::NEUMANN) {
@@ -276,7 +276,7 @@ int test_poisson_CG() {
 			AColsDic["N"] = -1;
 			AValsDic["N"] = 0.0;
 			AValsDic["C"] += 1.0 / (kDx * kDx);
-			b[idx3(kNy, i, j)] -= -1.0 / (kDy * kDy) * (PBC->m_BC_DirichletConstantPN);
+			b[idx3_2D(kNy, i, j)] -= -1.0 / (kDy * kDy) * (PBC->m_BC_DirichletConstantPN);
 		}
 
 		// add non zero values to AVals and ACols
@@ -322,7 +322,7 @@ int test_poisson_CG() {
 
 	PSolver->CG_2FUniform_2D(u, b, AVals, ACols, ARowIdx, DiagVals, DiagCols, DiagRowIdx, kLenX, kLenY, kDx, kDy, PBC, 10000);
 
-	std::string fname_p_base("TestPoisson_CG");
+	std::string fname_p_base("TestPoisson2D_CG");
 	std::ofstream outF;
 	std::string fname_p(fname_p_base + "_ASCII.plt");
 
@@ -344,14 +344,14 @@ int test_poisson_CG() {
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 		outF << kBaseX + static_cast<double>(i + 0.5 - kNumBCGrid) * kDx << std::string(",")
 		<< kBaseY + static_cast<double>(j + 0.5 - kNumBCGrid) * kDy << std::string(",")
-		<< static_cast<double>(u[idx3(kNy, i, j)]) << std::endl;
+		<< static_cast<double>(u[idx3_2D(kNy, i, j)]) << std::endl;
 
 	outF.close();
 
 	return 0;
 }
 
-int test_poisson_BiCGStab() {
+int test_poisson2D_BiCGStab() {
 	const int kNx = 64, kNy = 64, kNumBCGrid = 3;
 	const double kBaseX = 0.0, kBaseY = 0.0, kLenX = 1.0, kLenY = 1.0;
 	const double kDx = kLenX / kNx, kDy = kLenY / kNy;
@@ -418,7 +418,7 @@ int test_poisson_BiCGStab() {
 			AColsDic["W"] = -1;
 			AValsDic["W"] = 0.0;
 			AValsDic["C"] += 1.0 / (kDx * kDx);
-			b[idx3(kNy, i, j)] -= -1.0 / (kDx * kDx) * (PBC->m_BC_DirichletConstantPW);
+			b[idx3_2D(kNy, i, j)] -= -1.0 / (kDx * kDx) * (PBC->m_BC_DirichletConstantPW);
 		}
 
 		// East boundary
@@ -431,7 +431,7 @@ int test_poisson_BiCGStab() {
 			AColsDic["E"] = -1;
 			AValsDic["E"] = 0.0;
 			AValsDic["C"] += 1.0 / (kDy * kDy);
-			b[idx3(kNy, i, j)] -= -1.0 / (kDx * kDx) * (PBC->m_BC_DirichletConstantPE);
+			b[idx3_2D(kNy, i, j)] -= -1.0 / (kDx * kDx) * (PBC->m_BC_DirichletConstantPE);
 		}
 
 		if (j == kNumBCGrid && PBC->m_BC_PS == BC2D::NEUMANN) {
@@ -443,7 +443,7 @@ int test_poisson_BiCGStab() {
 			AColsDic["S"] = -1;
 			AValsDic["S"] = 0.0;
 			AValsDic["C"] += 1.0 / (kDy * kDy);
-			b[idx3(kNy, i, j)] -= -1.0 / (kDy * kDy) * (PBC->m_BC_DirichletConstantPS);
+			b[idx3_2D(kNy, i, j)] -= -1.0 / (kDy * kDy) * (PBC->m_BC_DirichletConstantPS);
 		}
 
 		if (j == kNumBCGrid + kNy - 1 && PBC->m_BC_PN == BC2D::NEUMANN) {
@@ -455,7 +455,7 @@ int test_poisson_BiCGStab() {
 			AColsDic["N"] = -1;
 			AValsDic["N"] = 0.0;
 			AValsDic["C"] += 1.0 / (kDx * kDx);
-			b[idx3(kNy, i, j)] -= -1.0 / (kDy * kDy) * (PBC->m_BC_DirichletConstantPN);
+			b[idx3_2D(kNy, i, j)] -= -1.0 / (kDy * kDy) * (PBC->m_BC_DirichletConstantPN);
 		}
 
 		// add non zero values to AVals and ACols
@@ -501,7 +501,7 @@ int test_poisson_BiCGStab() {
 
 	PSolver->BiCGStab_2FUniform_2D(u, b, AVals, ACols, ARowIdx, DiagVals, DiagCols, DiagRowIdx, kLenX, kLenY, kDx, kDy, PBC, 10000);
 
-	std::string fname_p_base("TestPoisson_BiCGSTAB");
+	std::string fname_p_base("TestPoisson2D_BiCGSTAB");
 	std::ofstream outF;
 	std::string fname_p(fname_p_base + "_ASCII.plt");
 
@@ -523,7 +523,7 @@ int test_poisson_BiCGStab() {
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 		outF << kBaseX + static_cast<double>(i + 0.5 - kNumBCGrid) * kDx << std::string(",")
 		<< kBaseY + static_cast<double>(j + 0.5 - kNumBCGrid) * kDy << std::string(",")
-		<< static_cast<double>(u[idx3(kNy, i, j)]) << std::endl;
+		<< static_cast<double>(u[idx3_2D(kNy, i, j)]) << std::endl;
 
 	outF.close();
 

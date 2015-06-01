@@ -43,7 +43,7 @@ int PoissonSolver3D::CG_2FUniform_3D(std::vector<double>& ps, const std::vector<
 		q[i + j * kNx + k * kNx * kNy] = 0.0;
 		z[i + j * kNx + k * kNx * kNy] = 0.0;
 	}
-	
+
 	// get Ax(=A*x), using upper triangular matrix (Sparse BLAS)
 	// https://software.intel.com/en-us/node/468560
 	char transa = 'n';
@@ -189,7 +189,7 @@ int PoissonSolver3D::BiCGStab_2FUniform_3D(std::vector<double>& ps, const std::v
 		shat[i + j * kNx + k * kNx * kNy] = 0.0;
 		t[i + j * kNx + k * kNx * kNy] = 0.0;
 	}
-	
+
 	// declare coefficients
 	double alpha = 1.0, beta = 1.0, omega = 1.0, resid;
 	double rho1 = 1.0, rho2 = 1.0;

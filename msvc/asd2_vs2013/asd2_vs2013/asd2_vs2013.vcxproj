@@ -56,6 +56,7 @@
     <UseIntelMKL>Parallel</UseIntelMKL>
     <InterproceduralOptimization>true</InterproceduralOptimization>
     <UseILP64Interfaces>true</UseILP64Interfaces>
+    <UseIntelIPP>false</UseIntelIPP>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
