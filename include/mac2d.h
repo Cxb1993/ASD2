@@ -45,7 +45,7 @@ public:
 	const bool kWriteVTK;
 	POISSONTYPE m_PoissonSolverType;
 	PLTTYPE m_PLTType;
-	GAXISENUM kGAxis;
+	GAXISENUM2D kGAxis;
 
 	const double kEps_div = 1.0e-6;
 
@@ -71,12 +71,12 @@ public:
 	std::vector<double> m_t2x, m_t2y, m_t2z;
 
 	MACSolver2D();
-	MACSolver2D(double Re, double We, double Fr, GAXISENUM GAxis,
+	MACSolver2D(double Re, double We, double Fr, GAXISENUM2D GAxis,
 		double L, double U, double sigma, double densityRatio, double viscosityRatio, double rhoI, double mu1,
 		int nx, int ny, double baseX, double baseY, double lenX, double lenY, 
 		TIMEORDERENUM RKOrder, double cfl, double maxtime, int maxiter, int niterskip,
 		int num_bc_grid, bool writeVTK);
-	MACSolver2D(double rhoI, double rhoO, double muI, double muO, double gConstant, GAXISENUM GAxis,
+	MACSolver2D(double rhoI, double rhoO, double muI, double muO, double gConstant, GAXISENUM2D GAxis,
 		double L, double U, double sigma,
 		int nx, int ny, double baseX, double baseY, double lenX, double lenY, 
 		TIMEORDERENUM RKOrder, double cfl, double maxtime, int maxiter, int niterskip,

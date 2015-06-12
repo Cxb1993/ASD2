@@ -7,7 +7,7 @@ int MAC2DTest_CavityFlow() {
 	const double rhoH = 1.0, muH = 0.01, sigma = 0.0;
 	const double densityRatio = 1.0, viscosityRatio = 1.0;
 	const double gConstant = 0.0;
-	GAXISENUM GAxis = GAXISENUM::Y;
+	GAXISENUM2D GAxis = GAXISENUM2D::Y;
 	// # of cells
 	const int nx = 128, ny = 128;
 	// related to initialize level set
@@ -177,7 +177,7 @@ int MAC2DTest_StationaryBubble() {
 	const double rhoH = 1000, muH = 1.137e-3, sigma = 0.0728;
 	// const double rhoL = 1000, muL = 1.137e-3, sigma = 0.0;
 	const double gConstant = 0.0; 
-	GAXISENUM GAxis = GAXISENUM::Y;
+	GAXISENUM2D GAxis = GAXISENUM2D::Y;
 	// # of cells
 	const int nx = 128, ny = 128;
 	// related to initialize level set
@@ -362,7 +362,7 @@ int MAC2DTest_SmallAirBubbleRising() {
 	const double rhoL = 1.226, muL = 1.78e-5;
 	const double rhoH = 1000, muH = 1.137e-3, sigma = 0.0728;
 	const double gConstant = 9.81;
-	GAXISENUM GAxis = GAXISENUM::Y;
+	GAXISENUM2D GAxis = GAXISENUM2D::Y;
 	// # of cells
 	const int nx = 80, ny = 120;
 	// related to initialize level set
@@ -380,7 +380,7 @@ int MAC2DTest_SmallAirBubbleRising() {
 	const std::string fname_div("testMAC2D_SmallBubbleRisingDiv_Re_" + std::to_string(Re));
 	const int iterskip = 1;
 	const TIMEORDERENUM timeOrder = TIMEORDERENUM::EULER;
-	int stat = 0;
+	int stat = 0;	
 	
 	std::unique_ptr<MACSolver2D> MSolver;
 	MSolver = std::make_unique<MACSolver2D>(rhoH, rhoL, muH, muL, gConstant, GAxis,
@@ -443,10 +443,10 @@ int MAC2DTest_SmallAirBubbleRising() {
 		
 		d = std::sqrt(x * x + y * y) - radius;
 		
-		ls[idx3_2D(ny, i, j)] = -d;
+		ls[idx3_2D(ny, i, j)] = d;
 	}
 	LSolver->ApplyBC_P_2D(ls);
-	LSolver->Reinit_Original_2D(ls);
+	LSolver->Reinit_Sussman_2D(ls);
 
 	LSolver->ApplyBC_P_2D(ls);
 	
@@ -466,7 +466,7 @@ int MAC2DTest_SmallAirBubbleRising() {
 
 		lsB = ls;
 		LSolver->Solve_LevelSet_2D(ls, MSolver->m_u, MSolver->m_v, MSolver->m_dt);
-		LSolver->Reinit_Original_2D(ls);
+		LSolver->Reinit_Sussman_2D(ls);
 		LSolver->ApplyBC_P_2D(ls);
 		// Solve Momentum Part
 		
@@ -544,7 +544,7 @@ int MAC2DTest_LargeAirBubbleRising() {
 	const double rhoL = 1.226, muL = 1.78e-5;
 	const double rhoH = 1000, muH = 1.137e-3, sigma = 0.0728;
 	const double gConstant = 9.81;
-	GAXISENUM GAxis = GAXISENUM::Y;
+	GAXISENUM2D GAxis = GAXISENUM2D::Y;
 	// # of cells
 	const int nx = 80, ny = 120;
 	// related to initialize level set
@@ -623,11 +623,11 @@ int MAC2DTest_LargeAirBubbleRising() {
 
 		d = std::sqrt(x * x + y * y) - radius;
 
-		ls[idx3_2D(ny, i, j)] = -d;
+		ls[idx3_2D(ny, i, j)] = d;
 	}
 	LSolver->ApplyBC_P_2D(ls);
 	
-	LSolver->Reinit_Original_2D(ls);
+	LSolver->Reinit_Sussman_2D(ls);
 	LSolver->ApplyBC_P_2D(ls);
 
 	// prevent dt == 0.0
@@ -646,7 +646,7 @@ int MAC2DTest_LargeAirBubbleRising() {
 
 		lsB = ls;
 		LSolver->Solve_LevelSet_2D(ls, MSolver->m_u, MSolver->m_v, MSolver->m_dt);
-		LSolver->Reinit_Original_2D(ls);
+		LSolver->Reinit_Sussman_2D(ls);
 		LSolver->ApplyBC_P_2D(ls);
 		// Solve Momentum Part
 
@@ -720,7 +720,7 @@ int MAC2DTest_LargeAirBubbleRising() {
 int MAC2DTest_TaylorInstability() {
 	// Set initial level set
 	const double gConstant = 200;
-	GAXISENUM GAxis = GAXISENUM::Y;
+	GAXISENUM2D GAxis = GAXISENUM2D::Y;
 	// Length Scale = d, Time Scale = \sqrt(d / g), Vel Scale = Length / Time
 	const double L = 1.0, U = L / (std::sqrt(L / gConstant));
 	// Froude Number : u0 / (sqrt(g0 * l0))
@@ -887,6 +887,564 @@ int MAC2DTest_TaylorInstability() {
 	MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
 		MSolver->m_u, MSolver->m_v, MSolver->m_ps, ls);
 
+	MSolver->OutResClose();
+
+	MSolver.reset();
+	LSolver.reset();
+
+	return 0;
+}
+
+int MAC2DAxisymTest_StationaryBubble() {
+	// Set initial level set
+	const double Re = 0.0, We = 0.0, Fr = 0.0;
+	const double L = 1.0, U = 1.0;
+	const double rhoL = 1.226, muL = 1.78e-5;
+	// const double rhoH = 1000, muH = 1.137e-3;
+	const double rhoH = 1000, muH = 1.137e-3, sigma = 0.0728;
+	// const double rhoL = 1000, muL = 1.137e-3, sigma = 0.0;
+	const double gConstant = 0.0;
+	GAXISENUM2DAXISYM GAxis = GAXISENUM2DAXISYM::Z;
+	// # of cells
+	const int nr = 128, nz = 128;
+	// related to initialize level set
+	const double baseR = 0.0, baseZ = 0.0, lenR = 0.02, lenZ = 0.04, cfl = 0.1;
+	
+	const int maxiter = 20, niterskip = 1, num_bc_grid = 3;
+	const double maxtime = 0.06;
+	const bool writeVTK = false;
+	// length of each cell
+	const double dr = lenR / nr, dz = lenZ / nz;
+	const std::string fname_vel("testMAC2DAxisym_StationaryBubbleVel_Re_" + std::to_string(Re));
+	const std::string fname_div("testMAC2DAxisym_StationaryBubbleDiv_Re_" + std::to_string(Re));
+	const int iterskip = 1;
+	const TIMEORDERENUM timeOrder = TIMEORDERENUM::EULER;
+	int stat = 0;
+
+	std::unique_ptr<MACSolver2DAxisym> MSolver;
+	MSolver = std::make_unique<MACSolver2DAxisym>(rhoH, rhoL, muH, muL, gConstant, GAxis,
+		L, U, sigma, nr, nz, baseR, baseZ, lenR, lenZ,
+		timeOrder, cfl, maxtime, maxiter, niterskip, num_bc_grid, writeVTK);
+	MSolver->SetBC_U_2D("axisym", "dirichlet", "dirichlet", "dirichlet");
+	MSolver->SetBC_V_2D("axisym", "dirichlet", "dirichlet", "dirichlet");
+	MSolver->SetBC_P_2D("neumann", "neumann", "neumann", "neumann");
+	MSolver->SetBCConstantUW(0.0);
+	MSolver->SetBCConstantUE(0.0);
+	MSolver->SetBCConstantUS(0.0);
+	MSolver->SetBCConstantUN(0.0);
+	MSolver->SetBCConstantVW(0.0);
+	MSolver->SetBCConstantVE(0.0);
+	MSolver->SetBCConstantVS(0.0);
+	MSolver->SetBCConstantVN(0.0);
+	MSolver->SetPLTType(PLTTYPE::BOTH);
+
+	// MSolver->SetPoissonSolver(POISSONTYPE::BICGSTAB);
+	MSolver->SetPoissonSolver(POISSONTYPE::CG);
+	// MSolver->SetPoissonSolver(POISSONTYPE::GS);
+	const int poissonMaxIter = 20000;
+
+	std::shared_ptr<LevelSetSolver2D> LSolver;
+	LSolver = std::make_shared<LevelSetSolver2D>(nr, nz, num_bc_grid, baseR, baseZ, dr, dz);
+	// \phi^n
+	std::vector<double> lsB((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid), 0.0);
+	// \phi^{n + 1}
+	std::vector<double> ls((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid), 0.0);
+	// inside value must be positive levelset, otherwise, negative
+
+	std::vector<double> H((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid), 0.0),
+		HSmooth((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid), 0.0);
+	// init velocity and pseudo-pressure
+	MSolver->AllocateVariables();
+
+	for (int i = 0; i < nr + 2 * num_bc_grid; i++)
+	for (int j = 0; j < nz + 2 * num_bc_grid; j++) {
+		MSolver->m_u[idx3_2D(nz, i, j)] = 0.0;
+		MSolver->m_v[idx3_2D(nz, i, j)] = 0.0;
+		MSolver->m_p[idx3_2D(nz, i, j)] = 0.0;
+		MSolver->m_ps[idx3_2D(nz, i, j)] = 0.0;
+	}
+
+	MSolver->ApplyBC_U_2D(MSolver->m_u);
+	MSolver->ApplyBC_V_2D(MSolver->m_v);
+	MSolver->ApplyBC_P_2D(MSolver->m_ps);
+	MSolver->ApplyBC_P_2D(MSolver->m_p);
+
+	LSolver->SetBC_P_2D("axisym", "neumann", "neumann", "neumann");
+	LSolver->SetBCConstantPW(0.0);
+	LSolver->SetBCConstantPE(0.0);
+	LSolver->SetBCConstantPS(0.0);
+	LSolver->SetBCConstantPN(0.0);
+	double radius = 0.01, r = 0.0, z = 0.0, d = 0.0;
+	for (int j = 0; j < nr + 2 * num_bc_grid; j++)
+	for (int i = 0; i < nz + 2 * num_bc_grid; i++) {
+		// positive : inside & gas, negative : outside & liquid 
+		r = baseR + (i + 0.5 - num_bc_grid) * dr;
+		z = baseZ + (j + 0.5 - num_bc_grid) * dz;
+
+		// d - inside : -, outside : +
+		d = std::sqrt(std::pow(r, 2.0) + std::pow(z - lenZ * 0.5, 2.0)) - radius;
+
+		// ls - inside : -(gas), outside : +(liquid)
+		ls[idx3_2D(nz, i, j)] = d;
+	}
+	LSolver->ApplyBC_P_2D(ls);
+	LSolver->Reinit_Sussman_2D(ls);
+
+	LSolver->ApplyBC_P_2D(ls);
+
+	// prevent dt == 0.0
+	MSolver->m_dt = cfl * std::min(dr, dz) / U;
+	std::cout << " dt : " << MSolver->m_dt << std::endl;
+
+	std::vector<double> uhat((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid)), vhat((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid));
+	std::vector<double> div((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid));
+	MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
+		MSolver->m_u, MSolver->m_v, MSolver->m_ps, ls);
+
+	while (MSolver->m_curTime < MSolver->kMaxTime && MSolver->m_iter < MSolver->kMaxIter) {
+		// Solver Level set part first
+		// Have to use \phi^{n+1} for rho, mu, kappa
+		MSolver->m_iter++;
+
+		lsB = ls;
+		LSolver->Solve_LevelSet_2D(ls, MSolver->m_u, MSolver->m_v, MSolver->m_dt);
+		LSolver->ApplyBC_P_2D(ls);
+		LSolver->Reinit_Sussman_2D(ls);
+
+		LSolver->ApplyBC_P_2D(ls);
+		// Solve Momentum Part
+		MSolver->UpdateKappa(ls);
+		H = MSolver->UpdateHeavisideFunc(ls);
+		HSmooth = MSolver->UpdateSmoothHeavisideFunc(ls);
+
+		// Update F and apply time integration
+		MSolver->UpdateJumpCond(MSolver->m_u, MSolver->m_v, ls);
+
+		// Get intermediate velocity
+		MSolver->GetIntermediateVel(LSolver, ls, MSolver->m_u, MSolver->m_v, uhat, vhat, HSmooth);
+
+		MSolver->ApplyBC_U_2D(uhat);
+		MSolver->ApplyBC_V_2D(vhat);
+
+		// From intermediate velocity, get divergence
+		div = MSolver->GetDivergence(uhat, vhat);
+		MSolver->ApplyBC_P_2D(MSolver->m_ps);
+		LSolver->ApplyBC_P_2D(ls);
+
+		// Solve Poisson equation
+		// m_phi = pressure * dt
+		stat = MSolver->SolvePoisson(MSolver->m_ps, div, ls, lsB, MSolver->m_u, MSolver->m_v, H, poissonMaxIter);
+		MSolver->ApplyBC_P_2D(MSolver->m_ps);
+
+		stat = MSolver->UpdateVel(MSolver->m_u, MSolver->m_v,
+			uhat, vhat, MSolver->m_ps, ls, lsB, H);
+
+		MSolver->ApplyBC_U_2D(MSolver->m_u);
+		MSolver->ApplyBC_V_2D(MSolver->m_v);
+
+		MSolver->m_dt = MSolver->UpdateDt(MSolver->m_u, MSolver->m_v);
+		MSolver->m_curTime += MSolver->m_dt;
+
+		if ((MSolver->m_iter % MSolver->kNIterSkip) == 0) {
+			std::chrono::high_resolution_clock::time_point p = std::chrono::high_resolution_clock::now();
+			std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(p.time_since_epoch());
+
+			std::chrono::seconds s = std::chrono::duration_cast<std::chrono::seconds>(ms);
+			std::time_t t = s.count();
+			std::size_t fractional_seconds = ms.count() % 1000;
+
+			std::cout << "Stationary Bubble : " << std::ctime(&t) << " " << MSolver->m_iter << " " << MSolver->m_curTime << " " << MSolver->m_dt << " " << std::endl;
+
+			// MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
+			// 	uhat, vhat, MSolver->m_ps, ls);
+			MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
+				MSolver->m_u, MSolver->m_v, MSolver->m_ps, ls);
+		}
+		std::fill(uhat.begin(), uhat.end(), 0.0);
+		std::fill(vhat.begin(), vhat.end(), 0.0);
+	}
+	// http://stackoverflow.com/a/12836048/743078
+	std::chrono::high_resolution_clock::time_point p = std::chrono::high_resolution_clock::now();
+	std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(p.time_since_epoch());
+
+	std::chrono::seconds s = std::chrono::duration_cast<std::chrono::seconds>(ms);
+	std::time_t t = s.count();
+	std::size_t fractional_seconds = ms.count() % 1000;
+
+	std::cout << "(Final) Small Bubble : " << std::ctime(&t) << " " << MSolver->m_iter << " " << MSolver->m_curTime << " " << MSolver->m_dt << " " << std::endl;
+	MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
+		MSolver->m_u, MSolver->m_v, MSolver->m_ps, ls);
+	MSolver->OutResClose();
+
+	MSolver.reset();
+	LSolver.reset();
+
+	return 0;
+}
+
+int MAC2DAxisymTest_SmallAirBubbleRising() {
+	// Set initial level set
+	const double Re = 0.0, We = 0.0, Fr = 0.0;
+	const double L = 1.0, U = 1.0;
+	const double rhoL = 1.226, muL = 1.78e-5;
+	const double rhoH = 1000, muH = 1.137e-3, sigma = 0.0728;
+	const double gConstant = 9.81;
+	GAXISENUM2DAXISYM GAxis = GAXISENUM2DAXISYM::Z;
+	// # of cells
+	const int nr = 40, nz = 120;
+	// related to initialize level set
+	const double baseR = 0.0, baseZ = -0.01, lenR = 0.01, lenZ = 0.03, cfl = 0.1;
+	
+	const double maxtime = 2.0;
+	const int maxiter = 10, niterskip = 1, num_bc_grid = 3;
+	const bool writeVTK = false;
+	// length of each cell
+	const double dr = lenR / nr, dz = lenZ / nz;
+	const std::string fname_vel("testMAC2DAxisym_SmallBubbleRisingVel_Re_" + std::to_string(Re));
+	const std::string fname_div("testMAC2DAxisym_SmallBubbleRisingDiv_Re_" + std::to_string(Re));
+	const int iterskip = 1;
+	const TIMEORDERENUM timeOrder = TIMEORDERENUM::EULER;
+	int stat = 0;
+
+	std::unique_ptr<MACSolver2DAxisym> MSolver;
+	MSolver = std::make_unique<MACSolver2DAxisym>(rhoH, rhoL, muH, muL, gConstant, GAxis,
+		L, U, sigma, nr, nz, baseR, baseZ, lenR, lenZ,
+		timeOrder, cfl, maxtime, maxiter, niterskip, num_bc_grid, writeVTK);
+	MSolver->SetBC_U_2D("axisym", "dirichlet", "dirichlet", "dirichlet");
+	MSolver->SetBC_V_2D("axisym", "dirichlet", "dirichlet", "dirichlet");
+	MSolver->SetBC_P_2D("neumann", "neumann", "neumann", "neumann");
+	MSolver->SetBCConstantUW(0.0);
+	MSolver->SetBCConstantUE(0.0);
+	MSolver->SetBCConstantUS(0.0);
+	MSolver->SetBCConstantUN(0.0);
+	MSolver->SetBCConstantVW(0.0);
+	MSolver->SetBCConstantVE(0.0);
+	MSolver->SetBCConstantVS(0.0);
+	MSolver->SetBCConstantVN(0.0);
+	MSolver->SetPLTType(PLTTYPE::BOTH);
+
+	// MSolver->SetPoissonSolver(POISSONTYPE::BICGSTAB);
+	MSolver->SetPoissonSolver(POISSONTYPE::CG);
+	// MSolver->SetPoissonSolver(POISSONTYPE::GS);
+	const int poissonMaxIter = 20000;
+
+	std::shared_ptr<LevelSetSolver2D> LSolver;
+	LSolver = std::make_shared<LevelSetSolver2D>(nr, nz, num_bc_grid, baseR, baseZ, dr, dz);
+	// \phi^n
+	std::vector<double> lsB((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid), 0.0);
+	// \phi^{n + 1}
+	std::vector<double> ls((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid), 0.0);
+	// inside value must be positive levelset, otherwise, negative
+	std::vector<double> H((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid), 0.0), HSmooth((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid), 0.0);
+
+	// init velocity and pseudo-pressure
+	MSolver->AllocateVariables();
+
+	for (int i = 0; i < nr + 2 * num_bc_grid; i++)
+	for (int j = 0; j < nz + 2 * num_bc_grid; j++) {
+		MSolver->m_u[idx3_2D(nz, i, j)] = 0.0;
+		MSolver->m_v[idx3_2D(nz, i, j)] = 0.0;
+		MSolver->m_p[idx3_2D(nz, i, j)] = 0.0;
+		MSolver->m_ps[idx3_2D(nz, i, j)] = 0.0;
+	}
+
+	MSolver->ApplyBC_U_2D(MSolver->m_u);
+	MSolver->ApplyBC_V_2D(MSolver->m_v);
+	MSolver->ApplyBC_P_2D(MSolver->m_ps);
+	MSolver->ApplyBC_P_2D(MSolver->m_p);
+
+	LSolver->SetBC_P_2D("axisym", "neumann", "neumann", "neumann");
+	LSolver->SetBCConstantPW(0.0);
+	LSolver->SetBCConstantPE(0.0);
+	LSolver->SetBCConstantPS(0.0);
+	LSolver->SetBCConstantPN(0.0);
+	
+	double radius = 1.0 / 300.0, r = 0.0, z = 0.0, d = 0.0;
+	for (int j = 0; j < nz + 2 * num_bc_grid; j++)
+	for (int i = 0; i < nr + 2 * num_bc_grid; i++) {
+		// positive : inside, negative : outside
+		r = baseR + (i + 0.5 - num_bc_grid) * dr;
+		z = baseZ + (j + 0.5 - num_bc_grid) * dz;
+
+		d = std::sqrt(r * r + z * z) - radius;
+
+		ls[idx3_2D(nz, i, j)] = d;
+	}
+	LSolver->ApplyBC_P_2D(ls);
+	LSolver->Reinit_Sussman_2D(ls);
+
+	LSolver->ApplyBC_P_2D(ls);
+
+	// prevent dt == 0.0
+	MSolver->m_dt = cfl * std::min(dr, dz) / U;
+	std::cout << " dt : " << MSolver->m_dt << std::endl;
+
+	std::vector<double> uhat((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid)), vhat((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid));
+	std::vector<double> div((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid));
+	MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
+		MSolver->m_u, MSolver->m_v, MSolver->m_ps, ls);
+
+	while (MSolver->m_curTime < MSolver->kMaxTime && MSolver->m_iter < MSolver->kMaxIter) {
+		// Solver Level set part first
+		// Have to use \phi^{n+1} for rho, mu, kappa
+		MSolver->m_iter++;
+
+		lsB = ls;
+		LSolver->Solve_LevelSet_2D(ls, MSolver->m_u, MSolver->m_v, MSolver->m_dt);
+		LSolver->Reinit_Sussman_2D(ls);
+		LSolver->ApplyBC_P_2D(ls);
+		// Solve Momentum Part
+
+		// Update F and apply time integration
+		MSolver->UpdateJumpCond(MSolver->m_u, MSolver->m_v, ls);
+		MSolver->UpdateKappa(ls);
+		H = MSolver->UpdateHeavisideFunc(ls);
+		HSmooth = MSolver->UpdateSmoothHeavisideFunc(ls);
+
+		// Get intermediate velocity
+		MSolver->GetIntermediateVel(LSolver, ls, MSolver->m_u, MSolver->m_v, uhat, vhat, HSmooth);
+
+		MSolver->ApplyBC_U_2D(uhat);
+		MSolver->ApplyBC_V_2D(vhat);
+
+		// From intermediate velocity, get divergence
+		div = MSolver->GetDivergence(uhat, vhat);
+		MSolver->ApplyBC_P_2D(MSolver->m_ps);
+
+		// Solve Poisson equation
+		// m_phi = pressure * dt
+		stat = MSolver->SolvePoisson(MSolver->m_ps, div, ls, lsB, MSolver->m_u, MSolver->m_v, H, poissonMaxIter);
+		MSolver->ApplyBC_P_2D(MSolver->m_ps);
+
+		stat = MSolver->UpdateVel(MSolver->m_u, MSolver->m_v,
+			uhat, vhat, MSolver->m_ps, ls, lsB, H);
+
+		MSolver->ApplyBC_U_2D(MSolver->m_u);
+		MSolver->ApplyBC_V_2D(MSolver->m_v);
+
+		MSolver->m_dt = MSolver->UpdateDt(MSolver->m_u, MSolver->m_v);
+		MSolver->m_curTime += MSolver->m_dt;
+
+		if ((MSolver->m_iter % MSolver->kNIterSkip) == 0) {
+			std::chrono::high_resolution_clock::time_point p = std::chrono::high_resolution_clock::now();
+			std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(p.time_since_epoch());
+
+			std::chrono::seconds s = std::chrono::duration_cast<std::chrono::seconds>(ms);
+			std::time_t t = s.count();
+			std::size_t fractional_seconds = ms.count() % 1000;
+
+			std::cout << "Bubble : " << std::ctime(&t) << " " << MSolver->m_iter << " " << MSolver->m_curTime << " " << MSolver->m_dt << " " << std::endl;
+
+			// MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
+			// 	uhat, vhat, MSolver->m_ps, ls);
+			MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
+				MSolver->m_u, MSolver->m_v, MSolver->m_ps, ls);
+		}
+		std::fill(uhat.begin(), uhat.end(), 0.0);
+		std::fill(vhat.begin(), vhat.end(), 0.0);
+	}
+	// http://stackoverflow.com/a/12836048/743078
+	std::chrono::high_resolution_clock::time_point p = std::chrono::high_resolution_clock::now();
+	std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(p.time_since_epoch());
+
+	std::chrono::seconds s = std::chrono::duration_cast<std::chrono::seconds>(ms);
+	std::time_t t = s.count();
+	std::size_t fractional_seconds = ms.count() % 1000;
+
+	std::cout << "(Final) Small Bubble : " << std::ctime(&t) << " " << MSolver->m_iter << " " << MSolver->m_curTime << " " << MSolver->m_dt << " " << std::endl;
+	MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
+		MSolver->m_u, MSolver->m_v, MSolver->m_ps, ls);
+	MSolver->OutResClose();
+
+	MSolver.reset();
+	LSolver.reset();
+
+	return 0;
+}
+
+int MAC2DAxisymTest_WaterDropletCollison1() {
+	// Set initial level set
+	const double L = 300 * 10e-6, U = 1.4;
+	const double rhoL = 1.226, muL = 1.78e-5;
+	const double rhoH = 1000.0, muH = 1.137e-3, sigma = 0.0728;
+	const double gConstant = 0.0;
+	const double Re = rhoH / muH * U * L, We = rhoH / sigma * L * U * U, Fr = 0.0;
+	GAXISENUM2DAXISYM GAxis = GAXISENUM2DAXISYM::Z;
+
+	// # of cells
+	const int nr = 120, nz = 320;
+	// related to initialize level set
+	const double lenR = L * 3.0, lenZ = L * 8.0, cfl = 0.1, baseR = 0.0, baseZ = -0.5 * lenZ;
+	const double densityRatio = rhoL / rhoH, viscosityRatio = muL / muH;
+
+	const double maxtime = 2.0;
+	const int maxiter = 10, niterskip = 1, num_bc_grid = 3;
+	const bool writeVTK = false;
+	// length of each cell
+	const double dr = lenR / nr, dz = lenZ / nz;
+	const std::string fname_vel("testMAC2D_WaterDropletCollision01Vel_Re_" + std::to_string(Re));
+	const std::string fname_div("testMAC2D_WaterDropletCollision01Div_Re_" + std::to_string(Re));
+	const int iterskip = 1;
+	const TIMEORDERENUM timeOrder = TIMEORDERENUM::EULER;
+	int stat = 0;
+
+	std::unique_ptr<MACSolver2DAxisym> MSolver;
+	MSolver = std::make_unique<MACSolver2DAxisym>(Re, We, Fr, GAxis,
+		L, U, sigma, densityRatio, viscosityRatio, rhoH, muH,
+		nr, nz, baseR, baseZ, lenR, lenZ,
+		timeOrder, cfl, maxtime, maxiter, niterskip, num_bc_grid, writeVTK);
+	MSolver->SetBC_U_2D("axisym", "dirichlet", "neumann", "neumann");
+	MSolver->SetBC_V_2D("axisym", "dirichlet", "neumann", "neumann");
+	MSolver->SetBC_P_2D("neumann", "neumann", "neumann", "neumann");
+	MSolver->SetBCConstantUW(0.0);
+	MSolver->SetBCConstantUE(0.0);
+	MSolver->SetBCConstantUS(0.0);
+	MSolver->SetBCConstantUN(0.0);
+	MSolver->SetBCConstantVW(0.0);
+	MSolver->SetBCConstantVE(0.0);
+	MSolver->SetBCConstantVS(0.0);
+	MSolver->SetBCConstantVN(0.0);
+	MSolver->SetPLTType(PLTTYPE::BOTH);
+
+	// MSolver->SetPoissonSolver(POISSONTYPE::BICGSTAB);
+	MSolver->SetPoissonSolver(POISSONTYPE::CG);
+	// MSolver->SetPoissonSolver(POISSONTYPE::GS);
+	const int poissonMaxIter = 20000;
+
+	std::shared_ptr<LevelSetSolver2D> LSolver;
+	LSolver = std::make_shared<LevelSetSolver2D>(nr, nz, num_bc_grid, baseR, baseZ, dr, dz);
+	// \phi^n
+	std::vector<double> lsB((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid), 0.0);
+	// \phi^{n + 1}
+	std::vector<double> ls((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid), 0.0);
+	// inside value must be positive levelset, otherwise, negative
+	std::vector<double> H((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid), 0.0),
+		HSmooth((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid), 0.0);
+
+	// init velocity and pseudo-pressure
+	MSolver->AllocateVariables();
+
+	for (int i = 0; i < nr + 2 * num_bc_grid; i++)
+	for (int j = 0; j < nz + 2 * num_bc_grid; j++) {
+		MSolver->m_u[idx3_2D(nz, i, j)] = 0.0;
+		MSolver->m_v[idx3_2D(nz, i, j)] = 0.0;
+		MSolver->m_p[idx3_2D(nz, i, j)] = 0.0;
+		MSolver->m_ps[idx3_2D(nz, i, j)] = 0.0;
+	}
+
+	MSolver->ApplyBC_U_2D(MSolver->m_u);
+	MSolver->ApplyBC_V_2D(MSolver->m_v);
+	MSolver->ApplyBC_P_2D(MSolver->m_ps);
+	MSolver->ApplyBC_P_2D(MSolver->m_p);
+
+	LSolver->SetBC_P_2D("axisym", "neumann", "neumann", "neumann");
+	LSolver->SetBCConstantPW(0.0);
+	LSolver->SetBCConstantPE(0.0);
+	LSolver->SetBCConstantPS(0.0);
+	LSolver->SetBCConstantPN(0.0);
+	
+	double radius = 150 * 10e-6, r = 0.0, z = 0.0, d1 = 0.0, d2 = 0.0;
+	for (int j = 3; j < nz + num_bc_grid; j++)
+	for (int i = 3; i < nr + num_bc_grid; i++) {
+		// positive : inside, negative : outside
+		r = baseR + (i + 0.5 - num_bc_grid) * dr;
+		z = baseZ + (j + 0.5 - num_bc_grid) * dz;
+		
+		d1 = std::sqrt(r * r + (z - L * 1.5) * (z - L * 1.5)) - radius;
+		d2 = std::sqrt(r * r + (z + L * 1.5) * (z + L * 1.5)) - radius;
+
+		if (d1 < 0)
+			MSolver->m_v[idx3_2D(nz, i, j)] = -U * 0.5;
+
+		if (d2 < 0)
+			MSolver->m_v[idx3_2D(nz, i, j)] = U * 0.5;
+
+		ls[idx3_2D(nz, i, j)] = std::min(d1, d2);
+	}
+	LSolver->ApplyBC_P_2D(ls);
+	LSolver->Reinit_Sussman_2D(ls);
+	LSolver->ApplyBC_P_2D(ls);
+
+	// prevent dt == 0.0
+	MSolver->m_dt = cfl * std::min(dr, dz) / U;
+	std::cout << " dt : " << MSolver->m_dt << std::endl;
+
+	std::vector<double> uhat((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid)),
+		vhat((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid));
+	std::vector<double> div((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid));
+	MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
+		MSolver->m_u, MSolver->m_v, MSolver->m_ps, ls);
+
+	while (MSolver->m_curTime < MSolver->kMaxTime && MSolver->m_iter < MSolver->kMaxIter) {
+		// Solver Level set part first
+		// Have to use \phi^{n+1} for rho, mu, kappa
+		MSolver->m_iter++;
+
+		lsB = ls;
+		LSolver->Solve_LevelSet_2D(ls, MSolver->m_u, MSolver->m_v, MSolver->m_dt);
+		LSolver->Reinit_Sussman_2D(ls);
+		LSolver->ApplyBC_P_2D(ls);
+		// Solve Momentum Part
+
+		// Update F and apply time integration
+		MSolver->UpdateJumpCond(MSolver->m_u, MSolver->m_v, ls);
+		MSolver->UpdateKappa(ls);
+		H = MSolver->UpdateHeavisideFunc(ls);
+		HSmooth = MSolver->UpdateSmoothHeavisideFunc(ls);
+
+		// Get intermediate velocity
+		MSolver->GetIntermediateVel(LSolver, ls, MSolver->m_u, MSolver->m_v, uhat, vhat, HSmooth);
+
+		MSolver->ApplyBC_U_2D(uhat);
+		MSolver->ApplyBC_V_2D(vhat);
+
+		// From intermediate velocity, get divergence
+		div = MSolver->GetDivergence4Poisson(uhat, vhat);
+		MSolver->ApplyBC_P_2D(MSolver->m_ps);
+
+		// Solve Poisson equation
+		// m_phi = pressure * dt
+		stat = MSolver->SolvePoisson(MSolver->m_ps, div, ls, lsB, MSolver->m_u, MSolver->m_v, H, poissonMaxIter);
+		MSolver->ApplyBC_P_2D(MSolver->m_ps);
+
+		stat = MSolver->UpdateVel(MSolver->m_u, MSolver->m_v,
+			uhat, vhat, MSolver->m_ps, ls, lsB, H);
+
+		MSolver->ApplyBC_U_2D(MSolver->m_u);
+		MSolver->ApplyBC_V_2D(MSolver->m_v);
+
+		MSolver->m_dt = MSolver->UpdateDt(MSolver->m_u, MSolver->m_v);
+		MSolver->m_curTime += MSolver->m_dt;
+
+		if ((MSolver->m_iter % MSolver->kNIterSkip) == 0) {
+			std::chrono::high_resolution_clock::time_point p = std::chrono::high_resolution_clock::now();
+			std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(p.time_since_epoch());
+
+			std::chrono::seconds s = std::chrono::duration_cast<std::chrono::seconds>(ms);
+			std::time_t t = s.count();
+			std::size_t fractional_seconds = ms.count() % 1000;
+
+			std::cout << "Droplet Collision : " << std::ctime(&t) << " " << MSolver->m_iter << " " << MSolver->m_curTime << " " << MSolver->m_dt << " " << std::endl;
+
+			// MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
+			// 	uhat, vhat, MSolver->m_ps, ls);
+			MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
+				MSolver->m_u, MSolver->m_v, MSolver->m_ps, ls);
+		}
+		std::fill(uhat.begin(), uhat.end(), 0.0);
+		std::fill(vhat.begin(), vhat.end(), 0.0);
+	}
+	// http://stackoverflow.com/a/12836048/743078
+	std::chrono::high_resolution_clock::time_point p = std::chrono::high_resolution_clock::now();
+	std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(p.time_since_epoch());
+
+	std::chrono::seconds s = std::chrono::duration_cast<std::chrono::seconds>(ms);
+	std::time_t t = s.count();
+	std::size_t fractional_seconds = ms.count() % 1000;
+
+	std::cout << "(Final) Droplet Collision : " << std::ctime(&t) << " " << MSolver->m_iter << " " << MSolver->m_curTime << " " << MSolver->m_dt << " " << std::endl;
+	MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
+		MSolver->m_u, MSolver->m_v, MSolver->m_ps, ls);
 	MSolver->OutResClose();
 
 	MSolver.reset();
