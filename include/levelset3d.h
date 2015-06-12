@@ -22,7 +22,6 @@ public:
 	LevelSetSolver3D(int nx, int ny, int nz, int num_bc_grid,
 		double baseX, double baseY, double baseZ, double dx, double dy, double dz, double maxTime);
 	
-	std::vector<double> UpdateKappa(const std::vector<double>& ls);
 	std::vector<double> UpdateHeavisideFuncDeriv(const std::vector<double>& ls);
 
 	int Solve_LevelSet_3D(std::vector<double>& ls,
@@ -40,6 +39,7 @@ public:
 	int sign(const double& val);
 	double MinAbs(const double& val1, const double& val2);
 	double MinMod(const double& val1, const double& val2);
+	std::vector<double> GetSmoothedSignFunc(const std::vector<double> &ls);
 	std::vector<int> GetSignedLSNormalized(const std::vector<double>& ls);
 
 	std::vector<double> HJWENO5_LS_3D(std::vector<double>& ls,

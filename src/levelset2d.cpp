@@ -440,16 +440,10 @@ int LevelSetSolver2D::Reinit_MinRK2_2D(std::vector<double>& ls) {
 	std::vector<double> absdLS1(kArrSize, 0.0), absdLS2(kArrSize, 0.0);
 	std::vector<double> LS1(kArrSize, 0.0), LS2(kArrSize, 0.0);
 	std::vector<double> tmpLS(kArrSize, 0.0);
-	std::vector<double> sussmanConstraint(kArrSize, 0.0);
 	std::vector<double> heavisideDeriv(kArrSize, 0.0), smoothedSignFunc(kArrSize, 0.0);
 	
-	heavisideDeriv = UpdateHeavisideFuncDeriv(lsInit);
 	smoothedSignFunc = GetSmoothedSignFunc(lsInit);
-	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
-	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
-		if (smoothedSignFunc[idx(i, j)] * sign(lsInit[idx(i, j)]) < 0)
-			std::cout << "wtf"  << std::endl;
-	}
+	
 	while (m_atime < kMaxATime) {
 		m_atime += kAdt;
 		
@@ -564,7 +558,6 @@ std::vector<double> LevelSetSolver2D::HJWENO5_DerivAbsLS_2D(const std::vector<do
 
 std::vector<double>
 LevelSetSolver2D::ENO_DerivAbsLS_2D(const std::vector<double>& ls, const std::vector<double>& lsInit) {
-	// Use Newton Polynomial
 	std::vector<double>
 		dPX(kArrSize, 0.0), dMX(kArrSize, 0.0),
 		dPY(kArrSize, 0.0),	dMY(kArrSize, 0.0);
@@ -635,8 +628,7 @@ LevelSetSolver2D::SubcellENO_Min_DerivAbsLS_2D(const std::vector<double>& ls, co
 	double newDxP = 0.0, newDxM = 0.0, newDyP = 0.0, newDyM = 0.0;
 	// minmod of divided differences of lsInitial
 	double DDX = 0.0, DDY = 0.0;
-	// discriminant of the qudaratic polynomial
-	double D = 0.0;
+	// coefficient of quadaratic poynomial
 	double c0 = 0.0, c1 = 0.0, c2 = 0.0;
 	const double kSmallValue = 1.0e-10;
 
@@ -670,6 +662,7 @@ LevelSetSolver2D::SubcellENO_Min_DerivAbsLS_2D(const std::vector<double>& ls, co
 			c0 = (lsInit[idx(i + 1, j)] + lsInit[idx(i, j)]) * 0.5 - c2 * kDx * kDx * 0.25;
 			// std::fabs(DDX) > kSmallValue : quadaratic interpolation
 			// std::fabs(DDX) <= kSmallValue : linear interpolation
+			// no need to use smooth signed func, just want remove else if statement
 			if (std::fabs(c2) > kSmallValue) {
 				newDxP = 0.5 * kDx +
 					(-c1 - sign(lsInit[idx(i, j)]) * std::sqrt(c1 * c1 - 4.0 * c2 * c0)) / (2.0 * c2);
@@ -700,6 +693,7 @@ LevelSetSolver2D::SubcellENO_Min_DerivAbsLS_2D(const std::vector<double>& ls, co
 			c0 = (lsInit[idx(i, j)] + lsInit[idx(i - 1, j)]) * 0.5 - c2 * kDx * kDx * 0.25;
 			// std::fabs(DDX) > kSmallValue : quadaratic interpolation
 			// std::fabs(DDX) <= kSmallValue : linear interpolation
+			// no need to use smooth signed func, just want remove else if statement
 			if (std::fabs(c2) > kSmallValue) {
 				newDxM = 0.5 * kDx -
 					(-c1 + sign(lsInit[idx(i, j)]) * std::sqrt(c1 * c1 - 4.0 * c2 * c0)) / (2.0 * c2);
@@ -751,7 +745,7 @@ LevelSetSolver2D::SubcellENO_Min_DerivAbsLS_2D(const std::vector<double>& ls, co
 		if (lsInit[idx(i, j)] * lsInit[idx(i, j - 1)] < 0) {
 			DDY = MinMod(
 				(lsInit[idx(i, j - 1)] - 2.0 * lsInit[idx(i, j)] + lsInit[idx(i, j + 1)]) / (kDy * kDy),
-				(lsInit[idx(i, j)] - 2.0 * lsInit[idx(i, j - 1)] + lsInit[idx(i, j - 2)]) / (kDy * kDy));
+				(lsInit[idx(i, j - 2)] - 2.0 * lsInit[idx(i, j - 1)] + lsInit[idx(i, j)]) / (kDy * kDy));
 			c2 = 0.5 * DDY;
 			c1 = (lsInit[idx(i, j)] - lsInit[idx(i, j - 1)]) / kDy;
 			c0 = (lsInit[idx(i, j)] + lsInit[idx(i, j - 1)]) * 0.5 - c2 * kDy * kDy * 0.25;
