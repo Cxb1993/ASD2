@@ -14,7 +14,7 @@ int LevelSetTest_2D_Simple() {
 	double baseX = -5.0, baseY = -5.0;
 	int orgMass = 0, LSMass = 0;
 
-	std::vector<double> lsOrg((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
+	std::vector<double> lsInit((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
 	std::vector<double> ls((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
 	std::vector<double> err((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
 	std::vector<double> u((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
@@ -42,7 +42,7 @@ int LevelSetTest_2D_Simple() {
 		if (ls[idx3_2D(ny, i, j)] > 0)
 			orgMass++;
 
-		lsOrg[idx3_2D(ny, i, j)] = ls[idx3_2D(ny, i, j)];
+		lsInit[idx3_2D(ny, i, j)] = ls[idx3_2D(ny, i, j)];
 
 		err[idx3_2D(ny, i, j)] = 0.0;
 	}
@@ -111,12 +111,12 @@ int LevelSetTest_2D_Simple() {
 
 	for (int j = NBC3; j < ny + NBC3; j++)
 	for (int i = NBC3; i < nx + NBC3; i++) {
-		err[idx3_2D(ny, i, j)] = std::fabs(ls[idx3_2D(ny, i, j)] - lsOrg[idx3_2D(ny, i, j)]);
+		err[idx3_2D(ny, i, j)] = std::fabs(ls[idx3_2D(ny, i, j)] - lsInit[idx3_2D(ny, i, j)]);
 		errNormInfty = std::max(std::fabs(err[idx3_2D(ny, i, j)]), errNormInfty);
-		errNorm1 += std::fabs(ls[idx3_2D(ny, i, j)] - lsOrg[idx3_2D(ny, i, j)]);
-		errNorm2 += std::pow(std::fabs(ls[idx3_2D(ny, i, j)] - lsOrg[idx3_2D(ny, i, j)]), 2.0);
+		errNorm1 += std::fabs(ls[idx3_2D(ny, i, j)] - lsInit[idx3_2D(ny, i, j)]);
+		errNorm2 += std::pow(std::fabs(ls[idx3_2D(ny, i, j)] - lsInit[idx3_2D(ny, i, j)]), 2.0);
 
-		if (lsOrg[idx3_2D(ny, i, j)] > 0.0)
+		if (lsInit[idx3_2D(ny, i, j)] > 0.0)
 			orgMass++;
 
 		if (ls[idx3_2D(ny, i, j)] > 0.0)
@@ -136,24 +136,21 @@ int LevelSetTest_2D_Simple() {
 	return 0;
 }
 
-int LevelSetTest_2D_ReinitOnly() {
+int LevelSetTest_2D_ReinitOnly_Original() {
 	int nx = 128, ny = 128;
-	double LenX = 4.0, LenY = 4.0;
-	double dx = LenX / nx, dy = LenY / nx, cfl = 0.3;
+	double lenX = 4.0, lenY = 4.0;
+	double dx = lenX / nx, dy = lenY / nx, cfl = 0.3;
 	double dt = cfl * dx;
 	int iter = 0, maxIter = 2;
 	double curTime = 0.0, maxTime = 10.0;
 	double x = 0.0, y = 0.0;
 	double baseX = -2.0, baseY = -2.0;
+	int orgMass = 0, LSMass = 0, errMass = 0;
 
-	int orgMass = 0, LSMass = 0;
-
-	std::vector<double> lsOrg((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
+	std::vector<double> lsInit((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
 	std::vector<double> ls((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
-	std::vector<double> err((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
 	std::vector<double> u((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
 	std::vector<double> v((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
-	std::vector<double> kappa((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
 	std::vector<double> phi((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
 	std::vector<double> massVec;
 
@@ -175,9 +172,7 @@ int LevelSetTest_2D_ReinitOnly() {
 		if (ls[idx3_2D(ny, i, j)] > 0)
 			orgMass++;
 
-		lsOrg[idx3_2D(ny, i, j)] = ls[idx3_2D(ny, i, j)];
-
-		err[idx3_2D(ny, i, j)] = 0.0;
+		lsInit[idx3_2D(ny, i, j)] = ls[idx3_2D(ny, i, j)];
 	}
 
 	for (int j = 0; j < ny + 2 * NBC3; j++)
@@ -193,38 +188,60 @@ int LevelSetTest_2D_ReinitOnly() {
 	LSolver->ApplyBC_V_2D(v);
 	LSolver->ApplyBC_P_2D(ls);
 
-	kappa = LSolver->UpdateKappa(ls);
+	double rhoH = 1.0, rhoL = 1.0, muH = 1.0, muL = 1.0, gConstant = 0.0, sigma = 0.0, L = 1.0, U = 1.0;
+	TIMEORDERENUM timeOrder = TIMEORDERENUM::EULER;
+	GAXISENUM2D GAxis = GAXISENUM2D::Y;
+	double maxtime = 2.0;
+	int maxiter = 20, niterskip = 1, num_bc_grid = NBC3;
+	bool writeVTK = false;
+
+	std::unique_ptr<MACSolver2D> MSolver;
+	MSolver = std::make_unique<MACSolver2D>(rhoH, rhoL, muH, muL, gConstant, GAxis,
+		L, U, sigma, nx, ny, baseX, baseY, lenX, lenY,
+		timeOrder, cfl, maxtime, maxiter, niterskip, num_bc_grid, writeVTK);
+	MSolver->SetBC_U_2D("dirichlet", "dirichlet", "dirichlet", "dirichlet");
+	MSolver->SetBC_V_2D("dirichlet", "dirichlet", "dirichlet", "dirichlet");
+	MSolver->SetBC_P_2D("neumann", "neumann", "neumann", "neumann");
+	MSolver->SetBCConstantUW(0.0);
+	MSolver->SetBCConstantUE(0.0);
+	MSolver->SetBCConstantUS(0.0);
+	MSolver->SetBCConstantUN(0.0);
+	MSolver->SetBCConstantVW(0.0);
+	MSolver->SetBCConstantVE(0.0);
+	MSolver->SetBCConstantVS(0.0);
+	MSolver->SetBCConstantVN(0.0);
+	MSolver->SetPLTType(PLTTYPE::BOTH);
+	MSolver->AllocateVariables();
+	MSolver->UpdateKappa(ls);
 
 	std::ostringstream outfname_stream1;
-	outfname_stream1 << "2D_LS_ReinitOnlyVel_"
+	outfname_stream1 << "testLevelSet2D_ReinitOnlyOriginalVel_"
 		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nx))->str()
 		<< "x"
 		<< static_cast<std::ostringstream*>(&(std::ostringstream() << ny))->str();
 	std::string fname_vel_base = outfname_stream1.str();
 
 	std::ostringstream outfname_stream2;
-	outfname_stream2 << "2D_LS_ReinitOnlyDiv_"
+	outfname_stream2 << "testLevelSet2D_ReinitOnlyOriginalDiv_"
 		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nx))->str()
 		<< "x"
 		<< static_cast<std::ostringstream*>(&(std::ostringstream() << ny))->str();
 	std::string fname_div_base = outfname_stream2.str();
 	PLTTYPE m_PLTType = PLTTYPE::BOTH;
-	
+
 	OutRes_2D(iter, curTime, fname_vel_base, fname_div_base,
-		u, v, phi, kappa, ls, nx, ny, dx, dy, baseX, baseY, m_PLTType);
+		u, v, phi, MSolver->m_kappa, ls, nx, ny, dx, dy, baseX, baseY, m_PLTType);
 
 	while (curTime < maxTime && iter < maxIter) {
 		iter++;
 		curTime += dt;
-		
-		// LSolver->Reinit_MinRK2_2D(ls);
-		LSolver->Reinit_Sussman_2D(ls);
-		// LSolver->Reinit_Original_2D(ls);
+
+		LSolver->Reinit_Original_2D(ls);
 		LSolver->ApplyBC_P_2D(ls);
-		kappa = LSolver->UpdateKappa(ls);
+		MSolver->UpdateKappa(ls);
 
 		OutRes_2D(iter, curTime, fname_vel_base, fname_div_base,
-			u, v, phi, kappa, ls, nx, ny, dx, dy, baseX, baseY, m_PLTType);
+			u, v, phi, MSolver->m_kappa, ls, nx, ny, dx, dy, baseX, baseY, m_PLTType);
 
 		LSMass = 0;
 
@@ -238,51 +255,318 @@ int LevelSetTest_2D_ReinitOnly() {
 		std::cout << iter << std::endl;
 	}
 
-	double errNormInfty = -std::numeric_limits<double>::max();
-	double errNorm1 = 0.0, errNorm2 = 0.0, errMass = 0.0;
-
 	LSMass = 0;
 	orgMass = 0;
-
 	for (int j = NBC3; j < ny + NBC3; j++)
-		for (int i = NBC3; i < nx + NBC3; i++) {
-			err[idx3_2D(ny, i, j)] = std::fabs(ls[idx3_2D(ny, i, j)] - lsOrg[idx3_2D(ny, i, j)]);
-			errNormInfty = std::max(std::fabs(err[idx3_2D(ny, i, j)]), errNormInfty);
-			errNorm1 += std::fabs(ls[idx3_2D(ny, i, j)] - lsOrg[idx3_2D(ny, i, j)]);
-			errNorm2 += std::pow(std::fabs(ls[idx3_2D(ny, i, j)] - lsOrg[idx3_2D(ny, i, j)]), 2.0);
+	for (int i = NBC3; i < nx + NBC3; i++) {
+		if (lsInit[idx3_2D(ny, i, j)] > 0.0)
+			orgMass++;
 
-			if (lsOrg[idx3_2D(ny, i, j)] > 0.0)
-				orgMass++;
+		if (ls[idx3_2D(ny, i, j)] > 0.0)
+			LSMass++;
+	}
 
+	errMass = std::fabs(static_cast<double>(LSMass - orgMass)) / orgMass * 100;
+
+	std::cout << "Reinit Only(2D, Original) - err(Mass loss) : " << errMass << "%" << std::endl;
+	std::cout << "LevelSet Reinit Only 2D Original " << std::endl;
+
+	if (m_PLTType == PLTTYPE::BINARY || m_PLTType == PLTTYPE::BOTH)
+		OutResClose();
+
+	return 0;
+}
+
+int LevelSetTest_2D_ReinitOnly_Sussman() {
+	int nx = 128, ny = 128;
+	double lenX = 4.0, lenY = 4.0;
+	double dx = lenX / nx, dy = lenY / nx, cfl = 0.3;
+	double dt = cfl * dx;
+	int iter = 0, maxIter = 2;
+	double curTime = 0.0, maxTime = 10.0;
+	double x = 0.0, y = 0.0;
+	double baseX = -2.0, baseY = -2.0;
+	int orgMass = 0, LSMass = 0, errMass = 0;
+
+	std::vector<double> lsInit((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
+	std::vector<double> ls((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
+	std::vector<double> u((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
+	std::vector<double> v((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
+	std::vector<double> phi((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
+	std::vector<double> massVec;
+
+	std::shared_ptr<LevelSetSolver2D> LSolver;
+	LSolver = std::make_shared<LevelSetSolver2D>(nx, ny, NBC3, baseX, baseY, dx, dy, 2 * std::max(nx, ny));
+	LSolver->SetBC_P_2D("neumann", "neumann", "neumann", "neumann");
+	LSolver->ApplyBC_P_2D(ls);
+
+	double radius = 1.0, d = 0.0;
+	for (int j = NBC3; j < ny + NBC3; j++)
+	for (int i = NBC3; i < nx + NBC3; i++) {
+		// positive : inside, negative : outside
+		x = baseX + (i + 0.5 - NBC3) * dx;
+		y = baseY + (j + 0.5 - NBC3) * dy;
+		d = std::sqrt(std::pow(x, 2.0) + std::pow(y, 2.0)) - radius;
+
+		ls[idx3_2D(ny, i, j)] = -d;
+
+		if (ls[idx3_2D(ny, i, j)] > 0)
+			orgMass++;
+
+		lsInit[idx3_2D(ny, i, j)] = ls[idx3_2D(ny, i, j)];
+	}
+
+	for (int j = 0; j < ny + 2 * NBC3; j++)
+	for (int i = 0; i < nx + 2 * NBC3; i++) {
+		u[idx3_2D(ny, i, j)] = 0.0;
+		v[idx3_2D(ny, i, j)] = 0.0;
+	}
+
+	LSolver->SetBC_U_2D("neumann", "neumann", "neumann", "neumann");
+	LSolver->SetBC_V_2D("neumann", "neumann", "neumann", "neumann");
+	LSolver->SetBC_P_2D("neumann", "neumann", "neumann", "neumann");
+	LSolver->ApplyBC_U_2D(u);
+	LSolver->ApplyBC_V_2D(v);
+	LSolver->ApplyBC_P_2D(ls);
+
+	double rhoH = 1.0, rhoL = 1.0, muH = 1.0, muL = 1.0, gConstant = 0.0, sigma = 0.0, L = 1.0, U = 1.0;
+	TIMEORDERENUM timeOrder = TIMEORDERENUM::EULER;
+	GAXISENUM2D GAxis = GAXISENUM2D::Y;
+	double maxtime = 2.0;
+	int maxiter = 20, niterskip = 1, num_bc_grid = NBC3;
+	bool writeVTK = false;
+
+	std::unique_ptr<MACSolver2D> MSolver;
+	MSolver = std::make_unique<MACSolver2D>(rhoH, rhoL, muH, muL, gConstant, GAxis,
+		L, U, sigma, nx, ny, baseX, baseY, lenX, lenY,
+		timeOrder, cfl, maxtime, maxiter, niterskip, num_bc_grid, writeVTK);
+	MSolver->SetBC_U_2D("dirichlet", "dirichlet", "dirichlet", "dirichlet");
+	MSolver->SetBC_V_2D("dirichlet", "dirichlet", "dirichlet", "dirichlet");
+	MSolver->SetBC_P_2D("neumann", "neumann", "neumann", "neumann");
+	MSolver->SetBCConstantUW(0.0);
+	MSolver->SetBCConstantUE(0.0);
+	MSolver->SetBCConstantUS(0.0);
+	MSolver->SetBCConstantUN(0.0);
+	MSolver->SetBCConstantVW(0.0);
+	MSolver->SetBCConstantVE(0.0);
+	MSolver->SetBCConstantVS(0.0);
+	MSolver->SetBCConstantVN(0.0);
+	MSolver->SetPLTType(PLTTYPE::BOTH);
+	MSolver->AllocateVariables();
+	MSolver->UpdateKappa(ls);
+
+	std::ostringstream outfname_stream1;
+	outfname_stream1 << "testLevelSet2D_ReinitOnlySussmanVel_"
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nx))->str()
+		<< "x"
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << ny))->str();
+	std::string fname_vel_base = outfname_stream1.str();
+
+	std::ostringstream outfname_stream2;
+	outfname_stream2 << "testLevelSet2D_ReinitOnlySussmanDiv_"
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nx))->str()
+		<< "x"
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << ny))->str();
+	std::string fname_div_base = outfname_stream2.str();
+	PLTTYPE m_PLTType = PLTTYPE::BOTH;
+	
+	OutRes_2D(iter, curTime, fname_vel_base, fname_div_base,
+		u, v, phi, MSolver->m_kappa, ls, nx, ny, dx, dy, baseX, baseY, m_PLTType);
+
+	while (curTime < maxTime && iter < maxIter) {
+		iter++;
+		curTime += dt;
+		
+		LSolver->Reinit_Sussman_2D(ls);
+		LSolver->ApplyBC_P_2D(ls);
+		MSolver->UpdateKappa(ls);
+
+		OutRes_2D(iter, curTime, fname_vel_base, fname_div_base,
+			u, v, phi, MSolver->m_kappa, ls, nx, ny, dx, dy, baseX, baseY, m_PLTType);
+
+		LSMass = 0;
+
+		for (int i = NBC3; i < nx + NBC3; i++)
+		for (int j = NBC3; j < ny + NBC3; j++) {
 			if (ls[idx3_2D(ny, i, j)] > 0.0)
 				LSMass++;
 		}
 
-	errMass = std::fabs(static_cast<double>(LSMass - orgMass)) / orgMass * 100;
-	errNorm2 = std::sqrt(errNorm2) / static_cast<double>(nx * ny);
+		massVec.push_back(LSMass * dx * dy);
+		std::cout << iter << std::endl;
+	}
 
-	std::cout << "Reinit Only - err(L-Infty):" << errNormInfty << " err(L1):" << errNorm1 << " err(L2):" << errNorm2 << std::endl;
-	std::cout << "Reinit Only - err(Mass loss) : " << errMass << "%" << std::endl;
+	LSMass = 0;
+	orgMass = 0;
+	for (int j = NBC3; j < ny + NBC3; j++)
+	for (int i = NBC3; i < nx + NBC3; i++) {
+		if (lsInit[idx3_2D(ny, i, j)] > 0.0)
+			orgMass++;
 
-	std::cout << "LevelSet Reinit Only " << std::endl;
+		if (ls[idx3_2D(ny, i, j)] > 0.0)
+			LSMass++;
+	}
+
+	std::cout << "Reinit Only(2D, Sussman) - err(Mass loss) : " << errMass << "%" << std::endl;
+	std::cout << "LevelSet Reinit Only 2D Sussman " << std::endl;
 
 	if (m_PLTType == PLTTYPE::BINARY || m_PLTType == PLTTYPE::BOTH)
 		OutResClose();
+
 	return 0;
 }
 
-int LevelSetTest_2D_ReinitOnly2() {
+int LevelSetTest_2DAxisym_ReinitOnly_Sussman() {
 	int nx = 128, ny = 128;
-	double LenX = 4.0, LenY = 4.0;
-	double dx = LenX / nx, dy = LenY / nx, cfl = 0.3;
+	double lenX = 2.0, lenY = 4.0;
+	double dx = lenX / nx, dy = lenY / nx, cfl = 0.3;
 	double dt = cfl * dx;
 	int iter = 0, maxIter = 2;
 	double curTime = 0.0, maxTime = 10.0;
+	double x = 0.0, y = 0.0;
+	double baseX = 0.0, baseY = -2.0;
+	int orgMass = 0, LSMass = 0, errMass = 0;
+
+	std::vector<double> lsInit((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
+	std::vector<double> ls((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
+	std::vector<double> u((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
+	std::vector<double> v((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
+	std::vector<double> phi((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
+	std::vector<double> massVec;
+
+	std::shared_ptr<LevelSetSolver2D> LSolver;
+	LSolver = std::make_shared<LevelSetSolver2D>(nx, ny, NBC3, baseX, baseY, dx, dy, 2 * std::max(nx, ny));
+	LSolver->SetBC_P_2D("neumann", "neumann", "neumann", "neumann");
+	LSolver->ApplyBC_P_2D(ls);
+
+	double radius = 1.0, d = 0.0;
+	for (int j = NBC3; j < ny + NBC3; j++)
+	for (int i = NBC3; i < nx + NBC3; i++) {
+		// positive : inside, negative : outside
+		x = baseX + (i + 0.5 - NBC3) * dx;
+		y = baseY + (j + 0.5 - NBC3) * dy;
+		d = std::sqrt(std::pow(x, 2.0) + std::pow(y, 2.0)) - radius;
+
+		ls[idx3_2D(ny, i, j)] = -d;
+
+		if (ls[idx3_2D(ny, i, j)] > 0)
+			orgMass++;
+
+		lsInit[idx3_2D(ny, i, j)] = ls[idx3_2D(ny, i, j)];
+	}
+
+	for (int j = 0; j < ny + 2 * NBC3; j++)
+	for (int i = 0; i < nx + 2 * NBC3; i++) {
+		u[idx3_2D(ny, i, j)] = 0.0;
+		v[idx3_2D(ny, i, j)] = 0.0;
+	}
+
+	LSolver->SetBC_U_2D("neumann", "dirichlet", "neumann", "neumann");
+	LSolver->SetBC_V_2D("neumann", "dirichlet", "neumann", "neumann");
+	LSolver->SetBC_P_2D("neumann", "neumann", "neumann", "neumann");
+	LSolver->ApplyBC_U_2D(u);
+	LSolver->ApplyBC_V_2D(v);
+	LSolver->ApplyBC_P_2D(ls);
+
+	double rhoH = 1.0, rhoL = 1.0, muH = 1.0, muL = 1.0, gConstant = 0.0, sigma = 0.0, L = 1.0, U = 1.0;
+	TIMEORDERENUM timeOrder = TIMEORDERENUM::EULER;
+	GAXISENUM2DAXISYM GAxis = GAXISENUM2DAXISYM::Z;
+	double maxtime = 2.0;
+	int maxiter = 20, niterskip = 1, num_bc_grid = NBC3;
+	bool writeVTK = false;
+
+	std::unique_ptr<MACSolver2DAxisym> MSolver;
+	MSolver = std::make_unique<MACSolver2DAxisym>(rhoH, rhoL, muH, muL, gConstant, GAxis,
+		L, U, sigma, nx, ny, baseX, baseY, lenX, lenY,
+		timeOrder, cfl, maxtime, maxiter, niterskip, num_bc_grid, writeVTK);
+	MSolver->SetBC_U_2D("dirichlet", "dirichlet", "dirichlet", "dirichlet");
+	MSolver->SetBC_V_2D("dirichlet", "dirichlet", "dirichlet", "dirichlet");
+	MSolver->SetBC_P_2D("neumann", "neumann", "neumann", "neumann");
+	MSolver->SetBCConstantUW(0.0);
+	MSolver->SetBCConstantUE(0.0);
+	MSolver->SetBCConstantUS(0.0);
+	MSolver->SetBCConstantUN(0.0);
+	MSolver->SetBCConstantVW(0.0);
+	MSolver->SetBCConstantVE(0.0);
+	MSolver->SetBCConstantVS(0.0);
+	MSolver->SetBCConstantVN(0.0);
+	MSolver->SetPLTType(PLTTYPE::BOTH);
+	MSolver->AllocateVariables();
+	MSolver->UpdateKappa(ls);
+
+	std::ostringstream outfname_stream1;
+	outfname_stream1 << "testLevelSet2DAxisym_ReinitOnlySussmanVel_"
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nx))->str()
+		<< "x"
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << ny))->str();
+	std::string fname_vel_base = outfname_stream1.str();
+
+	std::ostringstream outfname_stream2;
+	outfname_stream2 << "testLevelSet2DAxisym_ReinitOnlySussmanDiv_"
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nx))->str()
+		<< "x"
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << ny))->str();
+	std::string fname_div_base = outfname_stream2.str();
+	PLTTYPE m_PLTType = PLTTYPE::BOTH;
+
+	OutRes_2D(iter, curTime, fname_vel_base, fname_div_base,
+		u, v, phi, MSolver->m_kappa, ls, nx, ny, dx, dy, baseX, baseY, m_PLTType);
+
+	while (curTime < maxTime && iter < maxIter) {
+		iter++;
+		curTime += dt;
+
+		LSolver->Reinit_Sussman_2D(ls);
+		LSolver->ApplyBC_P_2D(ls);
+		MSolver->UpdateKappa(ls);
+
+		OutRes_2D(iter, curTime, fname_vel_base, fname_div_base,
+			u, v, phi, MSolver->m_kappa, ls, nx, ny, dx, dy, baseX, baseY, m_PLTType);
+
+		LSMass = 0;
+
+		for (int i = NBC3; i < nx + NBC3; i++)
+			for (int j = NBC3; j < ny + NBC3; j++) {
+				if (ls[idx3_2D(ny, i, j)] > 0.0)
+					LSMass++;
+			}
+
+		massVec.push_back(LSMass * dx * dy);
+		std::cout << iter << std::endl;
+	}
+
+	LSMass = 0;
+	orgMass = 0;
+	for (int j = NBC3; j < ny + NBC3; j++)
+	for (int i = NBC3; i < nx + NBC3; i++) {
+		if (lsInit[idx3_2D(ny, i, j)] > 0.0)
+			orgMass++;
+
+		if (ls[idx3_2D(ny, i, j)] > 0.0)
+			LSMass++;
+	}
+
+	std::cout << "Reinit Only(Axisym, Sussman) - err(Mass loss) : " << errMass << "%" << std::endl;
+	std::cout << "LevelSet Reinit Only 2DAxisym, Sussman" << std::endl;
+
+	if (m_PLTType == PLTTYPE::BINARY || m_PLTType == PLTTYPE::BOTH)
+		OutResClose();
+
+	return 0;
+}
+
+int LevelSetTest_2D_ReinitOnly_MinRK2() {
+	int nx = 128, ny = 128;
+	double lenX = 4.0, lenY = 4.0;
+	double dx = lenX / nx, dy = lenY / nx, cfl = 0.3;
+	double dt = cfl * dx;
+	int iter = 0, maxIter = 1;
+	double curTime = 0.0, maxTime = 10.0;
 	double x = 0.0, y = 0.0, r = 1.0, a = 0.7;
 	double baseX = -2.0, baseY = -2.0;
-	int orgMass = 0, LSMass = 0;
+	int orgMass = 0, LSMass = 0, errMass = 0;
 
-	std::vector<double> lsOrg((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
+	std::vector<double> lsInit((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
 	std::vector<double> ls((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
 	std::vector<double> err((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
 	std::vector<double> u((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
@@ -292,7 +576,7 @@ int LevelSetTest_2D_ReinitOnly2() {
 	std::vector<double> massVec;
 
 	std::shared_ptr<LevelSetSolver2D> LSolver;
-	LSolver = std::make_shared<LevelSetSolver2D>(nx, ny, NBC3, baseX, baseY, dx, dy, 2.0 * std::max(nx, ny));
+	LSolver = std::make_shared<LevelSetSolver2D>(nx, ny, NBC3, baseX, baseY, dx, dy, 2 * std::max(nx, ny));
 	LSolver->SetBC_P_2D("neumann", "neumann", "neumann", "neumann");
 	LSolver->ApplyBC_P_2D(ls);
 
@@ -303,16 +587,14 @@ int LevelSetTest_2D_ReinitOnly2() {
 		// positive : inside, negative : outside
 		x = baseX + (i + 0.5 - NBC3) * dx;
 		y = baseY + (j + 0.5 - NBC3) * dy;
+		d = std::sqrt(std::pow(x, 2.0) + std::pow(y, 2.0)) - radius;
 
-		ls[idx3_2D(ny, i, j)] = (std::pow(x - 1.0, 2.0) + std::pow(y - 1.0, 2.0) + 0.1)
-		* (std::sqrt(x * x + y * y) - 1.0);
-			
+		ls[idx3_2D(ny, i, j)] = -d;
+
 		if (ls[idx3_2D(ny, i, j)] > 0)
 			orgMass++;
 
-		lsOrg[idx3_2D(ny, i, j)] = ls[idx3_2D(ny, i, j)];
-
-		err[idx3_2D(ny, i, j)] = 0.0;
+		lsInit[idx3_2D(ny, i, j)] = ls[idx3_2D(ny, i, j)];
 	}
 
 	for (int j = 0; j < ny + 2 * NBC3; j++)
@@ -328,17 +610,41 @@ int LevelSetTest_2D_ReinitOnly2() {
 	LSolver->ApplyBC_V_2D(v);
 	LSolver->ApplyBC_P_2D(ls);
 
-	kappa = LSolver->UpdateKappa(ls);
+	double rhoH = 1.0, rhoL = 1.0, muH = 1.0, muL = 1.0, gConstant = 0.0, sigma = 0.0, L = 1.0, U = 1.0;
+	TIMEORDERENUM timeOrder = TIMEORDERENUM::EULER;
+	GAXISENUM2D GAxis = GAXISENUM2D::Y;
+	double maxtime = 2.0;
+	int maxiter = 20, niterskip = 1, num_bc_grid = NBC3;
+	bool writeVTK = false;
+
+	std::unique_ptr<MACSolver2D> MSolver;
+	MSolver = std::make_unique<MACSolver2D>(rhoH, rhoL, muH, muL, gConstant, GAxis,
+		L, U, sigma, nx, ny, baseX, baseY, lenX, lenY,
+		timeOrder, cfl, maxtime, maxiter, niterskip, num_bc_grid, writeVTK);
+	MSolver->SetBC_U_2D("dirichlet", "dirichlet", "dirichlet", "dirichlet");
+	MSolver->SetBC_V_2D("dirichlet", "dirichlet", "dirichlet", "dirichlet");
+	MSolver->SetBC_P_2D("neumann", "neumann", "neumann", "neumann");
+	MSolver->SetBCConstantUW(0.0);
+	MSolver->SetBCConstantUE(0.0);
+	MSolver->SetBCConstantUS(0.0);
+	MSolver->SetBCConstantUN(0.0);
+	MSolver->SetBCConstantVW(0.0);
+	MSolver->SetBCConstantVE(0.0);
+	MSolver->SetBCConstantVS(0.0);
+	MSolver->SetBCConstantVN(0.0);
+	MSolver->SetPLTType(PLTTYPE::BOTH);
+	MSolver->AllocateVariables();
+	MSolver->UpdateKappa(ls);
 
 	std::ostringstream outfname_stream1;
-	outfname_stream1 << "2D_LS_ReinitOnly2Vel_"
+	outfname_stream1 << "testLevelSet2D_ReinitOnlyMinRK2Vel_"
 		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nx))->str()
 		<< "x"
 		<< static_cast<std::ostringstream*>(&(std::ostringstream() << ny))->str();
 	std::string fname_vel_base = outfname_stream1.str();
 
 	std::ostringstream outfname_stream2;
-	outfname_stream2 << "2D_LS_ReinitOnly2Div_"
+	outfname_stream2 << "testLevelSet2D_ReinitOnlyMinRK2Div_"
 		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nx))->str()
 		<< "x"
 		<< static_cast<std::ostringstream*>(&(std::ostringstream() << ny))->str();
@@ -346,7 +652,7 @@ int LevelSetTest_2D_ReinitOnly2() {
 	PLTTYPE m_PLTType = PLTTYPE::BOTH;
 
 	OutRes_2D(iter, curTime, fname_vel_base, fname_div_base,
-		u, v, phi, kappa, ls, nx, ny, dx, dy, baseX, baseY, m_PLTType);
+		u, v, phi, MSolver->m_kappa, ls, nx, ny, dx, dy, baseX, baseY, m_PLTType);
 
 	while (curTime < maxTime && iter < maxIter) {
 		iter++;
@@ -354,10 +660,10 @@ int LevelSetTest_2D_ReinitOnly2() {
 
 		LSolver->Reinit_MinRK2_2D(ls);
 		LSolver->ApplyBC_P_2D(ls);
-		kappa = LSolver->UpdateKappa(ls);
+		MSolver->UpdateKappa(ls);
 
 		OutRes_2D(iter, curTime, fname_vel_base, fname_div_base,
-			u, v, phi, kappa, ls, nx, ny, dx, dy, baseX, baseY, m_PLTType);
+			u, v, phi, MSolver->m_kappa, ls, nx, ny, dx, dy, baseX, baseY, m_PLTType);
 
 		LSMass = 0;
 
@@ -371,43 +677,203 @@ int LevelSetTest_2D_ReinitOnly2() {
 		std::cout << iter << std::endl;
 	}
 
-	double errNormInfty_NearInterface = -std::numeric_limits<double>::max();
-	double errNormInfty_WholeDomain = -std::numeric_limits<double>::max();
-	double errNorm1_NearInterface = 0.0, errNorm1_WholeDomain = 0.0, errMass = 0.0;
-
 	LSMass = 0;
 	orgMass = 0;
+	double errNearInterfaceL1 = 0.0, errWholeDomainL1 = 0.0;
+	double errNearInterfaceLInfty = -std::numeric_limits<double>::max(), errWholeDomainLInfty = -std::numeric_limits<double>::max();
 
 	for (int j = NBC3; j < ny + NBC3; j++)
 	for (int i = NBC3; i < nx + NBC3; i++) {
-		err[idx3_2D(ny, i, j)] = std::fabs(ls[idx3_2D(ny, i, j)] - lsOrg[idx3_2D(ny, i, j)]);
-		
-		if (ls[idx3_2D(ny, i, j)] > -0.8) {
-			errNormInfty_WholeDomain = std::max(std::fabs(err[idx3_2D(ny, i, j)]), errNormInfty_WholeDomain);
-			errNorm1_WholeDomain += std::fabs(ls[idx3_2D(ny, i, j)] - lsOrg[idx3_2D(ny, i, j)]);
-		}
-
-		if (std::fabs(ls[idx3_2D(ny, i, j)]) < 1.2 * std::min(dx, dy)) {
-			errNormInfty_NearInterface = std::max(std::fabs(err[idx3_2D(ny, i, j)]), errNormInfty_NearInterface);
-			errNorm1_NearInterface += std::fabs(ls[idx3_2D(ny, i, j)] - lsOrg[idx3_2D(ny, i, j)]);
-		}
-		
-		if (lsOrg[idx3_2D(ny, i, j)] > 0.0)
+		if (lsInit[idx3_2D(ny, i, j)] > 0.0)
 			orgMass++;
 
 		if (ls[idx3_2D(ny, i, j)] > 0.0)
 			LSMass++;
-	}
 
+		if (std::fabs(ls[idx3_2D(ny, i, j)]) < 1.2 * std::min(dx, dy)) {
+			errNearInterfaceLInfty = std::max(std::fabs(ls[idx3_2D(ny, i, j)] - lsInit[idx3_2D(ny, i, j)]), errNearInterfaceL1);
+			errNearInterfaceL1 += std::fabs(ls[idx3_2D(ny, i, j)] - lsInit[idx3_2D(ny, i, j)]);
+		}
+
+		if (ls[idx3_2D(ny, i, j)] > -0.8) {
+			errWholeDomainLInfty = std::max(std::fabs(ls[idx3_2D(ny, i, j)] - lsInit[idx3_2D(ny, i, j)]), errWholeDomainL1);
+			errWholeDomainL1 += std::fabs(ls[idx3_2D(ny, i, j)] - lsInit[idx3_2D(ny, i, j)]);
+		}
+	}
 	errMass = std::fabs(static_cast<double>(LSMass - orgMass)) / orgMass * 100;
+	errNearInterfaceLInfty /= nx * ny;
+	errNearInterfaceL1 /= nx * ny;
+	errWholeDomainLInfty /= nx * ny;
+	errWholeDomainL1 /= nx * ny;
 	
-	std::cout << "Reinit Only2 - err(L-Infty) near interface :" << errNormInfty_NearInterface << " err(L1):" << errNorm1_NearInterface << std::endl;
-	std::cout << "Reinit Only2 - err(L-Infty) whole domain :" << errNormInfty_WholeDomain << " err(L1):" << errNorm1_WholeDomain << std::endl;
-	
-	std::cout << "LevelSet Reinit Only " << std::endl;
+	std::cout << "Reinit Only(2D, MinRK2) - err(Mass loss) : " << errMass << "%" << std::endl;
+	std::cout << "Reinit Only(2D, MinRK2) Near Interface - err(L1) : " << errNearInterfaceL1 << " err(LInfty) : " << errNearInterfaceLInfty << std::endl;
+	std::cout << "Reinit Only(2D, MinRK2) WholeDomain - err(L1) : " << errWholeDomainL1 << " err(LInfty) : " << errWholeDomainLInfty << std::endl;
+	std::cout << "LevelSet Reinit Only 2D SigneddistanceFunc, MinRK2" << std::endl;
 
 	OutRes_2D(iter + 1, curTime * 1.1, fname_vel_base, fname_div_base,
-		u, v, err, kappa, ls, nx, ny, dx, dy, baseX, baseY, m_PLTType);
+		u, v, err, MSolver->m_kappa, ls, nx, ny, dx, dy, baseX, baseY, m_PLTType);
+
+	if (m_PLTType == PLTTYPE::BINARY || m_PLTType == PLTTYPE::BOTH)
+		OutResClose();
+	return 0;
+}
+
+int LevelSetTest_2D_ReinitOnly_MinRK2_2() {
+	int nx = 128, ny = 128;
+	double lenX = 4.0, lenY = 4.0;
+	double dx = lenX / nx, dy = lenY / nx, cfl = 0.3;
+	double dt = cfl * dx;
+	int iter = 0, maxIter = 1;
+	double curTime = 0.0, maxTime = 10.0;
+	double x = 0.0, y = 0.0, r = 1.0, a = 0.7;
+	double baseX = -2.0, baseY = -2.0;
+	int orgMass = 0, LSMass = 0, errMass = 0;
+
+	std::vector<double> lsInit((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
+	std::vector<double> ls((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
+	std::vector<double> err((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
+	std::vector<double> u((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
+	std::vector<double> v((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
+	std::vector<double> phi((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
+	std::vector<double> massVec;
+
+	std::shared_ptr<LevelSetSolver2D> LSolver;
+	LSolver = std::make_shared<LevelSetSolver2D>(nx, ny, NBC3, baseX, baseY, dx, dy, 20);
+	LSolver->SetBC_P_2D("neumann", "neumann", "neumann", "neumann");
+	LSolver->ApplyBC_P_2D(ls);
+
+	double radius = 1.0, d = 0.0;
+
+	for (int j = NBC3; j < ny + NBC3; j++)
+	for (int i = NBC3; i < nx + NBC3; i++) {
+		// positive : inside, negative : outside
+		x = baseX + (i + 0.5 - NBC3) * dx;
+		y = baseY + (j + 0.5 - NBC3) * dy;
+
+		ls[idx3_2D(ny, i, j)] = (std::pow(x - 1.0, 2.0) + std::pow(y - 1.0, 2.0) + 0.1)
+			* (std::sqrt(x * x + y * y) - 1.0);
+
+		if (ls[idx3_2D(ny, i, j)] > 0)
+			orgMass++;
+
+		lsInit[idx3_2D(ny, i, j)] = ls[idx3_2D(ny, i, j)];
+	}
+
+	for (int j = 0; j < ny + 2 * NBC3; j++)
+	for (int i = 0; i < nx + 2 * NBC3; i++) {
+		u[idx3_2D(ny, i, j)] = 0.0;
+		v[idx3_2D(ny, i, j)] = 0.0;
+	}
+
+	LSolver->SetBC_U_2D("neumann", "neumann", "neumann", "neumann");
+	LSolver->SetBC_V_2D("neumann", "neumann", "neumann", "neumann");
+	LSolver->SetBC_P_2D("neumann", "neumann", "neumann", "neumann");
+	LSolver->ApplyBC_U_2D(u);
+	LSolver->ApplyBC_V_2D(v);
+	LSolver->ApplyBC_P_2D(ls);
+
+	double rhoH = 1.0, rhoL = 1.0, muH = 1.0, muL = 1.0, gConstant = 0.0, sigma = 0.0, L = 1.0, U = 1.0;
+	TIMEORDERENUM timeOrder = TIMEORDERENUM::EULER;
+	GAXISENUM2D GAxis = GAXISENUM2D::Y;
+	double maxtime = 2.0;
+	int maxiter = 20, niterskip = 1, num_bc_grid = NBC3;
+	bool writeVTK = false;
+
+	std::unique_ptr<MACSolver2D> MSolver;
+	MSolver = std::make_unique<MACSolver2D>(rhoH, rhoL, muH, muL, gConstant, GAxis,
+		L, U, sigma, nx, ny, baseX, baseY, lenX, lenY,
+		timeOrder, cfl, maxtime, maxiter, niterskip, num_bc_grid, writeVTK);
+	MSolver->SetBC_U_2D("dirichlet", "dirichlet", "dirichlet", "dirichlet");
+	MSolver->SetBC_V_2D("dirichlet", "dirichlet", "dirichlet", "dirichlet");
+	MSolver->SetBC_P_2D("neumann", "neumann", "neumann", "neumann");
+	MSolver->SetBCConstantUW(0.0);
+	MSolver->SetBCConstantUE(0.0);
+	MSolver->SetBCConstantUS(0.0);
+	MSolver->SetBCConstantUN(0.0);
+	MSolver->SetBCConstantVW(0.0);
+	MSolver->SetBCConstantVE(0.0);
+	MSolver->SetBCConstantVS(0.0);
+	MSolver->SetBCConstantVN(0.0);
+	MSolver->SetPLTType(PLTTYPE::BOTH);
+	MSolver->AllocateVariables();
+	MSolver->UpdateKappa(ls);
+
+	std::ostringstream outfname_stream1;
+	outfname_stream1 << "testLevelSet2D_ReinitOnlyMinRK2_2Vel_"
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nx))->str()
+		<< "x"
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << ny))->str();
+	std::string fname_vel_base = outfname_stream1.str();
+
+	std::ostringstream outfname_stream2;
+	outfname_stream2 << "testLevelSet2D_ReinitOnlyMinRK2_2Div_"
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nx))->str()
+		<< "x"
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << ny))->str();
+	std::string fname_div_base = outfname_stream2.str();
+	PLTTYPE m_PLTType = PLTTYPE::BOTH;
+
+	OutRes_2D(iter, curTime, fname_vel_base, fname_div_base,
+		u, v, phi, MSolver->m_kappa, ls, nx, ny, dx, dy, baseX, baseY, m_PLTType);
+
+	while (curTime < maxTime && iter < maxIter) {
+		iter++;
+		curTime += dt;
+
+		LSolver->Reinit_MinRK2_2D(ls);
+		LSolver->ApplyBC_P_2D(ls);
+		MSolver->UpdateKappa(ls);
+
+		OutRes_2D(iter, curTime, fname_vel_base, fname_div_base,
+			u, v, phi, MSolver->m_kappa, ls, nx, ny, dx, dy, baseX, baseY, m_PLTType);
+
+		LSMass = 0;
+
+		for (int i = NBC3; i < nx + NBC3; i++)
+		for (int j = NBC3; j < ny + NBC3; j++) {
+			if (ls[idx3_2D(ny, i, j)] > 0.0)
+				LSMass++;
+		}
+		std::cout << iter << std::endl;
+	}
+
+	LSMass = 0;
+	orgMass = 0;
+	double errNearInterfaceL1 = 0.0, errWholeDomainL1 = 0.0;
+	double errNearInterfaceLInfty = -std::numeric_limits<double>::max(), errWholeDomainLInfty = -std::numeric_limits<double>::max();
+
+	for (int j = NBC3; j < ny + NBC3; j++)
+	for (int i = NBC3; i < nx + NBC3; i++) {
+		if (lsInit[idx3_2D(ny, i, j)] > 0.0)
+			orgMass++;
+
+		if (ls[idx3_2D(ny, i, j)] > 0.0)
+			LSMass++;
+
+		if (std::fabs(ls[idx3_2D(ny, i, j)]) < 1.2 * std::min(dx, dy)) {
+			errNearInterfaceLInfty = std::max(std::fabs(ls[idx3_2D(ny, i, j)] - lsInit[idx3_2D(ny, i, j)]), errNearInterfaceL1);
+			errNearInterfaceL1 += std::fabs(ls[idx3_2D(ny, i, j)] - lsInit[idx3_2D(ny, i, j)]);
+		}
+
+		if (ls[idx3_2D(ny, i, j)] > -0.8) {
+			errWholeDomainLInfty = std::max(std::fabs(ls[idx3_2D(ny, i, j)] - lsInit[idx3_2D(ny, i, j)]), errWholeDomainL1);
+			errWholeDomainL1 += std::fabs(ls[idx3_2D(ny, i, j)] - lsInit[idx3_2D(ny, i, j)]);
+		}
+	}
+	errMass = std::fabs(static_cast<double>(LSMass - orgMass)) / orgMass * 100;
+	errNearInterfaceLInfty /= nx * ny;
+	errNearInterfaceL1 /= nx * ny;
+	errWholeDomainLInfty /= nx * ny;
+	errWholeDomainL1 /= nx * ny;
+
+	std::cout << "Reinit Only(2D, MinRK2) - err(Mass loss) : " << errMass << "%" << std::endl;
+	std::cout << "Reinit Only(2D, MinRK2) Near Interface - err(L1) : " << errNearInterfaceL1 << " err(LInfty) : " << errNearInterfaceLInfty << std::endl;
+	std::cout << "Reinit Only(2D, MinRK2) WholeDomain - err(L1) : " << errWholeDomainL1 << " err(LInfty) : " << errWholeDomainLInfty << std::endl;
+	std::cout << "LevelSet Reinit Only 2D NonsigneddistanceFunc, MinRK2" << std::endl;
+
+	OutRes_2D(iter + 1, curTime * 1.1, fname_vel_base, fname_div_base,
+		u, v, err, MSolver->m_kappa, ls, nx, ny, dx, dy, baseX, baseY, m_PLTType);
 
 	if (m_PLTType == PLTTYPE::BINARY || m_PLTType == PLTTYPE::BOTH)
 		OutResClose();
@@ -416,21 +882,20 @@ int LevelSetTest_2D_ReinitOnly2() {
 
 int LevelSetTest_2D_ReinitOnlyWithKinks() {
 	int nx = 128, ny = 128;
-	double LenX = 4.0, LenY = 4.0;
-	double dx = LenX / nx, dy = LenY / nx, cfl = 0.3;
+	double lenX = 4.0, lenY = 4.0;
+	double dx = lenX / nx, dy = lenY / nx, cfl = 0.3;
 	double dt = cfl * dx;
-	int iter = 0, maxIter = 2;
+	int iter = 0, maxIter = 1;
 	double curTime = 0.0, maxTime = 10.0;
 	double x = 0.0, y = 0.0, r = 1.0, a = 0.7;
 	double baseX = -2.0, baseY = -2.0;
 	int orgMass = 0, LSMass = 0;
 
-	std::vector<double> lsOrg((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
+	std::vector<double> lsInit((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
 	std::vector<double> ls((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
 	std::vector<double> err((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
 	std::vector<double> u((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
 	std::vector<double> v((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
-	std::vector<double> kappa((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
 	std::vector<double> phi((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
 	std::vector<double> massVec;
 
@@ -449,20 +914,29 @@ int LevelSetTest_2D_ReinitOnlyWithKinks() {
 		
 		if (((a - x) / std::sqrt(std::pow(a - x, 2.0) + y * y) >= a / r) &&
 			((a + x) / std::sqrt(std::pow(a + x, 2.0) + y * y) >= a / r))
-			ls[idx3_2D(ny, i, j)] = std::min(
+			lsInit[idx3_2D(ny, i, j)] = std::min(
 			std::sqrt(x * x + std::pow(y + std::sqrt(r * r - a * a), 2.0)), 
 			std::sqrt(x * x + std::pow(y - std::sqrt(r * r - a * a), 2.0)));
 		else
-			ls[idx3_2D(ny, i, j)] = std::min(
+			lsInit[idx3_2D(ny, i, j)] = std::min(
 			std::sqrt(std::pow(x + a, 2.0) + y * y) - r,
 			std::sqrt(std::pow(x - a, 2.0) + y * y) - r);
 
-		if (ls[idx3_2D(ny, i, j)] > 0)
+		ls[idx3_2D(ny, i, j)] = std::min(
+			std::sqrt(std::pow(x + a, 2.0) + y * y) - r,
+			std::sqrt(std::pow(x - a, 2.0) + y * y) - r);
+
+		if (lsInit[idx3_2D(ny, i, j)] > 0)
 			orgMass++;
 
-		lsOrg[idx3_2D(ny, i, j)] = ls[idx3_2D(ny, i, j)];
-
 		err[idx3_2D(ny, i, j)] = 0.0;
+	}
+	for (int j = NBC3; j < ny + NBC3; j++)
+	for (int i = NBC3; i < nx + NBC3; i++) {
+		x = baseX + (i + 0.5 - NBC3) * dx;
+		y = baseY + (j + 0.5 - NBC3) * dy;
+
+		ls[idx3_2D(ny, i, j)] *= std::pow(x - 1, 2.0) + std::pow(y - 1.0, 2.0) + 0.1;
 	}
 
 	for (int j = 0; j < ny + 2 * NBC3; j++)
@@ -478,17 +952,41 @@ int LevelSetTest_2D_ReinitOnlyWithKinks() {
 	LSolver->ApplyBC_V_2D(v);
 	LSolver->ApplyBC_P_2D(ls);
 
-	kappa = LSolver->UpdateKappa(ls);
+	double rhoH = 1.0, rhoL = 1.0, muH = 1.0, muL = 1.0, gConstant = 0.0, sigma = 0.0, L = 1.0, U = 1.0;
+	TIMEORDERENUM timeOrder = TIMEORDERENUM::EULER;
+	GAXISENUM2D GAxis = GAXISENUM2D::Y;
+	double maxtime = 2.0;
+	int maxiter = 20, niterskip = 1, num_bc_grid = NBC3;
+	bool writeVTK = false;
+
+	std::unique_ptr<MACSolver2D> MSolver;
+	MSolver = std::make_unique<MACSolver2D>(rhoH, rhoL, muH, muL, gConstant, GAxis,
+		L, U, sigma, nx, ny, baseX, baseY, lenX, lenY,
+		timeOrder, cfl, maxtime, maxiter, niterskip, num_bc_grid, writeVTK);
+	MSolver->SetBC_U_2D("dirichlet", "dirichlet", "dirichlet", "dirichlet");
+	MSolver->SetBC_V_2D("dirichlet", "dirichlet", "dirichlet", "dirichlet");
+	MSolver->SetBC_P_2D("neumann", "neumann", "neumann", "neumann");
+	MSolver->SetBCConstantUW(0.0);
+	MSolver->SetBCConstantUE(0.0);
+	MSolver->SetBCConstantUS(0.0);
+	MSolver->SetBCConstantUN(0.0);
+	MSolver->SetBCConstantVW(0.0);
+	MSolver->SetBCConstantVE(0.0);
+	MSolver->SetBCConstantVS(0.0);
+	MSolver->SetBCConstantVN(0.0);
+	MSolver->SetPLTType(PLTTYPE::BOTH);
+	MSolver->AllocateVariables();
+	MSolver->UpdateKappa(ls);
 
 	std::ostringstream outfname_stream1;
-	outfname_stream1 << "2D_LS_ReinitOnlyWithKinksVel_"
+	outfname_stream1 << "testLevelSet2D_ReinitOnlyWithKinksVel_"
 		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nx))->str()
 		<< "x"
 		<< static_cast<std::ostringstream*>(&(std::ostringstream() << ny))->str();
 	std::string fname_vel_base = outfname_stream1.str();
 
 	std::ostringstream outfname_stream2;
-	outfname_stream2 << "2D_LS_ReinitOnlyWithKinksDiv_"
+	outfname_stream2 << "testLevelSet2D_ReinitOnlyWithKinksDiv_"
 		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nx))->str()
 		<< "x"
 		<< static_cast<std::ostringstream*>(&(std::ostringstream() << ny))->str();
@@ -496,7 +994,7 @@ int LevelSetTest_2D_ReinitOnlyWithKinks() {
 	PLTTYPE m_PLTType = PLTTYPE::BOTH;
 
 	OutRes_2D(iter, curTime, fname_vel_base, fname_div_base,
-		u, v, phi, kappa, ls, nx, ny, dx, dy, baseX, baseY, m_PLTType);
+		u, v, phi, MSolver->m_kappa, ls, nx, ny, dx, dy, baseX, baseY, m_PLTType);
 
 	while (curTime < maxTime && iter < maxIter) {
 		iter++;
@@ -504,50 +1002,56 @@ int LevelSetTest_2D_ReinitOnlyWithKinks() {
 
 		LSolver->Reinit_MinRK2_2D(ls);
 		LSolver->ApplyBC_P_2D(ls);
-		kappa = LSolver->UpdateKappa(ls);
+		MSolver->UpdateKappa(ls);
 
 		OutRes_2D(iter, curTime, fname_vel_base, fname_div_base,
-			u, v, phi, kappa, ls, nx, ny, dx, dy, baseX, baseY, m_PLTType);
+			u, v, phi, MSolver->m_kappa, ls, nx, ny, dx, dy, baseX, baseY, m_PLTType);
 
 		LSMass = 0;
 
 		for (int i = NBC3; i < nx + NBC3; i++)
-			for (int j = NBC3; j < ny + NBC3; j++) {
-				if (ls[idx3_2D(ny, i, j)] > 0.0)
-					LSMass++;
-			}
+		for (int j = NBC3; j < ny + NBC3; j++) {
+			if (ls[idx3_2D(ny, i, j)] > 0.0)
+				LSMass++;
+		}
 
 		massVec.push_back(LSMass * dx * dy);
 		std::cout << iter << std::endl;
 	}
 
-	double errNormInfty = -std::numeric_limits<double>::max();
-	double errNorm1 = 0.0, errNorm2 = 0.0, errMass = 0.0;
-
-	LSMass = 0;
-	orgMass = 0;
+	LSMass = 0,	orgMass = 0; 
+	double errMass = 0.0;
+	double errNearInterfaceL1 = 0.0, errWholeDomainL1 = 0.0;
+	double errNearInterfaceLInfty = -std::numeric_limits<double>::max(), errWholeDomainLInfty = -std::numeric_limits<double>::max();
 
 	for (int j = NBC3; j < ny + NBC3; j++)
 	for (int i = NBC3; i < nx + NBC3; i++) {
-		err[idx3_2D(ny, i, j)] = std::fabs(ls[idx3_2D(ny, i, j)] - lsOrg[idx3_2D(ny, i, j)]);
-		errNormInfty = std::max(std::fabs(err[idx3_2D(ny, i, j)]), errNormInfty);
-		errNorm1 += std::fabs(ls[idx3_2D(ny, i, j)] - lsOrg[idx3_2D(ny, i, j)]);
-		errNorm2 += std::pow(std::fabs(ls[idx3_2D(ny, i, j)] - lsOrg[idx3_2D(ny, i, j)]), 2.0);
-
-		if (lsOrg[idx3_2D(ny, i, j)] > 0.0)
+		if (lsInit[idx3_2D(ny, i, j)] > 0.0)
 			orgMass++;
 
 		if (ls[idx3_2D(ny, i, j)] > 0.0)
 			LSMass++;
+
+		if (std::fabs(ls[idx3_2D(ny, i, j)]) < 1.2 * std::min(dx, dy)) {
+			errNearInterfaceLInfty = std::max(std::fabs(ls[idx3_2D(ny, i, j)] - lsInit[idx3_2D(ny, i, j)]), errNearInterfaceL1);
+			errNearInterfaceL1 += std::fabs(ls[idx3_2D(ny, i, j)] - lsInit[idx3_2D(ny, i, j)]);
+		}
+
+		if (std::fabs(ls[idx3_2D(ny, i, j)]) >= 0.1) {
+			errWholeDomainLInfty = std::max(std::fabs(ls[idx3_2D(ny, i, j)] - lsInit[idx3_2D(ny, i, j)]), errWholeDomainL1);
+			errWholeDomainL1 += std::fabs(ls[idx3_2D(ny, i, j)] - lsInit[idx3_2D(ny, i, j)]);
+		}
 	}
-
 	errMass = std::fabs(static_cast<double>(LSMass - orgMass)) / orgMass * 100;
-	errNorm2 = std::sqrt(errNorm2) / static_cast<double>(nx * ny);
-
-	std::cout << "Reinit Only - err(L-Infty):" << errNormInfty << " err(L1):" << errNorm1 << " err(L2):" << errNorm2 << std::endl;
+	errNearInterfaceLInfty /= nx * ny;
+	errNearInterfaceL1 /= nx * ny;
+	errWholeDomainLInfty /= nx * ny;
+	errWholeDomainL1 /= nx * ny;
+	
 	std::cout << "Reinit Only - err(Mass loss) : " << errMass << "%" << std::endl;
-
-	std::cout << "LevelSet Reinit Only " << std::endl;
+	std::cout << "Reinit Only(2D, MinRK2) Near Interface - err(L1) : " << errNearInterfaceL1 << " err(LInfty) : " << errNearInterfaceLInfty << std::endl;
+	std::cout << "Reinit Only(2D, MinRK2) WholeDomain - err(L1) : " << errWholeDomainL1 << " err(LInfty) : " << errWholeDomainLInfty << std::endl;
+	std::cout << "LevelSet Reinit Only 2D with Kinks, MinRK2" << std::endl;
 
 	if (m_PLTType == PLTTYPE::BINARY || m_PLTType == PLTTYPE::BOTH)
 		OutResClose();
@@ -556,8 +1060,8 @@ int LevelSetTest_2D_ReinitOnlyWithKinks() {
 
 int LevelSetTest_2D_FirstTimeReinit() {
 	int nx = 128, ny = 128;
-	double LenX = 4.0, LenY = 4.0;
-	double dx = LenX / nx, dy = LenY / nx, cfl = 0.3;
+	double lenX = 4.0, lenY = 4.0;
+	double dx = lenX / nx, dy = lenY / nx, cfl = 0.3;
 	double dt = cfl * dx;
 	int iter = 0, maxIter = 10;
 	double curTime = 0.0, maxTime = 10.0;
@@ -565,12 +1069,11 @@ int LevelSetTest_2D_FirstTimeReinit() {
 	double baseX = -2.0, baseY = -2.0;
 	int orgMass = 0, LSMass = 0;
 
-	std::vector<double> lsOrg((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
+	std::vector<double> lsInit((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
 	std::vector<double> ls((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
 	std::vector<double> err((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
 	std::vector<double> u((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
 	std::vector<double> v((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
-	std::vector<double> kappa((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
 	std::vector<double> phi((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
 	std::vector<double> massVec;
 
@@ -599,7 +1102,7 @@ int LevelSetTest_2D_FirstTimeReinit() {
 		if (ls[idx3_2D(ny, i, j)] > 0)
 			orgMass++;
 
-		lsOrg[idx3_2D(ny, i, j)] = ls[idx3_2D(ny, i, j)];
+		lsInit[idx3_2D(ny, i, j)] = ls[idx3_2D(ny, i, j)];
 
 		err[idx3_2D(ny, i, j)] = 0.0;
 	}
@@ -619,7 +1122,33 @@ int LevelSetTest_2D_FirstTimeReinit() {
 
 	LSolver->FirstTimeOnlyReinit_Sussman_2D(ls);
 
-	kappa = LSolver->UpdateKappa(ls);
+
+	double rhoH = 1.0, rhoL = 1.0, muH = 1.0, muL = 1.0, gConstant = 0.0, sigma = 0.0, L = 1.0, U = 1.0;
+	TIMEORDERENUM timeOrder = TIMEORDERENUM::EULER;
+	GAXISENUM2D GAxis = GAXISENUM2D::Y;
+	double maxtime = 2.0;
+	int maxiter = 20, niterskip = 1, num_bc_grid = NBC3;
+	bool writeVTK = false;
+
+	std::unique_ptr<MACSolver2D> MSolver;
+	MSolver = std::make_unique<MACSolver2D>(rhoH, rhoL, muH, muL, gConstant, GAxis,
+		L, U, sigma, nx, ny, baseX, baseY, lenX, lenY,
+		timeOrder, cfl, maxtime, maxiter, niterskip, num_bc_grid, writeVTK);
+	MSolver->SetBC_U_2D("dirichlet", "dirichlet", "dirichlet", "dirichlet");
+	MSolver->SetBC_V_2D("dirichlet", "dirichlet", "dirichlet", "dirichlet");
+	MSolver->SetBC_P_2D("neumann", "neumann", "neumann", "neumann");
+	MSolver->SetBCConstantUW(0.0);
+	MSolver->SetBCConstantUE(0.0);
+	MSolver->SetBCConstantUS(0.0);
+	MSolver->SetBCConstantUN(0.0);
+	MSolver->SetBCConstantVW(0.0);
+	MSolver->SetBCConstantVE(0.0);
+	MSolver->SetBCConstantVS(0.0);
+	MSolver->SetBCConstantVN(0.0);
+	MSolver->SetPLTType(PLTTYPE::BOTH);
+	MSolver->AllocateVariables();
+	MSolver->UpdateKappa(ls);
+
 	std::ostringstream outfname_stream1;
 	outfname_stream1 << "2D_LS_FirstTimeReinitVel_"
 		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nx))->str()
@@ -636,7 +1165,7 @@ int LevelSetTest_2D_FirstTimeReinit() {
 	PLTTYPE m_PLTType = PLTTYPE::BOTH;
 
 	OutRes_2D(iter, curTime, fname_vel_base, fname_div_base,
-		u, v, phi, kappa, ls, nx, ny, dx, dy, baseX, baseY, m_PLTType);
+		u, v, phi, MSolver->m_kappa, ls, nx, ny, dx, dy, baseX, baseY, m_PLTType);
 
 	LSMass = 0;
 	orgMass = 0;
@@ -660,7 +1189,7 @@ int LevelSetTest_2D_Sussman621_ReinitSussman() {
 	const double baseX = 0.0, baseY = 0.0;
 	int orgMass = 0, LSMass = 0;
 
-	std::vector<double> lsOrg((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
+	std::vector<double> lsInit((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
 	std::vector<double> ls((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
 	std::vector<double> err((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
 	std::vector<double> u((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
@@ -689,7 +1218,7 @@ int LevelSetTest_2D_Sussman621_ReinitSussman() {
 		u[idx3_2D(ny, i, j)] = (M_PI / 314.0) * (50.0 - y);
 		v[idx3_2D(ny, i, j)] = (M_PI / 314.0) * (x - 50.0);
 
-		lsOrg[idx3_2D(ny, i, j)] = ls[idx3_2D(ny, i, j)];
+		lsInit[idx3_2D(ny, i, j)] = ls[idx3_2D(ny, i, j)];
 
 		err[idx3_2D(ny, i, j)] = 0.0;
 	}
@@ -771,12 +1300,12 @@ int LevelSetTest_2D_Sussman621_ReinitSussman() {
 
 	for (int i = NBC3; i < nx + NBC3; i++)
 	for (int j = NBC3; j < ny + NBC3; j++) {
-		err[idx3_2D(ny, i, j)] = std::fabs(ls[idx3_2D(ny, i, j)] - lsOrg[idx3_2D(ny, i, j)]);
+		err[idx3_2D(ny, i, j)] = std::fabs(ls[idx3_2D(ny, i, j)] - lsInit[idx3_2D(ny, i, j)]);
 		errNormInfty = std::max(std::fabs(err[idx3_2D(ny, i, j)]), errNormInfty);
-		errNorm1 += std::fabs(ls[idx3_2D(ny, i, j)] - lsOrg[idx3_2D(ny, i, j)]);
-		errNorm2 += std::pow(std::fabs(ls[idx3_2D(ny, i, j)] - lsOrg[idx3_2D(ny, i, j)]), 2.0);
+		errNorm1 += std::fabs(ls[idx3_2D(ny, i, j)] - lsInit[idx3_2D(ny, i, j)]);
+		errNorm2 += std::pow(std::fabs(ls[idx3_2D(ny, i, j)] - lsInit[idx3_2D(ny, i, j)]), 2.0);
 
-		if (lsOrg[idx3_2D(ny, i, j)] > 0.0)
+		if (lsInit[idx3_2D(ny, i, j)] > 0.0)
 			orgMass++;
 
 		if (ls[idx3_2D(ny, i, j)] > 0.0)

@@ -21,7 +21,6 @@ public:
 	LevelSetSolver2D(int nx, int ny, int num_bc_grid,
 		double baseX, double baseY, double dx, double dy, double maxTime);
 	
-	std::vector<double> UpdateKappa(const std::vector<double>& ls);
 	std::vector<double> UpdateHeavisideFuncDeriv(const std::vector<double>& ls);
 
 	int Solve_LevelSet_2D(std::vector<double>& ls, const std::vector<double>& u, const std::vector<double>& v, double dt);
@@ -39,15 +38,18 @@ public:
 	double MinAbs(const double& val1, const double& val2);
 	double MinMod(const double& val1, const double& val2);
 	std::vector<int> GetSignedLSNormalized(const std::vector<double>& ls);
+	std::vector<double> GetSmoothedSignFunc(const std::vector<double> &ls);
 
 	std::vector<double> HJWENO5_LS_2D(std::vector<double>& ls,
 		const std::vector<double>& u, const std::vector<double>& v);
 	int UnitHJWENO5(
 		const std::vector<double> &F, std::vector<double> &FP, std::vector<double> &FM, const double d, const int n);
+
+	std::vector<double> HJWENO5_DerivAbsLS_2D(const std::vector<double>& ls, const std::vector<double>& lsInit);
 	std::vector<double>
 		ENO_DerivAbsLS_2D(const std::vector<double>& ls, const std::vector<double>& lsInit);
 	std::vector<double>
-		Subcell_DerivAbsLS_2D(const std::vector<double>& ls, const std::vector<double>& lsInit);
+		SubcellENO_Min_DerivAbsLS_2D(const std::vector<double>& ls, const std::vector<double>& lsInit);
 
 	// BC
 	int SetBC_U_2D(std::string BC_W, std::string BC_E, std::string BC_S, std::string BC_N);
