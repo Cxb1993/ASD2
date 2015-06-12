@@ -39,11 +39,11 @@ int OutRes_2D(int iter, double curTime, const std::string fname_vel_base, const 
 
 		for (int i = NBC3; i < nx + NBC3; i++)
 		for (int j = NBC3; j < ny + NBC3; j++)
-			resU[idx3_2D(nx, i, j)] = (u[idx3_2D(nx, i, j)] + u[idx3_2D(nx, i + 1, j)]) * 0.5;
+			resU[idx3_2D(ny, i, j)] = (u[idx3_2D(ny, i, j)] + u[idx3_2D(ny, i + 1, j)]) * 0.5;
 
 		for (int i = NBC3; i < nx + NBC3; i++)
 		for (int j = NBC3; j < ny + NBC3; j++)
-			resV[idx3_2D(nx, i, j)] = (v[idx3_2D(nx, i, j)] + v[idx3_2D(nx, i, j + 1)]) * 0.5;
+			resV[idx3_2D(ny, i, j)] = (v[idx3_2D(ny, i, j)] + v[idx3_2D(ny, i, j + 1)]) * 0.5;
 
 		outF.open(fname_vel.c_str(), std::ios::app);
 
@@ -58,10 +58,10 @@ int OutRes_2D(int iter, double curTime, const std::string fname_vel_base, const 
 		for (int i = NBC3; i < nx + NBC3; i++)
 			outF << baseX + static_cast<double>(i + 0.5 - NBC3) * dx << std::string(",")
 			<< baseY + static_cast<double>(j + 0.5 - NBC3) * dy << std::string(",")
-			<< static_cast<double>(resU[idx3_2D(nx, i, j)]) << std::string(",")
-			<< static_cast<double>(resV[idx3_2D(nx, i, j)]) << std::string(",")
-			<< static_cast<double>(ls[idx3_2D(nx, i, j)]) << std::string(",")
-			<< static_cast<double>(phi[idx3_2D(nx, i, j)]) << std::endl;
+			<< static_cast<double>(resU[idx3_2D(ny, i, j)]) << std::string(",")
+			<< static_cast<double>(resV[idx3_2D(ny, i, j)]) << std::string(",")
+			<< static_cast<double>(ls[idx3_2D(ny, i, j)]) << std::string(",")
+			<< static_cast<double>(phi[idx3_2D(ny, i, j)]) << std::endl;
 
 		outF.close();
 
@@ -78,9 +78,9 @@ int OutRes_2D(int iter, double curTime, const std::string fname_vel_base, const 
 		for (int i = NBC3; i < nx + NBC3; i++)
 			outF << baseX + static_cast<double>(i + 0.5 - NBC3) * dx << std::string(",")
 			<< baseY + static_cast<double>(j + 0.5 - NBC3) * dy << std::string(",")
-			<< static_cast<double>(ls[idx3_2D(nx, i, j)]) << std::string(",")
-			<< static_cast<double>(resDiv[idx3_2D(nx, i, j)]) << std::string(",")
-			<< static_cast<double>(phi[idx3_2D(nx, i, j)]) << std::endl;
+			<< static_cast<double>(ls[idx3_2D(ny, i, j)]) << std::string(",")
+			<< static_cast<double>(resDiv[idx3_2D(ny, i, j)]) << std::string(",")
+			<< static_cast<double>(phi[idx3_2D(ny, i, j)]) << std::endl;
 
 		outF.close();
 	}
@@ -96,18 +96,18 @@ int OutRes_2D(int iter, double curTime, const std::string fname_vel_base, const 
 			resU(nx * ny, 0.0),
 			resV(nx * ny, 0.0),
 			resLS(nx * ny, 0.0),
+			resDiv(nx * ny, 0.0),
 			resPhi(nx * ny, 0.0);
-
-		std::vector<double> resDiv = div;
 
 		for (int i = NBC3; i < nx + NBC3; i++)
 		for (int j = NBC3; j < ny + NBC3; j++) {
 			resX[(i - NBC3) + nx * (j - NBC3)] = baseX + (i + 0.5 - NBC3) * dx;
 			resY[(i - NBC3) + nx * (j - NBC3)] = baseY + (j + 0.5 - NBC3) * dy;
-			resU[(i - NBC3) + nx * (j - NBC3)] = (u[idx3_2D(nx, i, j)] + u[idx3_2D(nx, i + 1, j)]) * 0.5;
-			resV[(i - NBC3) + nx * (j - NBC3)] = (v[idx3_2D(nx, i, j)] + v[idx3_2D(nx, i, j + 1)]) * 0.5;
-			resLS[(i - NBC3) + nx * (j - NBC3)] = ls[idx3_2D(nx, i, j)];
-			resPhi[(i - NBC3) + nx * (j - NBC3)] = phi[idx3_2D(nx, i, j)];
+			resU[(i - NBC3) + nx * (j - NBC3)] = (u[idx3_2D(ny, i, j)] + u[idx3_2D(ny, i + 1, j)]) * 0.5;
+			resV[(i - NBC3) + nx * (j - NBC3)] = (v[idx3_2D(ny, i, j)] + v[idx3_2D(ny, i, j + 1)]) * 0.5;
+			resLS[(i - NBC3) + nx * (j - NBC3)] = ls[idx3_2D(ny, i, j)];
+			resDiv[(i - NBC3) + nx * (j - NBC3)] = div[idx3_2D(ny, i, j)];
+			resPhi[(i - NBC3) + nx * (j - NBC3)] = phi[idx3_2D(ny, i, j)];
 		}
 
 		INTEGER4 Debug = 1;
