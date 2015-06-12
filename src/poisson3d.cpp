@@ -123,7 +123,7 @@ int PoissonSolver3D::CG_2FUniform_3D(std::vector<double>& ps, const std::vector<
 		iter++;
 	}
 
-	std::cout << "CG : " << iter << " " << maxIter << " Err : " << rnorm2 / bnorm2 << " " << x[50 + 50 * kNx] << std::endl;
+	std::cout << "CG : " << iter << " " << maxIter << " Err : " << rnorm2 / bnorm2 << std::endl;
 	for (int k = 0; k < kNz; k++)
 	for (int j = 0; j < kNy; j++)
 	for (int i = 0; i < kNx; i++) {
@@ -299,7 +299,7 @@ int PoissonSolver3D::BiCGStab_2FUniform_3D(std::vector<double>& ps, const std::v
 		iter++;
 	}
 	
-	std::cout << "BiCG : " << iter << " " << maxIter << " Err : " << rnorm2 / bnorm2 << " " << x[50 + 50 * kNx] << std::endl;
+	std::cout << "BiCG : " << iter << " " << maxIter << " Err : " << rnorm2 / bnorm2 << std::endl;
 	for (int k = 0; k < kNz; k++)
 	for (int j = 0; j < kNy; j++)
 	for (int i = 0; i < kNx; i++) {
