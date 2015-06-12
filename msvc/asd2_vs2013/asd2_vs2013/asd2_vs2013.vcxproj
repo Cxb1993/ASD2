@@ -215,6 +215,7 @@
     <ClCompile Include="..\..\..\src\levelset2d.cpp" />
     <ClCompile Include="..\..\..\src\levelset3d.cpp" />
     <ClCompile Include="..\..\..\src\mac2d.cpp" />
+    <ClCompile Include="..\..\..\src\mac2dAxisym.cpp" />
     <ClCompile Include="..\..\..\src\mac3d.cpp" />
     <ClCompile Include="..\..\..\src\poisson2d.cpp" />
     <ClCompile Include="..\..\..\src\poisson3d.cpp" />
@@ -227,6 +228,7 @@
     <ClInclude Include="..\..\..\include\levelset2d.h" />
     <ClInclude Include="..\..\..\include\levelset3d.h" />
     <ClInclude Include="..\..\..\include\mac2d.h" />
+    <ClInclude Include="..\..\..\include\mac2dAxisym.h" />
     <ClInclude Include="..\..\..\include\mac3d.h" />
     <ClInclude Include="..\..\..\include\poisson2d.h" />
     <ClInclude Include="..\..\..\include\poisson3d.h" />
