@@ -1,6 +1,6 @@
 ﻿#include "mac3d.h"
 
-MACSolver3D::MACSolver3D(double Re, double We, double Fr, GAXISENUM GAxis,
+MACSolver3D::MACSolver3D(double Re, double We, double Fr, GAXISENUM3D GAxis,
 	double L, double U, double sigma, double densityRatio, double viscosityRatio, double rhoH, double muH,
 	int nx, int ny, int nz, double baseX, double baseY, double baseZ, double lenX, double lenY, double lenZ,
 	TIMEORDERENUM timeOrder, double cfl, double maxtime, int maxIter, int niterskip, int num_bc_grid,
@@ -28,7 +28,7 @@ MACSolver3D::MACSolver3D(double Re, double We, double Fr, GAXISENUM GAxis,
 			lenZ / static_cast<double>(nz)) / U);
 }
 
-MACSolver3D::MACSolver3D(double rhoH, double rhoL, double muH, double muL, double gConstant, GAXISENUM GAxis,
+MACSolver3D::MACSolver3D(double rhoH, double rhoL, double muH, double muL, double gConstant, GAXISENUM3D GAxis,
 	double L, double U, double sigma, int nx, int ny, int nz, double baseX, double baseY, double baseZ, double lenX, double lenY, double lenZ,
 	TIMEORDERENUM timeOrder, double cfl, double maxtime, int maxIter, int niterskip, int num_bc_grid,
 	bool writeVTK) :
@@ -303,7 +303,7 @@ int MACSolver3D::UpdateKappa(const std::vector<double>& ls) {
 			/ std::pow(LSSize[idx(i, j, k)], 3.0);
 
 		// curvature is limiited so that under-resolved regions do not erroneously contribute large surface tensor forces
-		m_kappa[idx(i, j, k)] = std::fabs(std::min(std::fabs(m_kappa[idx(i, j, k)]), 1.0 / std::min(std::min(kDx, kDy), kDz)));
+		m_kappa[idx(i, j, k)] = sign(m_kappa[idx(i, j, k)]) * std::fabs(std::min(std::fabs(m_kappa[idx(i, j, k)]), 1.0 / std::min(std::min(kDx, kDy), kDz)));
 
 		assert(m_kappa[idx(i, j, k)] == m_kappa[idx(i, j, k)]);
 	}
@@ -1404,7 +1404,7 @@ std::vector<double> MACSolver3D::AddViscosityFW(const std::vector<double>& u, co
 std::vector<double> MACSolver3D::AddGravityFU() {
 	std::vector<double> gU(kArrSize, 0.0);
 
-	if ((kFr == 0 || kG == 0.0) && !isnan(kFr) && !isinf(kFr) && kGAxis != GAXISENUM::X) {
+	if ((kFr == 0 || kG == 0.0) && !isnan(kFr) && !isinf(kFr) && kGAxis != GAXISENUM3D::X) {
 		for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
 		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
 		for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
@@ -1425,7 +1425,7 @@ std::vector<double> MACSolver3D::AddGravityFU() {
 std::vector<double> MACSolver3D::AddGravityFV() {
 	std::vector<double> gV(kArrSize, 0.0);
 
-	if ((kFr == 0 || kG == 0.0) && !isnan(kFr) && !isinf(kFr) && kGAxis != GAXISENUM::Y) {
+	if ((kFr == 0 || kG == 0.0) && !isnan(kFr) && !isinf(kFr) && kGAxis != GAXISENUM3D::Y) {
 		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 		for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++)
 		for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
@@ -1446,7 +1446,7 @@ std::vector<double> MACSolver3D::AddGravityFV() {
 std::vector<double> MACSolver3D::AddGravityFW() {
 	std::vector<double> gW(kArrSize, 0.0);
 
-	if ((kFr == 0 || kG == 0.0) && !isnan(kFr) && !isinf(kFr) && kGAxis != GAXISENUM::Z) {
+	if ((kFr == 0 || kG == 0.0) && !isnan(kFr) && !isinf(kFr) && kGAxis != GAXISENUM3D::Z) {
 		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
 		for (int k = kNumBCGrid + 1; k < kNz + kNumBCGrid; k++) {
@@ -2424,7 +2424,7 @@ double MACSolver3D::UpdateDt(const std::vector<double>& u, const std::vector<dou
 	}
 	
 	Cefl = uAMax / kDx + vAMax / kDy + wAMax / kDz;
-	Vefl = std::max(kMuH / kRhoH, kMuL / kRhoL) * (2.0 / (kDx * kDx) + 2.0 / (kDy * kDy));
+	Vefl = std::max(kMuH, kMuL) * (2.0 / (kDx * kDx) + 2.0 / (kDy * kDy));
 	Gefl = std::max(std::max(std::sqrt(std::fabs(kG) / kDy), std::sqrt(std::fabs(kG) / kDx)), std::sqrt(std::fabs(kG) / kDz));
 	
 	dt = std::min(dt,
