@@ -24,10 +24,12 @@ int LevelSetTest_2D_ReinitOnly_Original();
 int LevelSetTest_2D_ReinitOnly_Sussman();
 int LevelSetTest_2D_ReinitOnly_MinRK2();
 int LevelSetTest_2D_ReinitOnly_MinRK2_2();
+int LevelSetTest_2DAxisym_ReinitOnly_MinRK2();
 int LevelSetTest_2D_ReinitOnlyWithKinks();
 int LevelSetTest_2D_Sussman621_ReinitSussman();
 int LevelSetTest_2D_FirstTimeReinit();
 
+int LevelSetTest_2DAxisym_ReinitOnly_MinRK2();
 int LevelSetTest_2DAxisym_ReinitOnly_Sussman();
 
 #endif __TEST_LEVEL2DLARGE_H__
