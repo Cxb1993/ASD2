@@ -104,7 +104,6 @@ int MAC2DTest_CavityFlow() {
 		// Have to use \phi^{n+1} for rho, mu, kappa
 		
 		// Update F and apply time integration
-		MSolver->UpdateJumpCond(MSolver->m_u, MSolver->m_v, ls);
 		H = MSolver->UpdateHeavisideFunc(ls);
 		
 		// Get intermediate velocity with RK method
@@ -181,18 +180,31 @@ int MAC2DTest_StationaryBubble() {
 	// # of cells
 	const int nx = 128, ny = 128;
 	// related to initialize level set
-	const double baseX = 0.0, baseY = 0.0, lenX = 0.04, lenY = 0.04, cfl = 0.1;
+	const double baseX = 0.0, baseY = 0.0, lenX = 0.04, lenY = 0.04, cfl = 0.3;
 	double radius = 0.01, x = 0.0, y = 0.0, d = 0.0;
 
-	const int maxiter = 10, niterskip = 1, num_bc_grid = 3;
-	const double maxtime = 0.06;
+	const int maxiter = 1000, niterskip = 50, num_bc_grid = 3;
+	const double maxtime = 5.0;
 	const bool writeVTK = false;
 	// length of each cell
 	const double dx = lenX / nx, dy = lenY / ny;
-	const std::string fname_vel("testMAC2D_StationaryBubbleVel_Re_" + std::to_string(Re));
-	const std::string fname_div("testMAC2D_StationaryBubbleDiv_Re_" + std::to_string(Re));
+	std::ostringstream outfname_stream1;
+	outfname_stream1 << "testMAC2D_StationaryBubbleVel_Re_"
+		<< std::to_string(Re)
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nx))->str()
+		<< "x"
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << ny))->str();
+	const std::string fname_vel = outfname_stream1.str();
+
+	std::ostringstream outfname_stream2;
+	outfname_stream2 << "testMAC2D_StationaryBubbleDiv_Re_"
+		<< std::to_string(Re)
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nx))->str()
+		<< "x"
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << ny))->str();
+	const std::string fname_div = outfname_stream2.str();
 	const int iterskip = 1;
-	const TIMEORDERENUM timeOrder = TIMEORDERENUM::EULER;
+	const TIMEORDERENUM timeOrder = TIMEORDERENUM::RK3;
 	int stat = 0;
 
 	std::unique_ptr<MACSolver2D> MSolver;
@@ -261,7 +273,7 @@ int MAC2DTest_StationaryBubble() {
 		ls[idx3_2D(ny, i, j)] = d;
 	}
 	LSolver->ApplyBC_P_2D(ls);
-	LSolver->Reinit_Sussman_2D(ls);
+	LSolver->Reinit_MinRK2_2D(ls);
 	
 	LSolver->ApplyBC_P_2D(ls);
 	
@@ -282,16 +294,13 @@ int MAC2DTest_StationaryBubble() {
 		lsB = ls;
 		LSolver->Solve_LevelSet_2D(ls, MSolver->m_u, MSolver->m_v, MSolver->m_dt);
 		LSolver->ApplyBC_P_2D(ls);
-		LSolver->Reinit_Sussman_2D(ls);
+		LSolver->Reinit_MinRK2_2D(ls);
 		
 		LSolver->ApplyBC_P_2D(ls);
 		// Solve Momentum Part
 		MSolver->UpdateKappa(ls);
 		H = MSolver->UpdateHeavisideFunc(ls);
 		HSmooth = MSolver->UpdateSmoothHeavisideFunc(ls);
-
-		// Update F and apply time integration
-		MSolver->UpdateJumpCond(MSolver->m_u, MSolver->m_v, ls);
 
 		// Get intermediate velocity
 		MSolver->GetIntermediateVel(LSolver, ls, MSolver->m_u, MSolver->m_v, uhat, vhat, HSmooth);
@@ -328,8 +337,6 @@ int MAC2DTest_StationaryBubble() {
 
 			std::cout << "Stationary Bubble : " << std::ctime(&t) << " " << MSolver->m_iter << " " << MSolver->m_curTime << " " << MSolver->m_dt << " " << std::endl;
 
-			// MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
-			// 	uhat, vhat, MSolver->m_ps, ls);
 			MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
 				MSolver->m_u, MSolver->m_v, MSolver->m_ps, ls);
 		}
@@ -366,20 +373,31 @@ int MAC2DTest_SmallAirBubbleRising() {
 	// # of cells
 	const int nx = 80, ny = 120;
 	// related to initialize level set
-	const double baseX = -0.01, baseY = -0.01, lenX = 0.02, lenY = 0.03, cfl = 0.1;
+	const double baseX = -0.01, baseY = -0.01, lenX = 0.02, lenY = 0.03, cfl = 0.3;
 	double radius = 1.0 / 300.0, x = 0.0, y = 0.0, d = 0.0;
-	// const double baseX = -1.0, baseY = -1.0, lenX = 2.0, lenY = 3.0, cfl = 0.5;
-	// double radius = 1.0 / 3.0, x = 0.0, y = 0.0, d = 0.0;
-
+	
 	const double maxtime = 2.0;
-	const int maxiter = 10, niterskip = 1, num_bc_grid = 3;
+	const int maxiter = 500, niterskip = 50, num_bc_grid = 3;
 	const bool writeVTK = false;
 	// length of each cell
 	const double dx = lenX / nx, dy = lenY / ny;
-	const std::string fname_vel("testMAC2D_SmallBubbleRisingVel_Re_" + std::to_string(Re));
-	const std::string fname_div("testMAC2D_SmallBubbleRisingDiv_Re_" + std::to_string(Re));
+	std::ostringstream outfname_stream1;
+	outfname_stream1 << "testMAC2D_SmallBubbleRisingVel_Re_"
+		<< std::to_string(Re)
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nx))->str()
+		<< "x"
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << ny))->str();
+	const std::string fname_vel = outfname_stream1.str();
+
+	std::ostringstream outfname_stream2;
+	outfname_stream2 << "testMAC2D_SmallBubbleRisingDiv_Re_"
+		<< std::to_string(Re)
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nx))->str()
+		<< "x"
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << ny))->str();
+	const std::string fname_div = outfname_stream2.str();
 	const int iterskip = 1;
-	const TIMEORDERENUM timeOrder = TIMEORDERENUM::EULER;
+	const TIMEORDERENUM timeOrder = TIMEORDERENUM::RK3;
 	int stat = 0;	
 	
 	std::unique_ptr<MACSolver2D> MSolver;
@@ -446,7 +464,7 @@ int MAC2DTest_SmallAirBubbleRising() {
 		ls[idx3_2D(ny, i, j)] = d;
 	}
 	LSolver->ApplyBC_P_2D(ls);
-	LSolver->Reinit_Sussman_2D(ls);
+	LSolver->Reinit_MinRK2_2D(ls);
 
 	LSolver->ApplyBC_P_2D(ls);
 	
@@ -466,12 +484,11 @@ int MAC2DTest_SmallAirBubbleRising() {
 
 		lsB = ls;
 		LSolver->Solve_LevelSet_2D(ls, MSolver->m_u, MSolver->m_v, MSolver->m_dt);
-		LSolver->Reinit_Sussman_2D(ls);
+		LSolver->Reinit_MinRK2_2D(ls);
 		LSolver->ApplyBC_P_2D(ls);
 		// Solve Momentum Part
 		
 		// Update F and apply time integration
-		MSolver->UpdateJumpCond(MSolver->m_u, MSolver->m_v, ls);
 		MSolver->UpdateKappa(ls);
 		H = MSolver->UpdateHeavisideFunc(ls);
 		HSmooth = MSolver->UpdateSmoothHeavisideFunc(ls);
@@ -556,8 +573,21 @@ int MAC2DTest_LargeAirBubbleRising() {
 	const bool writeVTK = false;
 	// length of each cell
 	const double dx = lenX / nx, dy = lenY / ny;
-	const std::string fname_vel("testMAC2D_LargeBubbleRisingVel_Re_" + std::to_string(Re));
-	const std::string fname_div("testMAC2D_LargeBubbleRisingDiv_Re_" + std::to_string(Re));
+	std::ostringstream outfname_stream1;
+	outfname_stream1 << "testMAC2D_LargeBubbleRisingVel_Re_"
+		<< std::to_string(Re)
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nx))->str()
+		<< "x"
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << ny))->str();
+	const std::string fname_vel = outfname_stream1.str();
+
+	std::ostringstream outfname_stream2;
+	outfname_stream2 << "testMAC2D_LargeBubbleRisingDiv_Re_"
+		<< std::to_string(Re)
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nx))->str()
+		<< "x"
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << ny))->str();
+	const std::string fname_div = outfname_stream2.str();
 	const int iterskip = 1;
 	const TIMEORDERENUM timeOrder = TIMEORDERENUM::RK2;
 	int stat = 0;
@@ -651,7 +681,6 @@ int MAC2DTest_LargeAirBubbleRising() {
 		// Solve Momentum Part
 
 		// Update F and apply time integration
-		MSolver->UpdateJumpCond(MSolver->m_u, MSolver->m_v, ls);
 		MSolver->UpdateKappa(ls);
 		H = MSolver->UpdateHeavisideFunc(ls);
 		HSmooth = MSolver->UpdateSmoothHeavisideFunc(ls);
@@ -726,8 +755,7 @@ int MAC2DTest_TaylorInstability() {
 	// Froude Number : u0 / (sqrt(g0 * l0))
 	const double Re = 1000.0, We = 0.0, Fr = U / std::sqrt(gConstant * L);
 	const double rhoH = 3.0, muH = rhoH / Re * std::sqrt(L * L * L * 9.8);
-	const double rhoL = 1.0, muL = rhoL / Re * std::sqrt(L * L * L * 9.8),
-		 sigma = 0.0;
+	const double rhoL = 1.0, muL = rhoL / Re * std::sqrt(L * L * L * 9.8), sigma = 0.0;
 	const double densityRatio = rhoL / rhoH, viscosityRatio = muL / muH;
 	
 	// # of cells
@@ -744,7 +772,7 @@ int MAC2DTest_TaylorInstability() {
 	const double dx = lenX / nx, dy = lenY / ny;
 	const std::string fname_vel("testMAC2D_TaylorVel_Re_" + std::to_string(Re));
 	const std::string fname_div("testMAC2D_TaylorDiv_Re_" + std::to_string(Re));
-	const TIMEORDERENUM timeOrder = TIMEORDERENUM::EULER;
+	const TIMEORDERENUM timeOrder = TIMEORDERENUM::RK3;
 	const int iterskip = 1;
 	int stat = 0;
 
@@ -809,7 +837,7 @@ int MAC2DTest_TaylorInstability() {
 		
 		ls[idx3_2D(ny, i, j)] = -y - 0.1 * cos(2.0 * M_PI * x);
 	}
-	LSolver->Reinit_Sussman_2D(ls);
+	LSolver->Reinit_MinRK2_2D(ls);
 	LSolver->ApplyBC_P_2D(ls);
 	
 	// prevent dt == 0.0
@@ -828,7 +856,7 @@ int MAC2DTest_TaylorInstability() {
 
 		lsB = ls;
 		LSolver->Solve_LevelSet_2D(ls, MSolver->m_u, MSolver->m_v, MSolver->m_dt);
-		LSolver->Reinit_Sussman_2D(ls);
+		LSolver->Reinit_MinRK2_2D(ls);
 		LSolver->ApplyBC_P_2D(ls);
 		// Solve Momentum Part
 		MSolver->UpdateKappa(ls);
@@ -836,7 +864,6 @@ int MAC2DTest_TaylorInstability() {
 		HSmooth = MSolver->UpdateSmoothHeavisideFunc(ls);
 
 		// Update F and apply time integration
-		MSolver->UpdateJumpCond(MSolver->m_u, MSolver->m_v, ls);
 		// Get intermediate velocity
 		MSolver->GetIntermediateVel(LSolver, ls, MSolver->m_u, MSolver->m_v, uhat, vhat, HSmooth);
 
@@ -900,25 +927,36 @@ int MAC2DAxisymTest_StationaryBubble() {
 	const double Re = 0.0, We = 0.0, Fr = 0.0;
 	const double L = 1.0, U = 1.0;
 	const double rhoL = 1.226, muL = 1.78e-5;
-	// const double rhoH = 1000, muH = 1.137e-3;
 	const double rhoH = 1000, muH = 1.137e-3, sigma = 0.0728;
-	// const double rhoL = 1000, muL = 1.137e-3, sigma = 0.0;
 	const double gConstant = 0.0;
 	GAXISENUM2DAXISYM GAxis = GAXISENUM2DAXISYM::Z;
 	// # of cells
-	const int nr = 128, nz = 128;
+	const int nr = 64, nz = 128;
 	// related to initialize level set
 	const double baseR = 0.0, baseZ = 0.0, lenR = 0.02, lenZ = 0.04, cfl = 0.1;
 	
-	const int maxiter = 20, niterskip = 1, num_bc_grid = 3;
+	const int maxiter = 40, niterskip = 2, num_bc_grid = 3;
 	const double maxtime = 0.06;
 	const bool writeVTK = false;
 	// length of each cell
 	const double dr = lenR / nr, dz = lenZ / nz;
-	const std::string fname_vel("testMAC2DAxisym_StationaryBubbleVel_Re_" + std::to_string(Re));
-	const std::string fname_div("testMAC2DAxisym_StationaryBubbleDiv_Re_" + std::to_string(Re));
+	std::ostringstream outfname_stream1;
+	outfname_stream1 << "testMAC2DAxisym_StationaryBubbleVel_Re_"
+		<< std::to_string(Re)
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nr))->str()
+		<< "x"
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nz))->str();
+	std::string fname_vel = outfname_stream1.str();
+
+	std::ostringstream outfname_stream2;
+	outfname_stream2 << "testMAC2DAxisym_StationaryBubbleDiv_Re_"
+		<< std::to_string(Re)
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nr))->str()
+		<< "x"
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nz))->str();
+	std::string fname_div = outfname_stream2.str();
 	const int iterskip = 1;
-	const TIMEORDERENUM timeOrder = TIMEORDERENUM::EULER;
+	const TIMEORDERENUM timeOrder = TIMEORDERENUM::RK3;
 	int stat = 0;
 
 	std::unique_ptr<MACSolver2DAxisym> MSolver;
@@ -975,8 +1013,8 @@ int MAC2DAxisymTest_StationaryBubble() {
 	LSolver->SetBCConstantPS(0.0);
 	LSolver->SetBCConstantPN(0.0);
 	double radius = 0.01, r = 0.0, z = 0.0, d = 0.0;
-	for (int j = 0; j < nr + 2 * num_bc_grid; j++)
-	for (int i = 0; i < nz + 2 * num_bc_grid; i++) {
+	for (int i = 0; i < nr + 2 * num_bc_grid; i++)
+	for (int j = 0; j < nz + 2 * num_bc_grid; j++) {
 		// positive : inside & gas, negative : outside & liquid 
 		r = baseR + (i + 0.5 - num_bc_grid) * dr;
 		z = baseZ + (j + 0.5 - num_bc_grid) * dz;
@@ -988,7 +1026,7 @@ int MAC2DAxisymTest_StationaryBubble() {
 		ls[idx3_2D(nz, i, j)] = d;
 	}
 	LSolver->ApplyBC_P_2D(ls);
-	LSolver->Reinit_Sussman_2D(ls);
+	LSolver->Reinit_MinRK2_2D(ls);
 
 	LSolver->ApplyBC_P_2D(ls);
 
@@ -1009,16 +1047,13 @@ int MAC2DAxisymTest_StationaryBubble() {
 		lsB = ls;
 		LSolver->Solve_LevelSet_2D(ls, MSolver->m_u, MSolver->m_v, MSolver->m_dt);
 		LSolver->ApplyBC_P_2D(ls);
-		LSolver->Reinit_Sussman_2D(ls);
+		LSolver->Reinit_MinRK2_2D(ls);
 
 		LSolver->ApplyBC_P_2D(ls);
 		// Solve Momentum Part
 		MSolver->UpdateKappa(ls);
 		H = MSolver->UpdateHeavisideFunc(ls);
 		HSmooth = MSolver->UpdateSmoothHeavisideFunc(ls);
-
-		// Update F and apply time integration
-		MSolver->UpdateJumpCond(MSolver->m_u, MSolver->m_v, ls);
 
 		// Get intermediate velocity
 		MSolver->GetIntermediateVel(LSolver, ls, MSolver->m_u, MSolver->m_v, uhat, vhat, HSmooth);
@@ -1027,7 +1062,7 @@ int MAC2DAxisymTest_StationaryBubble() {
 		MSolver->ApplyBC_V_2D(vhat);
 
 		// From intermediate velocity, get divergence
-		div = MSolver->GetDivergence(uhat, vhat);
+		div = MSolver->GetDivergence4Poisson(uhat, vhat);
 		MSolver->ApplyBC_P_2D(MSolver->m_ps);
 		LSolver->ApplyBC_P_2D(ls);
 
@@ -1055,8 +1090,6 @@ int MAC2DAxisymTest_StationaryBubble() {
 
 			std::cout << "Stationary Bubble : " << std::ctime(&t) << " " << MSolver->m_iter << " " << MSolver->m_curTime << " " << MSolver->m_dt << " " << std::endl;
 
-			// MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
-			// 	uhat, vhat, MSolver->m_ps, ls);
 			MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
 				MSolver->m_u, MSolver->m_v, MSolver->m_ps, ls);
 		}
@@ -1071,7 +1104,7 @@ int MAC2DAxisymTest_StationaryBubble() {
 	std::time_t t = s.count();
 	std::size_t fractional_seconds = ms.count() % 1000;
 
-	std::cout << "(Final) Small Bubble : " << std::ctime(&t) << " " << MSolver->m_iter << " " << MSolver->m_curTime << " " << MSolver->m_dt << " " << std::endl;
+	std::cout << "(Final) Stationary Bubble : " << std::ctime(&t) << " " << MSolver->m_iter << " " << MSolver->m_curTime << " " << MSolver->m_dt << " " << std::endl;
 	MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
 		MSolver->m_u, MSolver->m_v, MSolver->m_ps, ls);
 	MSolver->OutResClose();
@@ -1100,8 +1133,21 @@ int MAC2DAxisymTest_SmallAirBubbleRising() {
 	const bool writeVTK = false;
 	// length of each cell
 	const double dr = lenR / nr, dz = lenZ / nz;
-	const std::string fname_vel("testMAC2DAxisym_SmallBubbleRisingVel_Re_" + std::to_string(Re));
-	const std::string fname_div("testMAC2DAxisym_SmallBubbleRisingDiv_Re_" + std::to_string(Re));
+	std::ostringstream outfname_stream1;
+	outfname_stream1 << "testMAC2DAxisym_SmallBubbleRisingVel_Re_"
+		<< std::to_string(Re)
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nr))->str()
+		<< "x"
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nz))->str();
+	std::string fname_vel = outfname_stream1.str();
+
+	std::ostringstream outfname_stream2;
+	outfname_stream2 << "testMAC2DAxisym_SmallBubbleRisingDiv_Re_"
+		<< std::to_string(Re)
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nr))->str()
+		<< "x"
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nz))->str();
+	std::string fname_div = outfname_stream2.str();
 	const int iterskip = 1;
 	const TIMEORDERENUM timeOrder = TIMEORDERENUM::EULER;
 	int stat = 0;
@@ -1171,7 +1217,7 @@ int MAC2DAxisymTest_SmallAirBubbleRising() {
 		ls[idx3_2D(nz, i, j)] = d;
 	}
 	LSolver->ApplyBC_P_2D(ls);
-	LSolver->Reinit_Sussman_2D(ls);
+	LSolver->Reinit_MinRK2_2D(ls);
 
 	LSolver->ApplyBC_P_2D(ls);
 
@@ -1191,12 +1237,11 @@ int MAC2DAxisymTest_SmallAirBubbleRising() {
 
 		lsB = ls;
 		LSolver->Solve_LevelSet_2D(ls, MSolver->m_u, MSolver->m_v, MSolver->m_dt);
-		LSolver->Reinit_Sussman_2D(ls);
+		LSolver->Reinit_MinRK2_2D(ls);
 		LSolver->ApplyBC_P_2D(ls);
 		// Solve Momentum Part
 
 		// Update F and apply time integration
-		MSolver->UpdateJumpCond(MSolver->m_u, MSolver->m_v, ls);
 		MSolver->UpdateKappa(ls);
 		H = MSolver->UpdateHeavisideFunc(ls);
 		HSmooth = MSolver->UpdateSmoothHeavisideFunc(ls);
@@ -1208,7 +1253,7 @@ int MAC2DAxisymTest_SmallAirBubbleRising() {
 		MSolver->ApplyBC_V_2D(vhat);
 
 		// From intermediate velocity, get divergence
-		div = MSolver->GetDivergence(uhat, vhat);
+		div = MSolver->GetDivergence4Poisson(uhat, vhat);
 		MSolver->ApplyBC_P_2D(MSolver->m_ps);
 
 		// Solve Poisson equation
@@ -1282,8 +1327,21 @@ int MAC2DAxisymTest_WaterDropletCollison1() {
 	const bool writeVTK = false;
 	// length of each cell
 	const double dr = lenR / nr, dz = lenZ / nz;
-	const std::string fname_vel("testMAC2D_WaterDropletCollision01Vel_Re_" + std::to_string(Re));
-	const std::string fname_div("testMAC2D_WaterDropletCollision01Div_Re_" + std::to_string(Re));
+	std::ostringstream outfname_stream1;
+	outfname_stream1 << "testMAC2D_WaterDropletCollision01Vel_Re_"
+		<< std::to_string(Re)
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nr))->str()
+		<< "x"
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nz))->str();
+	std::string fname_vel = outfname_stream1.str();
+
+	std::ostringstream outfname_stream2;
+	outfname_stream2 << "testMAC2D_WaterDropletCollision01Div_Re_"
+		<< std::to_string(Re)
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nr))->str()
+		<< "x"
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nz))->str();
+	std::string fname_div = outfname_stream2.str();
 	const int iterskip = 1;
 	const TIMEORDERENUM timeOrder = TIMEORDERENUM::EULER;
 	int stat = 0;
@@ -1362,7 +1420,7 @@ int MAC2DAxisymTest_WaterDropletCollison1() {
 		ls[idx3_2D(nz, i, j)] = std::min(d1, d2);
 	}
 	LSolver->ApplyBC_P_2D(ls);
-	LSolver->Reinit_Sussman_2D(ls);
+	LSolver->Reinit_MinRK2_2D(ls);
 	LSolver->ApplyBC_P_2D(ls);
 
 	// prevent dt == 0.0
@@ -1382,12 +1440,11 @@ int MAC2DAxisymTest_WaterDropletCollison1() {
 
 		lsB = ls;
 		LSolver->Solve_LevelSet_2D(ls, MSolver->m_u, MSolver->m_v, MSolver->m_dt);
-		LSolver->Reinit_Sussman_2D(ls);
+		LSolver->Reinit_MinRK2_2D(ls);
 		LSolver->ApplyBC_P_2D(ls);
 		// Solve Momentum Part
 
 		// Update F and apply time integration
-		MSolver->UpdateJumpCond(MSolver->m_u, MSolver->m_v, ls);
 		MSolver->UpdateKappa(ls);
 		H = MSolver->UpdateHeavisideFunc(ls);
 		HSmooth = MSolver->UpdateSmoothHeavisideFunc(ls);
