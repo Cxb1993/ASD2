@@ -810,7 +810,7 @@ int LevelSetSolver3D::Reinit_MinRK2_3D(std::vector<double>& ls) {
 		// Apply Boundary Condition First
 		ApplyBC_P_3D(ls);
 
-		absdLS1 = Subcell_DerivAbsLS_3D(ls, lsInit);
+		absdLS1 = SubcellENO_DerivAbsLS_3D(ls, lsInit);
 
 		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
@@ -820,7 +820,7 @@ int LevelSetSolver3D::Reinit_MinRK2_3D(std::vector<double>& ls) {
 		}
 		ApplyBC_P_3D(LS1);
 
-		absdLS2 = Subcell_DerivAbsLS_3D(LS1, lsInit);
+		absdLS2 = SubcellENO_DerivAbsLS_3D(LS1, lsInit);
 
 		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
@@ -835,7 +835,6 @@ int LevelSetSolver3D::Reinit_MinRK2_3D(std::vector<double>& ls) {
 		for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
 			ls[idx(i, j, k)] = 0.5 * (ls[idx(i, j, k)] + LS2[idx(i, j, k)]);
 		}
-		ApplyBC_P_3D(ls);
 	}
 
 	ApplyBC_P_3D(ls);
@@ -921,7 +920,7 @@ LevelSetSolver3D::ENO_DerivAbsLS_3D(const std::vector<double>& ls, const std::ve
 }
 
 std::vector<double>
-LevelSetSolver3D::Subcell_DerivAbsLS_3D(const std::vector<double>& ls, const std::vector<double>& lsInit) {
+LevelSetSolver3D::SubcellENO_DerivAbsLS_3D(const std::vector<double>& ls, const std::vector<double>& lsInit) {
 	std::vector<double>
 		dPX(kArrSize, 0.0), dMX(kArrSize, 0.0),
 		dPY(kArrSize, 0.0), dMY(kArrSize, 0.0),

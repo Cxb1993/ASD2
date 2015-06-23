@@ -344,7 +344,7 @@ int PoissonSolver2D::CG_2FUniform_2D(std::vector<double>& ps, const std::vector<
 		iter++;
 	}
 
-	std::cout << "CG : " << iter << " " << maxIter << " Err : " << rnorm2 / bnorm2 << std::endl;
+	// std::cout << "CG : " << iter << " " << maxIter << " Err : " << rnorm2 / bnorm2 << std::endl;
 	for (int j = 0; j < kNy; j++)
 	for (int i = 0; i < kNx; i++) {
 		ps[idx(i + kNumBCGrid, j + kNumBCGrid)] = x[i + j * kNx];
@@ -516,7 +516,7 @@ int PoissonSolver2D::BiCGStab_2FUniform_2D(std::vector<double>& ps, const std::v
 		iter++;
 	}
 	
-	std::cout << "BiCG : " << iter << " " << maxIter << " Err : " << rnorm2 / bnorm2 << std::endl;
+	// std::cout << "BiCG : " << iter << " " << maxIter << " Err : " << rnorm2 / bnorm2 << std::endl;
 	for (int j = 0; j < kNy; j++)
 	for (int i = 0; i < kNx; i++) {
 		ps[idx(i + kNumBCGrid, j + kNumBCGrid)] = x[i + j * kNx];

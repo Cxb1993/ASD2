@@ -783,6 +783,7 @@ LevelSetSolver2D::SubcellENO_Min_DerivAbsLS_2D(const std::vector<double>& ls, co
 	
 	return absdLS;
 }
+
 std::vector<double> LevelSetSolver2D::GetSussmanReinitConstraint(const std::vector<double>& ls,
 	const std::vector<double>& lsInit, const std::vector<double>& heavisideDeriv) {
 	double lambda = 0.0;

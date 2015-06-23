@@ -49,7 +49,7 @@ public:
 	std::vector<double>
 		ENO_DerivAbsLS_3D(const std::vector<double>& ls, const std::vector<double>& lsInit);
 	std::vector<double>
-		Subcell_DerivAbsLS_3D(const std::vector<double>& ls, const std::vector<double>& lsInit);
+		SubcellENO_DerivAbsLS_3D(const std::vector<double>& ls, const std::vector<double>& lsInit);
 
 	// BC
 	int SetBC_U_3D(std::string BC_W, std::string BC_E, std::string BC_S, std::string BC_N, std::string BC_B, std::string BC_T);

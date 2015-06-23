@@ -1,7 +1,7 @@
 #include "test_common.h"
 
 int idx3_2D(int ny, int i, int j) {
-	return (static_cast<int64_t>(j) +(ny + 2 * NBC3) * static_cast<int64_t>(i));
+	return (static_cast<int64_t>(j) + (ny + 2 * NBC3) * static_cast<int64_t>(i));
 }
 
 int idx3_3D(int ny, int nz, int i, int j, int k) {
