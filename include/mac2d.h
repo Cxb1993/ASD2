@@ -31,6 +31,7 @@
 class MACSolver2D {
 public:
 	const int kNx, kNy, kNumBCGrid;
+	const int64_t kArrSize;
 	const double kBaseX, kBaseY, kLenX, kLenY, kDx, kDy;
 
 	const double kRe, kWe, kFr;
@@ -94,8 +95,7 @@ public:
 		std::tuple<std::vector<double>&, std::vector<double>&, std::vector<double>&> t2Vec,
 		std::vector<double>& kappa);
 	int UpdateKappa(const std::vector<double>& ls);
-	int UpdateJumpCond(const std::vector<double>& u, const std::vector<double>& v, 
-		const std::vector<double>& ls);
+
 	std::vector<double> UpdateFU(const std::shared_ptr<LevelSetSolver2D>& LSolver,
 		const std::vector<double>& ls, const std::vector<double>& u, const std::vector<double>& v, const std::vector<double>& H);
 	std::vector<double> UpdateFV(const std::shared_ptr<LevelSetSolver2D>& LSolver,
