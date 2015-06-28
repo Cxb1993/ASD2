@@ -19,8 +19,12 @@ int BoundaryCondition2D::SetBC_U_2D(std::string BC_W, std::string BC_E, std::str
 		m_BC_UW = BC2D::PERIODIC;
 	else if (BC_W == "neumann")
 		m_BC_UW = BC2D::NEUMANN;
-	else if (BC_W == "axisym")
+	else if (BC_W == "axisym") {
+		// zero normal velocity
+		// other variables has zero flux = neumann condition
 		m_BC_UW = BC2D::AXISYM;
+		SetBCConstantUW(0.0);
+	}
 	else if (BC_W == "wall" || BC_W == "dirichlet")
 		m_BC_UW = BC2D::DIRICHLET;
 	// not supported
@@ -31,8 +35,12 @@ int BoundaryCondition2D::SetBC_U_2D(std::string BC_W, std::string BC_E, std::str
 		m_BC_UE = BC2D::PERIODIC;
 	else if (BC_E == "neumann")
 		m_BC_UE = BC2D::NEUMANN;
-	else if (BC_E == "axisym")
+	else if (BC_E == "axisym") {
+		// zero normal velocity
+		// other variables has zero flux = neumann condition
 		m_BC_UE = BC2D::AXISYM;
+		SetBCConstantUE(0.0);
+	}
 	else if (BC_E == "wall" || BC_E == "dirichlet")
 		m_BC_UE = BC2D::DIRICHLET;
 	// not supported
@@ -44,6 +52,8 @@ int BoundaryCondition2D::SetBC_U_2D(std::string BC_W, std::string BC_E, std::str
 	else if (BC_S == "neumann")
 		m_BC_US = BC2D::NEUMANN;
 	else if (BC_S == "axisym")
+		// zero normal velocity
+		// other variables has zero flux = neumann condition
 		m_BC_US = BC2D::AXISYM;
 	else if (BC_S == "wall" || BC_S == "dirichlet")
 		m_BC_US = BC2D::DIRICHLET;
@@ -56,6 +66,8 @@ int BoundaryCondition2D::SetBC_U_2D(std::string BC_W, std::string BC_E, std::str
 	else if (BC_N == "neumann")
 		m_BC_UN = BC2D::NEUMANN;
 	else if (BC_N == "axisym")
+		// zero normal velocity
+		// other variables has zero flux = neumann condition
 		m_BC_UN = BC2D::AXISYM;
 	else if (BC_N == "wall" || BC_N == "dirichlet")
 		m_BC_UN = BC2D::DIRICHLET;
@@ -87,6 +99,8 @@ int BoundaryCondition2D::SetBC_V_2D(std::string BC_W, std::string BC_E, std::str
 	else if (BC_W == "neumann")
 		m_BC_VW = BC2D::NEUMANN;
 	else if (BC_W == "axisym")
+		// zero normal velocity
+		// other variables has zero flux = neumann condition
 		m_BC_VW = BC2D::AXISYM;
 	else if (BC_W == "wall" || BC_W == "dirichlet")
 		m_BC_VW = BC2D::DIRICHLET;
@@ -99,6 +113,8 @@ int BoundaryCondition2D::SetBC_V_2D(std::string BC_W, std::string BC_E, std::str
 	else if (BC_E == "neumann")
 		m_BC_VE = BC2D::NEUMANN;
 	else if (BC_E == "axisym")
+		// zero normal velocity
+		// other variables has zero flux = neumann condition
 		m_BC_VE = BC2D::AXISYM;
 	else if (BC_E == "wall" || BC_E == "dirichlet")
 		m_BC_VE = BC2D::DIRICHLET;
@@ -110,8 +126,12 @@ int BoundaryCondition2D::SetBC_V_2D(std::string BC_W, std::string BC_E, std::str
 		m_BC_VS = BC2D::PERIODIC;
 	else if (BC_S == "neumann")
 		m_BC_VS = BC2D::NEUMANN;
-	else if (BC_S == "axisym")
+	else if (BC_S == "axisym") {
+		// zero normal velocity
+		// other variables has zero flux = neumann condition
 		m_BC_VS = BC2D::AXISYM;
+		SetBCConstantVS(0.0);
+	}
 	else if (BC_S == "wall" || BC_S == "dirichlet")
 		m_BC_VS = BC2D::DIRICHLET;
 	// not supported
@@ -122,8 +142,12 @@ int BoundaryCondition2D::SetBC_V_2D(std::string BC_W, std::string BC_E, std::str
 		m_BC_VN = BC2D::PERIODIC;
 	else if (BC_N == "neumann")
 		m_BC_VN = BC2D::NEUMANN;
-	else if (BC_N == "axisym")
+	else if (BC_N == "axisym") {
+		// zero normal velocity
+		// other variables has zero flux = neumann condition
 		m_BC_VN = BC2D::AXISYM;
+		SetBCConstantVN(0.0);
+	}
 	else if (BC_N == "wall" || BC_N == "dirichlet")
 		m_BC_VN = BC2D::DIRICHLET;
 	// not supported
@@ -214,7 +238,7 @@ void BoundaryCondition2D::BC_UW(std::vector<double>& arr) {
 	else if (m_BC_UW == BC2D::NEUMANN)
 		BC_NeumannUW(arr);
 	else if (m_BC_UW == BC2D::AXISYM)
-		BC_NeumannUW(arr);
+		BC_DirichletUW(arr);
 	else if (m_BC_UW == BC2D::DIRICHLET)
 		BC_DirichletUW(arr);
 }
@@ -225,7 +249,7 @@ void BoundaryCondition2D::BC_UE(std::vector<double>& arr) {
 	else if (m_BC_UE == BC2D::NEUMANN)
 		BC_NeumannUE(arr);
 	else if (m_BC_UE == BC2D::AXISYM)
-		BC_NeumannUE(arr);
+		BC_DirichletUE(arr);
 	else if (m_BC_UE == BC2D::DIRICHLET)
 		BC_DirichletUE(arr);
 }
@@ -280,7 +304,7 @@ void BoundaryCondition2D::BC_VS(std::vector<double>& arr) {
 	else if (m_BC_VS == BC2D::NEUMANN)
 		BC_NeumannVS(arr);
 	else if (m_BC_VS == BC2D::AXISYM)
-		BC_NeumannVS(arr);
+		BC_DirichletVS(arr);
 	else if (m_BC_VS == BC2D::DIRICHLET)
 		BC_DirichletVS(arr);
 }
@@ -291,7 +315,7 @@ void BoundaryCondition2D::BC_VN(std::vector<double>& arr) {
 	else if (m_BC_VN == BC2D::NEUMANN)
 		BC_NeumannVN(arr);
 	else if (m_BC_VN == BC2D::AXISYM)
-		BC_NeumannVN(arr);
+		BC_DirichletVN(arr);
 	else if (m_BC_VN == BC2D::DIRICHLET)
 		BC_DirichletVN(arr);
 }
