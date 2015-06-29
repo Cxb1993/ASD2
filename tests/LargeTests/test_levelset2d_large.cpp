@@ -724,7 +724,7 @@ int LevelSetTest_2DAxisym_ReinitOnly_MinRK2() {
 	double lenX = 2.0, lenY = 4.0;
 	double dx = lenX / nx, dy = lenY / ny, cfl = 0.3;
 	double dt = cfl * dx;
-	int iter = 0, maxIter = 1;
+	int iter = 0, maxIter = 5;
 	double curTime = 0.0, maxTime = 10.0;
 	double x = 0.0, y = 0.0, r = 1.0, a = 0.7;
 	double baseX = 0.0, baseY = -2.0;
@@ -753,7 +753,7 @@ int LevelSetTest_2DAxisym_ReinitOnly_MinRK2() {
 		y = baseY + (j + 0.5 - NBC3) * dy;
 		d = std::sqrt(std::pow(x, 2.0) + std::pow(y, 2.0)) - radius;
 
-		ls[idx3_2D(ny, i, j)] = -d;
+		ls[idx3_2D(ny, i, j)] = d;
 
 		if (ls[idx3_2D(ny, i, j)] > 0)
 			orgMass++;
@@ -776,13 +776,13 @@ int LevelSetTest_2DAxisym_ReinitOnly_MinRK2() {
 
 	double rhoH = 1.0, rhoL = 1.0, muH = 1.0, muL = 1.0, gConstant = 0.0, sigma = 0.0, L = 1.0, U = 1.0;
 	TIMEORDERENUM timeOrder = TIMEORDERENUM::EULER;
-	GAXISENUM2D GAxis = GAXISENUM2D::Y;
+	GAXISENUM2DAXISYM GAxis = GAXISENUM2DAXISYM::Z;
 	double maxtime = 2.0;
 	int maxiter = 20, niterskip = 1, num_bc_grid = NBC3;
 	bool writeVTK = false;
 
-	std::unique_ptr<MACSolver2D> MSolver;
-	MSolver = std::make_unique<MACSolver2D>(rhoH, rhoL, muH, muL, gConstant, GAxis,
+	std::unique_ptr<MACSolver2DAxisym> MSolver;
+	MSolver = std::make_unique<MACSolver2DAxisym>(rhoH, rhoL, muH, muL, gConstant, GAxis,
 		L, U, sigma, nx, ny, baseX, baseY, lenX, lenY,
 		timeOrder, cfl, maxtime, maxiter, niterskip, num_bc_grid, writeVTK);
 	MSolver->SetBC_U_2D("dirichlet", "dirichlet", "dirichlet", "dirichlet");
@@ -864,11 +864,10 @@ int LevelSetTest_2DAxisym_ReinitOnly_MinRK2() {
 			errWholeDomainL1 += std::fabs(ls[idx3_2D(ny, i, j)] - lsInit[idx3_2D(ny, i, j)]);
 		}
 	}
+
 	errMass = std::fabs(static_cast<double>(LSMass - orgMass)) / orgMass * 100;
-	errNearInterfaceLInfty /= nx * ny;
-	errNearInterfaceL1 /= nx * ny;
-	errWholeDomainLInfty /= nx * ny;
-	errWholeDomainL1 /= nx * ny;
+	errNearInterfaceL1 *= std::min(dx, dy) * std::min(dx, dy);
+	errWholeDomainL1 *= std::min(dx, dy) * std::min(dx, dy);
 
 	std::cout << "Reinit Only(2D Axisym, MinRK2) - err(Mass loss) : " << errMass << "%" << std::endl;
 	std::cout << "Reinit Only(2D Axisym, MinRK2) Near Interface - err(L1) : " << errNearInterfaceL1 << " err(LInfty) : " << errNearInterfaceLInfty << std::endl;
@@ -1006,8 +1005,7 @@ int LevelSetTest_2D_ReinitOnly_MinRK2_2() {
 	orgMass = 0;
 	double errNearInterfaceL1 = 0.0, errWholeDomainL1 = 0.0;
 	double errNearInterfaceLInfty = -std::numeric_limits<double>::max(), errWholeDomainLInfty = -std::numeric_limits<double>::max();
-	int countNearInterface = 0, countWholeDomain = 0;
-
+	
 	for (int j = NBC3; j < ny + NBC3; j++)
 	for (int i = NBC3; i < nx + NBC3; i++) {
 		if (lsInit[idx3_2D(ny, i, j)] > 0.0)
@@ -1019,13 +1017,11 @@ int LevelSetTest_2D_ReinitOnly_MinRK2_2() {
 		if (std::fabs(ls[idx3_2D(ny, i, j)]) < 1.2 * std::min(dx, dy)) {
 			errNearInterfaceLInfty = std::max(std::fabs(ls[idx3_2D(ny, i, j)] - lsInit[idx3_2D(ny, i, j)]), errNearInterfaceL1);
 			errNearInterfaceL1 += std::fabs(ls[idx3_2D(ny, i, j)] - lsInit[idx3_2D(ny, i, j)]);
-			countNearInterface++;
 		}
 
 		if (ls[idx3_2D(ny, i, j)] > -0.8) {
 			errWholeDomainLInfty = std::max(std::fabs(ls[idx3_2D(ny, i, j)] - lsInit[idx3_2D(ny, i, j)]), errWholeDomainL1);
 			errWholeDomainL1 += std::fabs(ls[idx3_2D(ny, i, j)] - lsInit[idx3_2D(ny, i, j)]);
-			countWholeDomain++;
 		}
 	}
 	
