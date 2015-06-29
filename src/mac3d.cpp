@@ -292,14 +292,14 @@ int MACSolver3D::UpdateKappa(const std::vector<double>& ls) {
 	for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
 		m_kappa[idx(i, j, k)]
 			= -(dLSdX[idx(i, j, k)] * dLSdX[idx(i, j, k)] * (ls[idx(i, j - 1, k)] - 2.0 * ls[idx(i, j, k)] + ls[idx(i, j + 1, k)]) / (kDy * kDy) // phi^2_x \phi_yy
-			- 2.0 * dLSdX[idx(i, j, k)] * dLSdY[idx(i, j, k)] * (ls[idx(i + 1, j + 1, k)] - ls[idx(i - 1, j + 1, k)] - ls[idx(i + 1, j - 1, k)] + ls[idx(i - 1, j - 1, k)]) / (4.0 * kDx * kDy) //2 \phi_x \phi_y \phi_yx
+			- 2.0 * dLSdX[idx(i, j, k)] * dLSdY[idx(i, j, k)] * (dLSdX[idx(i, j + 1, k)] - dLSdX[idx(i, j - 1, k)]) / (kDy * kDy) //2 \phi_x \phi_y \phi_yx
 			+ dLSdY[idx(i, j, k)] * dLSdY[idx(i, j, k)] * (ls[idx(i - 1, j, k)] - 2.0 * ls[idx(i, j, k)] + ls[idx(i + 1, j, k)]) / (kDx * kDx) // phi^2_y \phi_xx
 			+ dLSdX[idx(i, j, k)] * dLSdX[idx(i, j, k)] * (ls[idx(i, j, k - 1)] - 2.0 * ls[idx(i, j, k)] + ls[idx(i, j, k + 1)]) / (kDz * kDz) // phi^2_x \phi_zz
-			- 2.0 * dLSdX[idx(i, j, k)] * dLSdZ[idx(i, j, k)] * (ls[idx(i + 1, j, k + 1)] - ls[idx(i - 1, j, k + 1)] - ls[idx(i + 1, j, k - 1)] + ls[idx(i - 1, j, k - 1)]) / (4.0 * kDx * kDz) //2 \phi_x \phi_z \phi_xz
-			+ dLSdZ[idx(i, j, k)] * dLSdZ[idx(i, j, k)] * (ls[idx(i - 1, j, k)] - 2.0 * ls[idx(i, j, k)] + ls[idx(i + 1, j, k)]) / (kDx * kDx) // phi^2_y \phi_xx
+			- 2.0 * dLSdX[idx(i, j, k)] * dLSdZ[idx(i, j, k)] * (dLSdX[idx(i, j, k + 1)] - dLSdX[idx(i, j, k - 1)]) / (kDz * kDz)  //2 \phi_x \phi_z \phi_xz
+			+ dLSdZ[idx(i, j, k)] * dLSdZ[idx(i, j, k)] * (ls[idx(i - 1, j, k)] - 2.0 * ls[idx(i, j, k)] + ls[idx(i + 1, j, k)]) / (kDx * kDx) // phi^2_z \phi_xx
 			+ dLSdY[idx(i, j, k)] * dLSdY[idx(i, j, k)] * (ls[idx(i, j, k - 1)] - 2.0 * ls[idx(i, j, k)] + ls[idx(i, j, k + 1)]) / (kDz * kDz) // phi^2_y \phi_zz
-			- 2.0 * dLSdY[idx(i, j, k)] * dLSdZ[idx(i, j, k)] * (ls[idx(i, j + 1, k + 1)] - ls[idx(i, j - 1, k + 1)] - ls[idx(i, j + 1, k - 1)] + ls[idx(i, j - 1, k - 1)]) / (4.0 * kDy * kDz) //2 \phi_y \phi_z \phi_yz
-			+ dLSdZ[idx(i, j, k)] * dLSdZ[idx(i, j, k)] * (ls[idx(i - 1, j, k)] - 2.0 * ls[idx(i, j, k)] + ls[idx(i + 1, j, k)]) / (kDy * kDy)) // phi^2_z \phi_yy
+			- 2.0 * dLSdY[idx(i, j, k)] * dLSdZ[idx(i, j, k)] * (dLSdY[idx(i, j, k + 1)] - dLSdY[idx(i, j, k - 1)]) / (kDz * kDz)  //2 \phi_y \phi_z \phi_yz
+			+ dLSdZ[idx(i, j, k)] * dLSdZ[idx(i, j, k)] * (ls[idx(i, j - 1, k)] - 2.0 * ls[idx(i, j, k)] + ls[idx(i, j + 1, k)]) / (kDy * kDy)) // phi^2_z \phi_yy
 			/ std::pow(LSSize[idx(i, j, k)], 3.0);
 
 		// curvature is limiited so that under-resolved regions do not erroneously contribute large surface tensor forces
@@ -955,39 +955,75 @@ std::vector<double> MACSolver3D::AddViscosityFU(const std::vector<double>& u, co
 		double rhoEffWE = 0.0, rhoEffSN = 0.0, rhoEffBT = 0.0, iRhoEffWE = 0.0, iRhoEffSN = 0.0, iRhoEffBT = 0.0;
 		if (lsW >= 0 && lsM >= 0) {
 			thetaH = 1.0;
+			iRhoEffWE = 1.0 / kRhoH;
 		}
 		else if (lsW <= 0 && lsM <= 0) {
 			thetaH = 0.0;
+			iRhoEffWE = 1.0 / kRhoL;
 		}
+		else if (lsW > 0 && lsM <= 0) {
+			theta = std::fabs(lsW) / (std::fabs(lsW) + std::fabs(lsM));
+			iRhoEffWE = 1.0 / (kRhoL * kRhoH) / (1.0 / kRhoL * theta + 1.0 / kRhoH * (1.0 - theta));
+		}
+		else if (lsW <= 0 && lsM > 0) {
+			theta = std::fabs(lsW) / (std::fabs(lsW) + std::fabs(lsM));
+			iRhoEffWE = 1.0 / (kRhoH * kRhoL) / (1.0 / kRhoH * theta + 1.0 / kRhoL * (1.0 - theta));
+		}
+		/*
 		else  {
 			thetaH = (std::max(lsW, 0.0) + std::max(lsM, 0.0))
 				/ (std::fabs(lsW) + std::fabs(lsM));
 		}
 		iRhoEffWE = 1.0 / kRhoH * thetaH + 1.0 / kRhoL * (1.0 - thetaH);
+		*/
 
 		if (lsUSHalf >= 0 && lsUNHalf >= 0) {
 			thetaH = 1.0;
+			iRhoEffSN = 1.0 / kRhoH;
 		}
 		else if (lsUSHalf <= 0 && lsUNHalf <= 0) {
 			thetaH = 0.0;
+			iRhoEffSN = 1.0 / kRhoL;
 		}
+		else if (lsUSHalf > 0 && lsUNHalf <= 0) {
+			theta = std::fabs(lsUSHalf) / (std::fabs(lsUSHalf) + std::fabs(lsUNHalf));
+			iRhoEffSN = 1.0 / (kRhoL * kRhoH) / (1.0 / kRhoL * theta + 1.0 / kRhoH * (1.0 - theta));
+		}
+		else if (lsUSHalf <= 0 && lsUNHalf > 0) {
+			theta = std::fabs(lsUSHalf) / (std::fabs(lsUSHalf) + std::fabs(lsUNHalf));
+			iRhoEffSN = 1.0 / (kRhoH * kRhoL) / (1.0 / kRhoH * theta + 1.0 / kRhoL * (1.0 - theta));
+		}
+		/*
 		else {
 			thetaH = (std::max(lsUSHalf, 0.0) + std::max(lsUNHalf, 0.0))
 				/ (std::fabs(lsUSHalf) + std::fabs(lsUNHalf));
 		}
 		iRhoEffSN = 1.0 / kRhoH * thetaH + 1.0 / kRhoL * (1.0 - thetaH);
+		*/
 
 		if (lsUBHalf >= 0 && lsUTHalf >= 0) {
 			thetaH = 1.0;
+			iRhoEffBT = 1.0 / kRhoH;
 		}
 		else if (lsUBHalf <= 0 && lsUTHalf <= 0) {
 			thetaH = 0.0;
+			iRhoEffBT = 1.0 / kRhoL;
 		}
+		else if (lsUBHalf > 0 && lsUTHalf <= 0) {
+			theta = std::fabs(lsUBHalf) / (std::fabs(lsUBHalf) + std::fabs(lsUTHalf));
+			iRhoEffBT = 1.0 / (kRhoL * kRhoH) / (1.0 / kRhoL * theta + 1.0 / kRhoH * (1.0 - theta));
+		}
+		else if (lsUBHalf <= 0 && lsUTHalf > 0) {
+			theta = std::fabs(lsUBHalf) / (std::fabs(lsUBHalf) + std::fabs(lsUTHalf));
+			iRhoEffBT = 1.0 / (kRhoH * kRhoL) / (1.0 / kRhoH * theta + 1.0 / kRhoL * (1.0 - theta));
+		}
+		/*
 		else {
 			thetaH = (std::max(lsUBHalf, 0.0) + std::max(lsUTHalf, 0.0))
 				/ (std::fabs(lsUBHalf) + std::fabs(lsUTHalf));
 		}
 		iRhoEffBT = 1.0 / kRhoH * thetaH + 1.0 / kRhoL * (1.0 - thetaH);
+		*/
 
 		muU_X_W = mu[idx(i - 1, j, k)] * (uM - uW) / kDx;
 		muU_X_E = mu[idx(i, j, k)] * (uE - uM) / kDx;
@@ -1165,39 +1201,75 @@ std::vector<double> MACSolver3D::AddViscosityFV(const std::vector<double>& u, co
 		double rhoEffWE = 0.0, rhoEffSN = 0.0, rhoEffBT = 0.0, iRhoEffWE = 0.0, iRhoEffSN = 0.0, iRhoEffBT = 0.0;
 		if (lsVWHalf >= 0 && lsVEHalf >= 0) {
 			thetaH = 1.0;
+			iRhoEffWE = 1.0 / kRhoH;
 		}
 		else if (lsVWHalf <= 0 && lsVEHalf <= 0) {
 			thetaH = 0.0;
+			iRhoEffWE = 1.0 / kRhoL;
 		}
+		else if (lsVWHalf > 0 && lsVEHalf <= 0) {
+			theta = std::fabs(lsVWHalf) / (std::fabs(lsVWHalf) + std::fabs(lsVEHalf));
+			iRhoEffWE = 1.0 / (kRhoL * kRhoH) / (1.0 / kRhoL * theta + 1.0 / kRhoH * (1.0 - theta));
+		}
+		else if (lsVWHalf <= 0 && lsVEHalf > 0) {
+			theta = std::fabs(lsVWHalf) / (std::fabs(lsVEHalf) + std::fabs(lsVEHalf));
+			iRhoEffWE = 1.0 / (kRhoH * kRhoL) / (1.0 / kRhoH * theta + 1.0 / kRhoL * (1.0 - theta));
+		}
+		/*
 		else  {
-			thetaH = (std::max(lsVWHalf, 0.0) + std::max(lsVEHalf, 0.0))
-				/ (std::fabs(lsVWHalf) + std::fabs(lsVEHalf));
+		thetaH = (std::max(lsVWHalf, 0.0) + std::max(lsVEHalf, 0.0))
+		/ (std::fabs(lsVWHalf) + std::fabs(lsVEHalf));
 		}
 		iRhoEffWE = 1.0 / kRhoH * thetaH + 1.0 / kRhoL * (1.0 - thetaH);
+		*/
 
 		if (lsS >= 0 && lsM >= 0) {
 			thetaH = 1.0;
+			iRhoEffSN = 1.0 / kRhoH;
 		}
 		else if (lsS <= 0 && lsM <= 0) {
 			thetaH = 0.0;
+			iRhoEffSN = 1.0 / kRhoL;
 		}
+		else if (lsS > 0 && lsM <= 0) {
+			theta = std::fabs(lsS) / (std::fabs(lsS) + std::fabs(lsM));
+			iRhoEffWE = 1.0 / (kRhoL * kRhoH) / (1.0 / kRhoL * theta + 1.0 / kRhoH * (1.0 - theta));
+		}
+		else if (lsS <= 0 && lsM > 0) {
+			theta = std::fabs(lsS) / (std::fabs(lsS) + std::fabs(lsM));
+			iRhoEffWE = 1.0 / (kRhoH * kRhoL) / (1.0 / kRhoH * theta + 1.0 / kRhoL * (1.0 - theta));
+		}
+		/*
 		else {
 			thetaH = (std::max(lsS, 0.0) + std::max(lsM, 0.0))
 				/ (std::fabs(lsS) + std::fabs(lsM));
 		}
 		iRhoEffSN = 1.0 / kRhoH * thetaH + 1.0 / kRhoL * (1.0 - thetaH);
+		*/
 
 		if (lsVBHalf >= 0 && lsVTHalf >= 0) {
 			thetaH = 1.0;
+			iRhoEffBT = 1.0 / kRhoH;
 		}
 		else if (lsVBHalf <= 0 && lsVTHalf <= 0) {
 			thetaH = 0.0;
+			iRhoEffBT = 1.0 / kRhoL;
 		}
+		else if (lsVBHalf > 0 && lsVTHalf <= 0) {
+			theta = std::fabs(lsVBHalf) / (std::fabs(lsVBHalf) + std::fabs(lsVTHalf));
+			iRhoEffBT= 1.0 / (kRhoL * kRhoH) / (1.0 / kRhoL * theta + 1.0 / kRhoH * (1.0 - theta));
+		}
+		else if (lsVBHalf <= 0 && lsVTHalf > 0) {
+			theta = std::fabs(lsVBHalf) / (std::fabs(lsVBHalf) + std::fabs(lsVTHalf));
+			iRhoEffBT = 1.0 / (kRhoH * kRhoL) / (1.0 / kRhoH * theta + 1.0 / kRhoL * (1.0 - theta));
+		}
+		/*
 		else {
 			thetaH = (std::max(lsVBHalf, 0.0) + std::max(lsVTHalf, 0.0))
 				/ (std::fabs(lsVBHalf) + std::fabs(lsVTHalf));
 		}
 		iRhoEffBT = 1.0 / kRhoH * thetaH + 1.0 / kRhoL * (1.0 - thetaH);
+		*/
 
 		visX = (muU_Y_E - muU_Y_W) / kDx + (muV_X_E - muV_X_W) / kDx;
 		visY = 2.0 * (muV_Y_N - muV_Y_S) / kDy;
@@ -1351,39 +1423,75 @@ std::vector<double> MACSolver3D::AddViscosityFW(const std::vector<double>& u, co
 		double rhoEffWE = 0.0, rhoEffSN = 0.0, rhoEffBT = 0.0, iRhoEffWE = 0.0, iRhoEffSN = 0.0, iRhoEffBT = 0.0;
 		if (lsWWHalf >= 0 && lsWEHalf >= 0) {
 			thetaH = 1.0;
+			iRhoEffWE = 1.0 / kRhoH;
 		}
 		else if (lsWWHalf <= 0 && lsWEHalf <= 0) {
 			thetaH = 0.0;
+			iRhoEffWE = 1.0 / kRhoL;
 		}
+		else if (lsWWHalf > 0 && lsWEHalf <= 0) {
+			theta = std::fabs(lsWWHalf) / (std::fabs(lsWWHalf) + std::fabs(lsWEHalf));
+			iRhoEffWE = 1.0 / (kRhoL * kRhoH) / (1.0 / kRhoL * theta + 1.0 / kRhoH * (1.0 - theta));
+		}
+		else if (lsWWHalf <= 0 && lsWEHalf > 0) {
+			theta = std::fabs(lsWWHalf) / (std::fabs(lsWEHalf) + std::fabs(lsWEHalf));
+			iRhoEffWE = 1.0 / (kRhoH * kRhoL) / (1.0 / kRhoH * theta + 1.0 / kRhoL * (1.0 - theta));
+		}
+		/*
 		else  {
-			thetaH = (std::max(lsWWHalf, 0.0) + std::max(lsWEHalf, 0.0))
-				/ (std::fabs(lsWWHalf) + std::fabs(lsWEHalf));
+		thetaH = (std::max(lsWWHalf, 0.0) + std::max(lsWEHalf, 0.0))
+		/ (std::fabs(lsWWHalf) + std::fabs(lsWEHalf));
 		}
 		iRhoEffWE = 1.0 / kRhoH * thetaH + 1.0 / kRhoL * (1.0 - thetaH);
+		*/
 
 		if (lsWSHalf >= 0 && lsWNHalf >= 0) {
 			thetaH = 1.0;
+			iRhoEffSN = 1.0 / kRhoH;
 		}
 		else if (lsWSHalf <= 0 && lsWNHalf <= 0) {
 			thetaH = 0.0;
+			iRhoEffSN = 1.0 / kRhoL;
 		}
+		else if (lsWSHalf > 0 && lsWNHalf <= 0) {
+			theta = std::fabs(lsWSHalf) / (std::fabs(lsWSHalf) + std::fabs(lsWNHalf));
+			iRhoEffSN = 1.0 / (kRhoL * kRhoH) / (1.0 / kRhoL * theta + 1.0 / kRhoH * (1.0 - theta));
+		}
+		else if (lsWSHalf <= 0 && lsWNHalf > 0) {
+			theta = std::fabs(lsWSHalf) / (std::fabs(lsWSHalf) + std::fabs(lsWNHalf));
+			iRhoEffSN = 1.0 / (kRhoH * kRhoL) / (1.0 / kRhoH * theta + 1.0 / kRhoL * (1.0 - theta));
+		}
+		/*
 		else {
 			thetaH = (std::max(lsWSHalf, 0.0) + std::max(lsWNHalf, 0.0))
 				/ (std::fabs(lsWSHalf) + std::fabs(lsWNHalf));
 		}
 		iRhoEffSN = 1.0 / kRhoH * thetaH + 1.0 / kRhoL * (1.0 - thetaH);
+		*/
 
 		if (lsB >= 0 && lsM >= 0) {
 			thetaH = 1.0;
+			iRhoEffSN = 1.0 / kRhoH;
 		}
 		else if (lsB <= 0 && lsM <= 0) {
 			thetaH = 0.0;
+			iRhoEffSN = 1.0 / kRhoL;
 		}
+		else if (lsB > 0 && lsM <= 0) {
+			theta = std::fabs(lsB) / (std::fabs(lsB) + std::fabs(lsM));
+			iRhoEffSN = 1.0 / (kRhoL * kRhoH) / (1.0 / kRhoL * theta + 1.0 / kRhoH * (1.0 - theta));
+		}
+		else if (lsB <= 0 && lsM > 0) {
+			theta = std::fabs(lsB) / (std::fabs(lsB) + std::fabs(lsM));
+			iRhoEffSN = 1.0 / (kRhoH * kRhoL) / (1.0 / kRhoH * theta + 1.0 / kRhoL * (1.0 - theta));
+		}
+		/*
 		else {
-			thetaH = (std::max(lsB, 0.0) + std::max(lsM, 0.0))
-				/ (std::fabs(lsB) + std::fabs(lsM));
+		thetaH = (std::max(lsB, 0.0) + std::max(lsM, 0.0))
+		/ (std::fabs(lsB) + std::fabs(lsM));
 		}
 		iRhoEffBT = 1.0 / kRhoH * thetaH + 1.0 / kRhoL * (1.0 - thetaH);
+		*/
 
 		visX = (muU_Z_E - muU_Z_W) / kDx + (muW_X_E - muW_X_W) / kDx;
 		visY = (muV_Z_N - muV_Z_S) / kDy + (muW_Y_N - muW_Y_S) / kDy;
@@ -1404,18 +1512,18 @@ std::vector<double> MACSolver3D::AddViscosityFW(const std::vector<double>& u, co
 std::vector<double> MACSolver3D::AddGravityFU() {
 	std::vector<double> gU(kArrSize, 0.0);
 
-	if ((kFr == 0 || kG == 0.0) && !isnan(kFr) && !isinf(kFr) && kGAxis != GAXISENUM3D::X) {
+	if ((kFr != 0 || kG != 0.0) && !isnan(kFr) && !isinf(kFr) && kGAxis != GAXISENUM3D::X) {
 		for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
 		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
 		for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
-			gU[idx(i, j, k)] = 0.0;
+			gU[idx(i, j, k)] = -kG;
 		}
 	}
 	else {
 		for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
 		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
 		for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
-			gU[idx(i, j, k)] = -1.0 / kFr;
+			gU[idx(i, j, k)] = 0.0;
 		}
 	}
 
@@ -1425,18 +1533,18 @@ std::vector<double> MACSolver3D::AddGravityFU() {
 std::vector<double> MACSolver3D::AddGravityFV() {
 	std::vector<double> gV(kArrSize, 0.0);
 
-	if ((kFr == 0 || kG == 0.0) && !isnan(kFr) && !isinf(kFr) && kGAxis != GAXISENUM3D::Y) {
+	if ((kFr != 0 || kG != 0.0) && !isnan(kFr) && !isinf(kFr) && kGAxis != GAXISENUM3D::Y) {
 		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 		for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++)
 		for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
-			gV[idx(i, j, k)] = 0.0;
+			gV[idx(i, j, k)] = -kG;
 		}
 	}
 	else {
 		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 		for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++)
 		for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
-			gV[idx(i, j, k)] = -1.0 / kFr;
+			gV[idx(i, j, k)] = 0.0;
 		}
 	}
 
@@ -1446,18 +1554,18 @@ std::vector<double> MACSolver3D::AddGravityFV() {
 std::vector<double> MACSolver3D::AddGravityFW() {
 	std::vector<double> gW(kArrSize, 0.0);
 
-	if ((kFr == 0 || kG == 0.0) && !isnan(kFr) && !isinf(kFr) && kGAxis != GAXISENUM3D::Z) {
+	if ((kFr != 0 || kG != 0.0) && !isnan(kFr) && !isinf(kFr) && kGAxis != GAXISENUM3D::Z) {
 		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
 		for (int k = kNumBCGrid + 1; k < kNz + kNumBCGrid; k++) {
-			gW[idx(i, j, k)] = 0.0;
+			gW[idx(i, j, k)] = -kG;
 		}
 	}
 	else {
 		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
 		for (int k = kNumBCGrid + 1; k < kNz + kNumBCGrid; k++) {
-			gW[idx(i, j, k)] = -1.0 / kFr;
+			gW[idx(i, j, k)] = 0.0;
 		}
 	}
 
@@ -1774,7 +1882,7 @@ int MACSolver3D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 	MKL_INT Anrows = kNx * kNy * kNz, Ancols = kNx * kNy * kNz;
 	MKL_INT size = kNx * kNy * kNz;
 	
-	std::vector<double> dldX(kArrSize, 0.0), dldY(kArrSize, 0.0), dldZ(kArrSize, 0.0);
+	std::vector<double> dLSdX(kArrSize, 0.0), dLSdY(kArrSize, 0.0), dLSdZ(kArrSize, 0.0);
 	
 	// stored coef for A matrix, Dictionary but it is ordered
 	std::map<std::string, double> AValsDic;
@@ -1798,23 +1906,23 @@ int MACSolver3D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 		lsB = ls[idx(i, j, k - 1)];
 		lsT = ls[idx(i, j, k + 1)];
 
-		dldX[idx(i, j, k)] = (lsE - lsW) / (2.0 * kDx);
-		dldY[idx(i, j, k)] = (lsN - lsS) / (2.0 * kDy);
-		dldZ[idx(i, j, k)] = (lsT - lsB) / (2.0 * kDz);
-		if (std::fabs(dldX[idx(i, j, k)]) < eps) {
-			dldX[idx(i, j, k)] = (lsE - lsM) / kDx;
-			if (std::fabs(dldX[idx(i, j, k)]) < eps)
-				dldX[idx(i, j, k)] = (lsM - lsW) / kDx;
+		dLSdX[idx(i, j, k)] = (lsE - lsW) / (2.0 * kDx);
+		dLSdY[idx(i, j, k)] = (lsN - lsS) / (2.0 * kDy);
+		dLSdZ[idx(i, j, k)] = (lsT - lsB) / (2.0 * kDz);
+		if (std::fabs(dLSdX[idx(i, j, k)]) < eps) {
+			dLSdX[idx(i, j, k)] = (lsE - lsM) / kDx;
+			if (std::fabs(dLSdX[idx(i, j, k)]) < eps)
+				dLSdX[idx(i, j, k)] = (lsM - lsW) / kDx;
 		}
-		if (std::fabs(dldY[idx(i, j, k)]) < eps) {
-			dldY[idx(i, j, k)] = (lsN - lsM) / kDy;
-			if (std::fabs(dldY[idx(i, j, k)]) < eps)
-				dldY[idx(i, j, k)] = (lsM - lsS) / kDy;
+		if (std::fabs(dLSdY[idx(i, j, k)]) < eps) {
+			dLSdY[idx(i, j, k)] = (lsN - lsM) / kDy;
+			if (std::fabs(dLSdY[idx(i, j, k)]) < eps)
+				dLSdY[idx(i, j, k)] = (lsM - lsS) / kDy;
 		}
-		if (std::fabs(dldZ[idx(i, j, k)]) < eps) {
-			dldZ[idx(i, j, k)] = (lsT - lsM) / kDz;
-			if (std::fabs(dldZ[idx(i, j, k)]) < eps)
-				dldZ[idx(i, j, k)] = (lsM - lsB) / kDz;
+		if (std::fabs(dLSdZ[idx(i, j, k)]) < eps) {
+			dLSdZ[idx(i, j, k)] = (lsT - lsM) / kDz;
+			if (std::fabs(dLSdZ[idx(i, j, k)]) < eps)
+				dLSdZ[idx(i, j, k)] = (lsM - lsB) / kDz;
 		}
 	}
 
@@ -1836,29 +1944,6 @@ int MACSolver3D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 		FB = 0.0;
 		FT = 0.0;
 
-		// normal vector = (\nabla \phi) / |\nabla \phi|
-		nXW = dldX[idx(i - 1, j, k)] / (std::sqrt(std::pow(dldX[idx(i - 1, j, k)], 2.0) + std::pow(dldY[idx(i - 1, j, k)], 2.0) + std::pow(dldZ[idx(i - 1, j, k)], 2.0)) + eps);
-		nYW = dldY[idx(i - 1, j, k)] / (std::sqrt(std::pow(dldX[idx(i - 1, j, k)], 2.0) + std::pow(dldY[idx(i - 1, j, k)], 2.0) + std::pow(dldZ[idx(i - 1, j, k)], 2.0)) + eps);
-		nZW = dldZ[idx(i - 1, j, k)] / (std::sqrt(std::pow(dldX[idx(i - 1, j, k)], 2.0) + std::pow(dldY[idx(i - 1, j, k)], 2.0) + std::pow(dldZ[idx(i - 1, j, k)], 2.0)) + eps);
-		nXE = dldX[idx(i + 1, j, k)] / (std::sqrt(std::pow(dldX[idx(i + 1, j, k)], 2.0) + std::pow(dldY[idx(i + 1, j, k)], 2.0) + std::pow(dldZ[idx(i + 1, j, k)], 2.0)) + eps);
-		nYE = dldY[idx(i + 1, j, k)] / (std::sqrt(std::pow(dldX[idx(i + 1, j, k)], 2.0) + std::pow(dldY[idx(i + 1, j, k)], 2.0) + std::pow(dldZ[idx(i + 1, j, k)], 2.0)) + eps);
-		nZE = dldZ[idx(i + 1, j, k)] / (std::sqrt(std::pow(dldX[idx(i + 1, j, k)], 2.0) + std::pow(dldY[idx(i + 1, j, k)], 2.0) + std::pow(dldZ[idx(i + 1, j, k)], 2.0)) + eps);
-		nXS = dldX[idx(i, j - 1, k)] / (std::sqrt(std::pow(dldX[idx(i, j - 1, k)], 2.0) + std::pow(dldY[idx(i, j - 1, k)], 2.0) + std::pow(dldZ[idx(i, j - 1, k)], 2.0)) + eps);
-		nYS = dldY[idx(i, j - 1, k)] / (std::sqrt(std::pow(dldX[idx(i, j - 1, k)], 2.0) + std::pow(dldY[idx(i, j - 1, k)], 2.0) + std::pow(dldZ[idx(i, j - 1, k)], 2.0)) + eps);
-		nZS = dldZ[idx(i, j - 1, k)] / (std::sqrt(std::pow(dldX[idx(i, j - 1, k)], 2.0) + std::pow(dldY[idx(i, j - 1, k)], 2.0) + std::pow(dldZ[idx(i, j - 1, k)], 2.0)) + eps);
-		nXN = dldX[idx(i, j + 1, k)] / (std::sqrt(std::pow(dldX[idx(i, j + 1, k)], 2.0) + std::pow(dldY[idx(i, j + 1, k)], 2.0) + std::pow(dldZ[idx(i, j + 1, k)], 2.0)) + eps);
-		nYN = dldY[idx(i, j + 1, k)] / (std::sqrt(std::pow(dldX[idx(i, j + 1, k)], 2.0) + std::pow(dldY[idx(i, j + 1, k)], 2.0) + std::pow(dldZ[idx(i, j + 1, k)], 2.0)) + eps);
-		nZN = dldZ[idx(i, j + 1, k)] / (std::sqrt(std::pow(dldX[idx(i, j + 1, k)], 2.0) + std::pow(dldY[idx(i, j + 1, k)], 2.0) + std::pow(dldZ[idx(i, j + 1, k)], 2.0)) + eps);
-		nXB = dldX[idx(i, j, k - 1)] / (std::sqrt(std::pow(dldX[idx(i, j, k - 1)], 2.0) + std::pow(dldY[idx(i, j, k - 1)], 2.0) + std::pow(dldZ[idx(i, j, k - 1)], 2.0)) + eps);
-		nYB = dldY[idx(i, j, k - 1)] / (std::sqrt(std::pow(dldX[idx(i, j, k - 1)], 2.0) + std::pow(dldY[idx(i, j, k - 1)], 2.0) + std::pow(dldZ[idx(i, j, k - 1)], 2.0)) + eps);
-		nZB = dldZ[idx(i, j, k - 1)] / (std::sqrt(std::pow(dldX[idx(i, j, k - 1)], 2.0) + std::pow(dldY[idx(i, j, k - 1)], 2.0) + std::pow(dldZ[idx(i, j, k - 1)], 2.0)) + eps);
-		nXT = dldX[idx(i, j, k + 1)] / (std::sqrt(std::pow(dldX[idx(i, j, k + 1)], 2.0) + std::pow(dldY[idx(i, j, k + 1)], 2.0) + std::pow(dldZ[idx(i, j, k + 1)], 2.0)) + eps);
-		nYT = dldY[idx(i, j, k + 1)] / (std::sqrt(std::pow(dldX[idx(i, j, k + 1)], 2.0) + std::pow(dldY[idx(i, j, k + 1)], 2.0) + std::pow(dldZ[idx(i, j, k + 1)], 2.0)) + eps);
-		nZT = dldZ[idx(i, j, k + 1)] / (std::sqrt(std::pow(dldX[idx(i, j, k + 1)], 2.0) + std::pow(dldY[idx(i, j, k + 1)], 2.0) + std::pow(dldZ[idx(i, j, k + 1)], 2.0)) + eps);
-		nXM = dldX[idx(i, j, k)] / (std::sqrt(std::pow(dldX[idx(i, j, k)], 2.0) + std::pow(dldY[idx(i, j, k)], 2.0) + std::pow(dldZ[idx(i, j, k)], 2.0)) + eps);
-		nYM = dldY[idx(i, j, k)] / (std::sqrt(std::pow(dldX[idx(i, j, k)], 2.0) + std::pow(dldY[idx(i, j, k)], 2.0) + std::pow(dldZ[idx(i, j, k)], 2.0)) + eps);
-		nZM = dldZ[idx(i, j, k)] / (std::sqrt(std::pow(dldX[idx(i, j, k)], 2.0) + std::pow(dldY[idx(i, j, k)], 2.0) + std::pow(dldZ[idx(i, j, k)], 2.0)) + eps);
-		
 		// [a]_\Gamma = a^+ - a^- = a^inside - a^outside
 		// [p^*] = 2 dt[mu](\del u \cdot n, \del v \cdot n) \cdot N + dt \sigma \kappa
 		// p_M - p_W = 2 dt[mu](\del u \cdot n, \del v \cdot n) \cdot N + dt \sigma \kappa
@@ -2060,21 +2145,21 @@ int MACSolver3D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 
 		// Set default values, if a current pointer is in interior, it will not be changed.
 		AValsDic["B"] = iRhoB[idx(i, j, k)] / (kDz * kDz);
-		AColsDic["B"] = (k - 1 - kNumBCGrid) + kNz * (j - kNumBCGrid) + kNz * kNy * (i - kNumBCGrid);
+		AColsDic["B"] = (i - kNumBCGrid) + kNx * (j - kNumBCGrid) + kNx * kNy * (k - 1 - kNumBCGrid);
 		AValsDic["S"] = iRhoS[idx(i, j, k)] / (kDy * kDy);
-		AColsDic["S"] = (k - kNumBCGrid) + kNz * (j - 1 - kNumBCGrid) + kNz * kNy * (i - kNumBCGrid);
+		AColsDic["S"] = (i - kNumBCGrid) + kNx * (j - 1 - kNumBCGrid) + kNx * kNy * (k - kNumBCGrid);
 		AValsDic["W"] = iRhoW[idx(i, j, k)] / (kDx * kDx);
-		AColsDic["W"] = (k - kNumBCGrid) + kNz * (j - kNumBCGrid) + kNz * kNy * (i - 1 - kNumBCGrid);
+		AColsDic["W"] = (i - 1 - kNumBCGrid) + kNx * (j - kNumBCGrid) + kNx * kNy * (k - kNumBCGrid);
 		AValsDic["C"] = -(iRhoW[idx(i, j, k)] + iRhoE[idx(i, j, k)]) / (kDx * kDx)
 			- (iRhoS[idx(i, j, k)] + iRhoN[idx(i, j, k)]) / (kDy * kDy)
 			- (iRhoB[idx(i, j, k)] + iRhoT[idx(i, j, k)]) / (kDz * kDz);
-		AColsDic["C"] = (k - kNumBCGrid) + kNz * (j - kNumBCGrid) + kNz * kNy * (i - kNumBCGrid);
+		AColsDic["C"] = (i - kNumBCGrid) + kNx * (j - kNumBCGrid) + kNx * kNy * (k - kNumBCGrid);
 		AValsDic["E"] = iRhoE[idx(i, j, k)] / (kDx * kDx);
-		AColsDic["E"] = (k - kNumBCGrid) + kNz * (j - kNumBCGrid) + kNz * kNy * (i  + 1 - kNumBCGrid);
+		AColsDic["E"] = (i + 1 - kNumBCGrid) + kNx * (j - kNumBCGrid) + kNx * kNy * (k - kNumBCGrid);
 		AValsDic["N"] = iRhoN[idx(i, j, k)] / (kDy * kDy);
-		AColsDic["N"] = (k - kNumBCGrid) + kNz * (j + 1- kNumBCGrid) + kNz * kNy * (i - kNumBCGrid);
+		AColsDic["N"] = (i - kNumBCGrid) + kNx * (j + 1 - kNumBCGrid) + kNx * kNy * (k - kNumBCGrid);
 		AValsDic["T"] = iRhoT[idx(i, j, k)] / (kDz * kDz);
-		AColsDic["T"] = (k + 1 - kNumBCGrid) + kNz * (j - kNumBCGrid) + kNz * kNy * (i - kNumBCGrid);
+		AColsDic["T"] = (i - kNumBCGrid) + kNx * (j - kNumBCGrid) + kNx * kNy * (k + 1 - kNumBCGrid);
 		
 		if (i == kNumBCGrid && m_BC->m_BC_PW == BC3D::NEUMANN) {
 			AColsDic["W"] = -1;
@@ -2287,15 +2372,8 @@ int MACSolver3D::UpdateVel(std::vector<double>& u, std::vector<double>& v, std::
 		nXM = 0.0, nYM = 0.0, nZM = 0.0;
 	double aW = 0.0, aS = 0.0, aM = 0.0, aEff = 0.0;
 	const double eps = 1.0e-100;
-	std::vector<double> dudX(kArrSize, 0.0), dudY(kArrSize, 0.0), dudZ(kArrSize, 0.0),
-		dvdX(kArrSize, 0.0), dvdY(kArrSize, 0.0), dvdZ(kArrSize, 0.0),
-		dwdX(kArrSize, 0.0), dwdY(kArrSize, 0.0), dwdZ(kArrSize, 0.0),
-		dldX(kArrSize, 0.0), dldY(kArrSize, 0.0), dldZ(kArrSize, 0.0);
-
-	std::vector<double> U_PGrid(kArrSize, 0.0),
-		V_PGrid(kArrSize, 0.0);
-	double dudXW = 0.0, dudXE = 0.0, dudYS = 0.0, dudYN = 0.0;
-	double dvdXW = 0.0, dvdXE = 0.0, dvdYS = 0.0, dvdYN = 0.0;
+	
+	std::vector<double> U_PGrid(kArrSize, 0.0),	V_PGrid(kArrSize, 0.0);
 	
 	/*
 	// http://ctr.stanford.edu/Summer/SP08/3_1_Moureau.pdf
@@ -2410,8 +2488,8 @@ int MACSolver3D::UpdateVel(std::vector<double>& u, std::vector<double>& v, std::
 }
 
 double MACSolver3D::UpdateDt(const std::vector<double>& u, const std::vector<double>& v, const std::vector<double>& w) {
-	double uAMax = 0.0, vAMax = 0.0, wAMax = 0.0;
-	double Cefl = 0.0, Vefl = 0.0, Gefl = 0.0;
+	double uAMax = 0.0, vAMax = 0.0, wAMax = 0.0, kAMax;
+	double Cefl = 0.0, Vefl = 0.0, Gefl = 0.0, Sefl = 0.0;
 	double dt = std::numeric_limits<double>::max();
 
 	// get maximum of absolute value
@@ -2424,13 +2502,14 @@ double MACSolver3D::UpdateDt(const std::vector<double>& u, const std::vector<dou
 	}
 	
 	Cefl = uAMax / kDx + vAMax / kDy + wAMax / kDz;
-	Vefl = std::max(kMuH, kMuL) * (2.0 / (kDx * kDx) + 2.0 / (kDy * kDy));
+	Vefl = std::max(kMuH, kMuL) * (2.0 / (kDx * kDx) + 2.0 / (kDy * kDy) + 2.0 / (kDz * kDz));
 	Gefl = std::max(std::max(std::sqrt(std::fabs(kG) / kDy), std::sqrt(std::fabs(kG) / kDx)), std::sqrt(std::fabs(kG) / kDz));
-	
+	Sefl = std::sqrt((kSigma / std::min(std::min(kDx, kDy), kDz))
+		/ (std::min(kRhoH, kRhoL) * std::pow(std::min(std::min(kDx, kDy), kDz), 2.0)));
 	dt = std::min(dt,
 		1.0 / (0.5 * (Cefl + Vefl +
 		std::sqrt(std::pow(Cefl + Vefl, 2.0) +
-		4.0 * Gefl))));
+		4.0 * Gefl * Gefl + 4.0 * Sefl * Sefl))));
 
 	if (std::isnan(dt) || std::isinf(dt)) {
 		std::cout << "dt nan/inf error : Cefl, Vefl, Gefl : " << Cefl << " " << Vefl << " " << Gefl << std::endl;
@@ -2601,7 +2680,7 @@ inline int MACSolver3D::sign(const double& val) {
 }
 
 inline int MACSolver3D::idx(int i, int j, int k) {
-	return (k + (kNz + 2 * kNumBCGrid) * j + (kNz + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid) * i);
+	return (k + (kNz + 2 * kNumBCGrid) * (j + (kNy + 2 * kNumBCGrid) * i));
 }
 
 int MACSolver3D::SetPLTType(PLTTYPE type) {
@@ -2614,6 +2693,7 @@ int MACSolver3D::OutRes(const int iter, const double curTime, const std::string 
 	const std::vector<double>& u, const std::vector<double>& v, const std::vector<double>& w,
 	const std::vector<double>& ps, const std::vector<double>& ls) {
 	if (m_PLTType == PLTTYPE::ASCII || m_PLTType == PLTTYPE::BOTH) {
+		std::ios_base::sync_with_stdio(false);
 		std::ofstream outF;
 		std::string fname_vel(fname_vel_base + "_ASCII.plt");
 		std::string fname_div(fname_div_base + "_ASCII.plt");
@@ -2631,60 +2711,81 @@ int MACSolver3D::OutRes(const int iter, const double curTime, const std::string 
 		}
 
 		std::vector<double>
-			resU(kArrSize, 0.0), resV(kArrSize, 0.0), resW(kArrSize, 0.0);
+			resX(kArrSize, 0.0), resY(kArrSize, 0.0), resZ(kArrSize, 0.0);
+		std::vector<double>
+			resU(kArrSize, 0.0), resV(kArrSize, 0.0), resW(kArrSize, 0.0),
+			resLS(kArrSize, 0.0), resPS(kArrSize, 0.0), resDivCompact(kArrSize, 0.0);
 
-		std::vector<double> resDiv = GetDivergence(u, v, w);
+		std::vector<double> resDivFull = GetDivergence(u, v, w);
 		
 		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
 		for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
+			/*
+			resX[(i - kNumBCGrid) + kNx * (j - kNumBCGrid) + kNx * kNy * (k - kNumBCGrid)] = kBaseX + static_cast<double>(i + 0.5 - kNumBCGrid) * kDx;
+			resY[(i - kNumBCGrid) + kNx * (j - kNumBCGrid) + kNx * kNy * (k - kNumBCGrid)] = kBaseY + static_cast<double>(j + 0.5 - kNumBCGrid) * kDy;
+			resZ[(i - kNumBCGrid) + kNx * (j - kNumBCGrid) + kNx * kNy * (k - kNumBCGrid)] = kBaseZ + static_cast<double>(k + 0.5 - kNumBCGrid) * kDz;
+			resU[(i - kNumBCGrid) + kNx * (j - kNumBCGrid) + kNx * kNy * (k - kNumBCGrid)] = (u[idx(i, j, k)] + u[idx(i + 1, j, k)]) * 0.5;
+			resV[(i - kNumBCGrid) + kNx * (j - kNumBCGrid) + kNx * kNy * (k - kNumBCGrid)] = (v[idx(i, j, k)] + v[idx(i, j + 1, k)]) * 0.5;
+			resW[(i - kNumBCGrid) + kNx * (j - kNumBCGrid) + kNx * kNy * (k - kNumBCGrid)] = (w[idx(i, j, k)] + w[idx(i, j, k + 1)]) * 0.5;
+			resLS[(i - kNumBCGrid) + kNx * (j - kNumBCGrid) + kNx * kNy * (k - kNumBCGrid)]= ls[idx(i, j, k)];
+			resPS[(i - kNumBCGrid) + kNx * (j - kNumBCGrid) + kNx * kNy * (k - kNumBCGrid)] = ps[idx(i, j, k)];
+			resDivCompact[(i - kNumBCGrid) + kNx * (j - kNumBCGrid) + kNx * kNy * (k - kNumBCGrid)] = resDivFull[idx(i, j, k)];
+			*/
 			resU[idx(i, j, k)] = (u[idx(i, j, k)] + u[idx(i + 1, j, k)]) * 0.5;
 			resV[idx(i, j, k)] = (v[idx(i, j, k)] + v[idx(i, j + 1, k)]) * 0.5;
 			resW[idx(i, j, k)] = (w[idx(i, j, k)] + w[idx(i, j, k + 1)]) * 0.5;
 		}
 		
-
+		// Writing ASCII file is so slow.
 		outF.open(fname_vel.c_str(), std::ios::app);
 		
 		outF << std::string("ZONE T=\"") << iter
 			<< std::string("\", I=") << kNx << std::string(", J=") << kNy << std::string(", K=") << kNz
+			// << std::string(", DATAPACKING=BLOCK")
 			<< std::string(", SOLUTIONTIME=") << curTime
 			<< std::string(", STRANDID=") << iter + 1
 			<< std::endl;
-
+		
 		for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++)
 		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
-			outF << kBaseX + static_cast<double>(i + 0.5 - kNumBCGrid) * kDx << std::string(",")
-				<< kBaseY + static_cast<double>(j + 0.5 - kNumBCGrid) * kDy << std::string(",")
-				<< kBaseZ + static_cast<double>(k + 0.5 - kNumBCGrid) * kDz << std::string(",")
-				<< static_cast<double>(resU[idx(i, j, k)]) << std::string(",")
-				<< static_cast<double>(resV[idx(i, j, k)]) << std::string(",")
-				<< static_cast<double>(resW[idx(i, j, k)]) << std::string(",")
-				<< static_cast<double>(ls[idx(i, j, k)]) << std::string(",")
-				<< static_cast<double>(ps[idx(i, j, k)]) << std::endl;
-
+		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++) {
+			std::string outStr = std::to_string(kBaseX + static_cast<double>(i + 0.5 - kNumBCGrid) * kDx) + std::string(",");
+			outStr += std::to_string(kBaseY + static_cast<double>(j + 0.5 - kNumBCGrid) * kDy) + std::string(",");
+			outStr += std::to_string(kBaseZ + static_cast<double>(k + 0.5 - kNumBCGrid) * kDz) + std::string(",");
+			outStr += std::to_string(resU[idx(i, j, k)]) + std::string(",");
+			outStr += std::to_string(resV[idx(i, j, k)]) + std::string(",");
+			outStr += std::to_string(resW[idx(i, j, k)]) + std::string(",");
+			outStr += std::to_string(ls[idx(i, j, k)]) + std::string(",");
+			outStr += std::to_string(ps[idx(i, j, k)]) + std::string("\n");
+			outF << outStr;
+		}
+		
 		outF.close();
 		
 		outF.open(fname_div.c_str(), std::ios::app);
 
 		outF << std::string("ZONE T=\"") << iter
 			<< std::string("\", I=") << kNx << std::string(", J=") << kNy << std::string(", K=") << kNz
+			<< std::string(", DATAPACKING=BLOCK")
 			<< std::string(", SOLUTIONTIME=") << curTime
 			<< std::string(", STRANDID=") << iter + 1
 			<< std::endl;
 		
 		for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++)
 		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
-			outF << kBaseX + static_cast<double>(i + 0.5 - kNumBCGrid) * kDx << std::string(",")
-				<< kBaseY + static_cast<double>(j + 0.5 - kNumBCGrid) * kDy << std::string(",")
-				<< kBaseZ + static_cast<double>(k + 0.5 - kNumBCGrid) * kDz << std::string(",")
-				<< static_cast<double>(ls[idx(i, j, k)]) << std::string(",")
-				<< static_cast<double>(resDiv[idx(i, j, k)]) << std::string(",")
-				// << static_cast<double>(m_kappa[idx(i, j, k)]) << std::string(",")
-				<< static_cast<double>(ps[idx(i, j, k)]) << std::endl;
-
+		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++) {
+			std::string outStr = std::to_string(kBaseX + static_cast<double>(i + 0.5 - kNumBCGrid) * kDx) + ",";
+			outStr += std::to_string(kBaseY + static_cast<double>(j + 0.5 - kNumBCGrid) * kDy) + ",";
+			outStr += std::to_string(kBaseZ + static_cast<double>(k + 0.5 - kNumBCGrid) * kDz) + ",";
+			outStr += std::to_string(ls[idx(i, j, k)]) + std::string(",");
+			outStr += std::to_string(resDivFull[idx(i, j, k)]) + std::string(",");
+			// outStr += std::to_string(m_kappa[idx(i, j, k)]) + std::string(",");
+			outStr += std::to_string(ps[idx(i, j, k)]) + std::string("\n");
+			outF << outStr;
+		}
+		outF << std::endl;
+		
 		outF.close();
 	}
 
