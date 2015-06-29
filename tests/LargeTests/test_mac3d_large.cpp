@@ -16,14 +16,31 @@ int MAC3DTest_StationaryBubble() {
 	const double baseX = 0.0, baseY = 0.0, baseZ = 0.0, lenX = 0.04, lenY = 0.04, lenZ = 0.04, cfl = 0.1;
 	double radius = 0.01, x = 0.0, y = 0.0, z = 0.0, d = 0.0;
 
-	const int maxiter = 10, niterskip = 1, num_bc_grid = 3;
+	const int maxiter = 5, niterskip = 1, num_bc_grid = 3;
 	const int64_t arrSize = (nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid) * (nz + 2 * num_bc_grid);
 	const double maxtime = 0.06;
 	const bool writeVTK = false;
 	// length of each cell
 	const double dx = lenX / nx, dy = lenY / ny, dz = lenZ / nz;
-	const std::string fname_vel("testMAC3D_StationaryBubbleVel_Re_" + std::to_string(Re));
-	const std::string fname_div("testMAC3D_StationaryBubbleDiv_Re_" + std::to_string(Re));
+	std::ostringstream outfname_stream1;
+	outfname_stream1 << "testMAC3D_StationaryBubbleBubbleRisingVel_Re_"
+		<< std::to_string(Re)
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nx))->str()
+		<< "x"
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << ny))->str()
+		<< "x"
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nz))->str();
+	const std::string fname_vel = outfname_stream1.str();
+
+	std::ostringstream outfname_stream2;
+	outfname_stream2 << "testMAC3D_StationaryBubbleBubbleRisingDiv_Re_"
+		<< std::to_string(Re) << "_"
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nx))->str()
+		<< "x"
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << ny))->str()
+		<< "x"
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nz))->str();
+	const std::string fname_div = outfname_stream2.str();
 	const int iterskip = 1;
 	const TIMEORDERENUM timeOrder = TIMEORDERENUM::EULER;
 	int stat = 0;
@@ -53,7 +70,7 @@ int MAC3DTest_StationaryBubble() {
 	MSolver->SetBCConstantWN(0.0);
 	MSolver->SetBCConstantWB(0.0);
 	MSolver->SetBCConstantWT(0.0);
-	MSolver->SetPLTType(PLTTYPE::BOTH);
+	MSolver->SetPLTType(PLTTYPE::BINARY);
 
 	MSolver->SetPoissonSolver(POISSONTYPE::CG);
 	const int poissonMaxIter = 20000;
@@ -99,7 +116,7 @@ int MAC3DTest_StationaryBubble() {
 		ls[idx3_3D(ny, nz, i, j, k)] = d;
 	}
 	LSolver->ApplyBC_P_3D(ls);
-	LSolver->Reinit_Sussman_3D(ls);
+	LSolver->Reinit_MinRK2_3D(ls);
 	
 	LSolver->ApplyBC_P_3D(ls);
 
@@ -120,7 +137,7 @@ int MAC3DTest_StationaryBubble() {
 		lsB = ls;
 		LSolver->Solve_LevelSet_3D(ls, MSolver->m_u, MSolver->m_v, MSolver->m_w, MSolver->m_dt);
 		LSolver->ApplyBC_P_3D(ls);
-		LSolver->Reinit_Sussman_3D(ls);
+		LSolver->Reinit_MinRK2_3D(ls);
 		
 		LSolver->ApplyBC_P_3D(ls);
 		

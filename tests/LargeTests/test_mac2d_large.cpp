@@ -19,8 +19,21 @@ int MAC2DTest_CavityFlow() {
 	const bool writeVTK = false;
 	// length of each cell
 	const double dx = lenX / nx, dy = lenY / ny;
-	const std::string fname_vel("testMAC2D_CavityVel_Re_" + std::to_string(Re));
-	const std::string fname_div("testMAC2D_CavityDiv_Re_" + std::to_string(Re));
+	std::ostringstream outfname_stream1;
+	outfname_stream1 << "testMAC2D_CavityVel_Re_"
+		<< std::to_string(Re) << "_"
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nx))->str()
+		<< "x"
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << ny))->str();
+	const std::string fname_vel = outfname_stream1.str();
+
+	std::ostringstream outfname_stream2;
+	outfname_stream2 << "testMAC2D_CavityDiv_Re_"
+		<< std::to_string(Re) << "_"
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nx))->str()
+		<< "x"
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << ny))->str();
+	const std::string fname_div = outfname_stream2.str();
 	const int iterskip = 1;
 	const TIMEORDERENUM timeOrder = TIMEORDERENUM::RK3;
 	int stat = 0;
@@ -183,14 +196,14 @@ int MAC2DTest_StationaryBubble() {
 	const double baseX = 0.0, baseY = 0.0, lenX = 0.04, lenY = 0.04, cfl = 0.3;
 	double radius = 0.01, x = 0.0, y = 0.0, d = 0.0;
 
-	const int maxiter = 1000, niterskip = 50, num_bc_grid = 3;
+	const int maxiter = 20, niterskip = 1, num_bc_grid = 3;
 	const double maxtime = 5.0;
 	const bool writeVTK = false;
 	// length of each cell
 	const double dx = lenX / nx, dy = lenY / ny;
 	std::ostringstream outfname_stream1;
 	outfname_stream1 << "testMAC2D_StationaryBubbleVel_Re_"
-		<< std::to_string(Re)
+		<< std::to_string(Re) << "_"
 		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nx))->str()
 		<< "x"
 		<< static_cast<std::ostringstream*>(&(std::ostringstream() << ny))->str();
@@ -198,7 +211,7 @@ int MAC2DTest_StationaryBubble() {
 
 	std::ostringstream outfname_stream2;
 	outfname_stream2 << "testMAC2D_StationaryBubbleDiv_Re_"
-		<< std::to_string(Re)
+		<< std::to_string(Re) << "_"
 		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nx))->str()
 		<< "x"
 		<< static_cast<std::ostringstream*>(&(std::ostringstream() << ny))->str();
@@ -377,13 +390,13 @@ int MAC2DTest_SmallAirBubbleRising() {
 	double radius = 1.0 / 300.0, x = 0.0, y = 0.0, d = 0.0;
 	
 	const double maxtime = 2.0;
-	const int maxiter = 500, niterskip = 50, num_bc_grid = 3;
+	const int maxiter = 1000, niterskip = 50, num_bc_grid = 3;
 	const bool writeVTK = false;
 	// length of each cell
 	const double dx = lenX / nx, dy = lenY / ny;
 	std::ostringstream outfname_stream1;
 	outfname_stream1 << "testMAC2D_SmallBubbleRisingVel_Re_"
-		<< std::to_string(Re)
+		<< std::to_string(Re) << "_"
 		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nx))->str()
 		<< "x"
 		<< static_cast<std::ostringstream*>(&(std::ostringstream() << ny))->str();
@@ -391,7 +404,7 @@ int MAC2DTest_SmallAirBubbleRising() {
 
 	std::ostringstream outfname_stream2;
 	outfname_stream2 << "testMAC2D_SmallBubbleRisingDiv_Re_"
-		<< std::to_string(Re)
+		<< std::to_string(Re) << "_"
 		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nx))->str()
 		<< "x"
 		<< static_cast<std::ostringstream*>(&(std::ostringstream() << ny))->str();
@@ -575,7 +588,7 @@ int MAC2DTest_LargeAirBubbleRising() {
 	const double dx = lenX / nx, dy = lenY / ny;
 	std::ostringstream outfname_stream1;
 	outfname_stream1 << "testMAC2D_LargeBubbleRisingVel_Re_"
-		<< std::to_string(Re)
+		<< std::to_string(Re) << "_"
 		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nx))->str()
 		<< "x"
 		<< static_cast<std::ostringstream*>(&(std::ostringstream() << ny))->str();
@@ -583,7 +596,7 @@ int MAC2DTest_LargeAirBubbleRising() {
 
 	std::ostringstream outfname_stream2;
 	outfname_stream2 << "testMAC2D_LargeBubbleRisingDiv_Re_"
-		<< std::to_string(Re)
+		<< std::to_string(Re) << "_"
 		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nx))->str()
 		<< "x"
 		<< static_cast<std::ostringstream*>(&(std::ostringstream() << ny))->str();
@@ -770,8 +783,21 @@ int MAC2DTest_TaylorInstability() {
 	const bool writeVTK = false;
 	// length of each cell
 	const double dx = lenX / nx, dy = lenY / ny;
-	const std::string fname_vel("testMAC2D_TaylorVel_Re_" + std::to_string(Re));
-	const std::string fname_div("testMAC2D_TaylorDiv_Re_" + std::to_string(Re));
+	std::ostringstream outfname_stream1;
+	outfname_stream1 << "testMAC2DAxisym_TaylorVel_Re_"
+		<< std::to_string(Re) << "_"
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nx))->str()
+		<< "x"
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << ny))->str();
+	std::string fname_vel = outfname_stream1.str();
+
+	std::ostringstream outfname_stream2;
+	outfname_stream2 << "testMAC2DAxisym_TaylorDiv_Re_"
+		<< std::to_string(Re)
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nx))->str()
+		<< "x"
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << ny))->str();
+	std::string fname_div = outfname_stream2.str();
 	const TIMEORDERENUM timeOrder = TIMEORDERENUM::RK3;
 	const int iterskip = 1;
 	int stat = 0;
@@ -933,16 +959,16 @@ int MAC2DAxisymTest_StationaryBubble() {
 	// # of cells
 	const int nr = 64, nz = 128;
 	// related to initialize level set
-	const double baseR = 0.0, baseZ = 0.0, lenR = 0.02, lenZ = 0.04, cfl = 0.1;
+	const double baseR = 0.0, baseZ = 0.0, lenR = 0.02, lenZ = 0.04, cfl = 0.3;
 	
-	const int maxiter = 40, niterskip = 2, num_bc_grid = 3;
+	const int maxiter = 20, niterskip = 1, num_bc_grid = 3;
 	const double maxtime = 0.06;
 	const bool writeVTK = false;
 	// length of each cell
 	const double dr = lenR / nr, dz = lenZ / nz;
 	std::ostringstream outfname_stream1;
 	outfname_stream1 << "testMAC2DAxisym_StationaryBubbleVel_Re_"
-		<< std::to_string(Re)
+		<< std::to_string(Re) << "_"
 		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nr))->str()
 		<< "x"
 		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nz))->str();
@@ -950,7 +976,7 @@ int MAC2DAxisymTest_StationaryBubble() {
 
 	std::ostringstream outfname_stream2;
 	outfname_stream2 << "testMAC2DAxisym_StationaryBubbleDiv_Re_"
-		<< std::to_string(Re)
+		<< std::to_string(Re) << "_"
 		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nr))->str()
 		<< "x"
 		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nz))->str();
@@ -966,11 +992,9 @@ int MAC2DAxisymTest_StationaryBubble() {
 	MSolver->SetBC_U_2D("axisym", "dirichlet", "dirichlet", "dirichlet");
 	MSolver->SetBC_V_2D("axisym", "dirichlet", "dirichlet", "dirichlet");
 	MSolver->SetBC_P_2D("neumann", "neumann", "neumann", "neumann");
-	MSolver->SetBCConstantUW(0.0);
 	MSolver->SetBCConstantUE(0.0);
 	MSolver->SetBCConstantUS(0.0);
 	MSolver->SetBCConstantUN(0.0);
-	MSolver->SetBCConstantVW(0.0);
 	MSolver->SetBCConstantVE(0.0);
 	MSolver->SetBCConstantVS(0.0);
 	MSolver->SetBCConstantVN(0.0);
@@ -1135,7 +1159,7 @@ int MAC2DAxisymTest_SmallAirBubbleRising() {
 	const double dr = lenR / nr, dz = lenZ / nz;
 	std::ostringstream outfname_stream1;
 	outfname_stream1 << "testMAC2DAxisym_SmallBubbleRisingVel_Re_"
-		<< std::to_string(Re)
+		<< std::to_string(Re) << "_"
 		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nr))->str()
 		<< "x"
 		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nz))->str();
@@ -1143,7 +1167,7 @@ int MAC2DAxisymTest_SmallAirBubbleRising() {
 
 	std::ostringstream outfname_stream2;
 	outfname_stream2 << "testMAC2DAxisym_SmallBubbleRisingDiv_Re_"
-		<< std::to_string(Re)
+		<< std::to_string(Re) << "_"
 		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nr))->str()
 		<< "x"
 		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nz))->str();
@@ -1329,7 +1353,7 @@ int MAC2DAxisymTest_WaterDropletCollison1() {
 	const double dr = lenR / nr, dz = lenZ / nz;
 	std::ostringstream outfname_stream1;
 	outfname_stream1 << "testMAC2D_WaterDropletCollision01Vel_Re_"
-		<< std::to_string(Re)
+		<< std::to_string(Re) << "_"
 		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nr))->str()
 		<< "x"
 		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nz))->str();
@@ -1337,7 +1361,7 @@ int MAC2DAxisymTest_WaterDropletCollison1() {
 
 	std::ostringstream outfname_stream2;
 	outfname_stream2 << "testMAC2D_WaterDropletCollision01Div_Re_"
-		<< std::to_string(Re)
+		<< std::to_string(Re) << "_"
 		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nr))->str()
 		<< "x"
 		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nz))->str();
