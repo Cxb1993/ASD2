@@ -847,6 +847,17 @@ LevelSetSolver3D::ENO_DerivAbsLS_3D(const std::vector<double>& ls, const std::ve
 		dPX(kArrSize, 0.0), dMX(kArrSize, 0.0),
 		dPY(kArrSize, 0.0), dMY(kArrSize, 0.0),
 		dPZ(kArrSize, 0.0), dMZ(kArrSize, 0.0);
+	// second derivative
+	std::vector<double>
+		d2LSdX2(kArrSize, 0.0), d2LSdY2(kArrSize, 0.0), d2LSdZ2(kArrSize, 0.0);
+
+	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
+	for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
+		d2LSdX2[idx(i, j, k)] = (ls[idx(i - 1, j, k)] - 2.0 * ls[idx(i, j, k)] + ls[idx(i + 1, j, k)]) / (kDx * kDx);
+		d2LSdY2[idx(i, j, k)] = (ls[idx(i, j - 1, k)] - 2.0 * ls[idx(i, j, k)] + ls[idx(i, j + 1, k)]) / (kDy * kDy);
+		d2LSdZ2[idx(i, j, k)] = (ls[idx(i, j, k - 1)] - 2.0 * ls[idx(i, j, k)] + ls[idx(i, j, k + 1)]) / (kDz * kDz);
+	}
 
 	std::vector<double>
 		dLSdX(kArrSize, 0.0), dLSdY(kArrSize, 0.0), dLSdZ(kArrSize, 0.0);
@@ -858,13 +869,9 @@ LevelSetSolver3D::ENO_DerivAbsLS_3D(const std::vector<double>& ls, const std::ve
 	for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
 		// 2nd order ENO Method
 		dPX[idx(i, j, k)] = (ls[idx(i + 1, j, k)] - ls[idx(i, j, k)]) / kDx
-			- kDx * 0.5 * MinMod(
-			(ls[idx(i - 1, j, k)] - 2.0 * ls[idx(i, j, k)] + ls[idx(i + 1, j, k)]) / (kDx * kDx),
-			(ls[idx(i, j, k)] - 2.0 * ls[idx(i + 1, j, k)] + ls[idx(i + 2, j, k)]) / (kDx * kDx));
+			- kDx * 0.5 * MinMod(d2LSdX2[idx(i, j, k)], d2LSdX2[idx(i + 1, j, k)]);
 		dMX[idx(i, j, k)] = (ls[idx(i, j, k)] - ls[idx(i - 1, j, k)]) / kDx
-			+ kDx * 0.5 * MinMod(
-			(ls[idx(i - 1, j, k)] - 2.0 * ls[idx(i, j, k)] + ls[idx(i + 1, j, k)]) / (kDx * kDx),
-			(ls[idx(i - 2, j, k)] - 2.0 * ls[idx(i - 1, j, k)] + ls[idx(i, j, k)]) / (kDx * kDx));
+			+ kDx * 0.5 * MinMod(d2LSdX2[idx(i, j, k)], d2LSdX2[idx(i - 1, j, k)]);
 	}
 
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
@@ -872,13 +879,9 @@ LevelSetSolver3D::ENO_DerivAbsLS_3D(const std::vector<double>& ls, const std::ve
 	for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
 		// 2nd order ENO Method
 		dPY[idx(i, j, k)] = (ls[idx(i, j + 1, k)] - ls[idx(i, j, k)]) / kDy
-			- kDy * 0.5 * MinMod(
-			(ls[idx(i, j - 1, k)] - 2.0 * ls[idx(i, j, k)] + ls[idx(i, j + 1, k)]) / (kDy * kDy),
-			(ls[idx(i, j, k)] - 2.0 * ls[idx(i, j + 1, k)] + ls[idx(i, j + 2, k)]) / (kDy * kDy));
+			- kDy * 0.5 * MinMod(d2LSdY2[idx(i, j, k)], d2LSdY2[idx(i, j + 1, k)]);
 		dMY[idx(i, j, k)] = (ls[idx(i, j, k)] - ls[idx(i, j - 1, k)]) / kDy
-			+ kDy * 0.5 * MinMod(
-			(ls[idx(i, j - 1, k)] - 2.0 * ls[idx(i, j, k)] + ls[idx(i, j + 1, k)]) / (kDy * kDy),
-			(ls[idx(i, j - 2, k)] - 2.0 * ls[idx(i, j - 1, k)] + ls[idx(i, j, k)]) / (kDy * kDy));
+			+ kDy * 0.5 * MinMod(d2LSdY2[idx(i, j, k)], d2LSdY2[idx(i, j - 1, k)]);
 	}
 
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
@@ -886,13 +889,9 @@ LevelSetSolver3D::ENO_DerivAbsLS_3D(const std::vector<double>& ls, const std::ve
 	for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
 		// 2nd order ENO Method
 		dPZ[idx(i, j, k)] = (ls[idx(i, j, k + 1)] - ls[idx(i, j, k)]) / kDz
-			- kDz * 0.5 * MinMod(
-			(ls[idx(i, j, k - 1)] - 2.0 * ls[idx(i, j, k)] + ls[idx(i, j, k + 1)]) / (kDz * kDz),
-			(ls[idx(i, j, k)] - 2.0 * ls[idx(i, j, k + 1)] + ls[idx(i, j, k + 2)]) / (kDz * kDz));
+			- kDz * 0.5 * MinMod(d2LSdZ2[idx(i, j, k)], d2LSdZ2[idx(i, j, k + 1)]);
 		dMZ[idx(i, j, k)] = (ls[idx(i, j, k)] - ls[idx(i, j, k - 1)]) / kDz
-			+ kDz * 0.5 * MinMod(
-			(ls[idx(i, j, k - 1)] - 2.0 * ls[idx(i, j, k)] + ls[idx(i, j, k + 1)]) / (kDz * kDz),
-			(ls[idx(i, j, k - 2)] - 2.0 * ls[idx(i, j, k - 1)] + ls[idx(i, j, k)]) / (kDz * kDz));
+			+ kDz * 0.5 * MinMod(d2LSdZ2[idx(i, j, k)], d2LSdZ2[idx(i, j, k - 1)]);
 	}
 
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
@@ -928,6 +927,17 @@ LevelSetSolver3D::SubcellENO_DerivAbsLS_3D(const std::vector<double>& ls, const 
 
 	std::vector<double>
 		dLSdX(kArrSize, 0.0), dLSdY(kArrSize, 0.0), dLSdZ(kArrSize, 0.0);
+	// second derivative
+	std::vector<double>
+		d2LSdX2(kArrSize, 0.0), d2LSdY2(kArrSize, 0.0), d2LSdZ2(kArrSize, 0.0);
+
+	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
+	for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
+		d2LSdX2[idx(i, j, k)] = (ls[idx(i - 1, j, k)] - 2.0 * ls[idx(i, j, k)] + ls[idx(i + 1, j, k)]) / (kDx * kDx);
+		d2LSdY2[idx(i, j, k)] = (ls[idx(i, j - 1, k)] - 2.0 * ls[idx(i, j, k)] + ls[idx(i, j + 1, k)]) / (kDy * kDy);
+		d2LSdZ2[idx(i, j, k)] = (ls[idx(i, j, k - 1)] - 2.0 * ls[idx(i, j, k)] + ls[idx(i, j, k + 1)]) / (kDz * kDz);
+	}
 
 	std::vector<double> absdLS(kArrSize, 0.0);
 
@@ -944,13 +954,9 @@ LevelSetSolver3D::SubcellENO_DerivAbsLS_3D(const std::vector<double>& ls, const 
 	for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
 		// 2nd order ENO Method
 		dPX[idx(i, j, k)] = (ls[idx(i + 1, j, k)] - ls[idx(i, j, k)]) / kDx
-			- kDx * 0.5 * MinMod(
-			(ls[idx(i - 1, j, k)] - 2.0 * ls[idx(i, j, k)] + ls[idx(i + 1, j, k)]) / (kDx * kDx),
-			(ls[idx(i, j, k)] - 2.0 * ls[idx(i + 1, j, k)] + ls[idx(i + 2, j, k)]) / (kDx * kDx));
+			- kDx * 0.5 * MinMod(d2LSdX2[idx(i, j, k)], d2LSdX2[idx(i + 1, j, k)]);
 		dMX[idx(i, j, k)] = (ls[idx(i, j, k)] - ls[idx(i - 1, j, k)]) / kDx
-			+ kDx * 0.5 * MinMod(
-			(ls[idx(i - 1, j, k)] - 2.0 * ls[idx(i, j, k)] + ls[idx(i + 1, j, k)]) / (kDx * kDx),
-			(ls[idx(i - 2, j, k)] - 2.0 * ls[idx(i - 1, j, k)] + ls[idx(i, j, k)]) / (kDx * kDx));
+			+ kDx * 0.5 * MinMod(d2LSdX2[idx(i, j, k)], d2LSdX2[idx(i - 1, j, k)]);
 		// ENO polynomial from Fig. 4 in "A second order accurate level set method on non-graded adaptive cartesian grids."
 		// U(x) = U[x_i] + (x - x_i) * U[x_i, x_i+1] + (x - x_i) * (x - x_i+1) * U[x_i-1, x_i, x_i+1]
 		// phi(x) = phi(-s2/2) + (x - s2/2) * (phi(x_i+1) - phi(x_i)) / s2 + (x - s2/2) * (x + s2/2) * MinMod(phi[x_i-1, x_i, x_i+1], phi[x_i, x_i+1, x_i+2])/2
@@ -1021,13 +1027,9 @@ LevelSetSolver3D::SubcellENO_DerivAbsLS_3D(const std::vector<double>& ls, const 
 	for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
 		// 2nd order ENO Method
 		dPY[idx(i, j, k)] = (ls[idx(i, j + 1, k)] - ls[idx(i, j, k)]) / kDy
-			- kDy * 0.5 * MinMod(
-			(ls[idx(i, j - 1, k)] - 2.0 * ls[idx(i, j, k)] + ls[idx(i, j + 1, k)]) / (kDy * kDy),
-			(ls[idx(i, j, k)] - 2.0 * ls[idx(i, j + 1, k)] + ls[idx(i, j + 2, k)]) / (kDy * kDy));
+			- kDy * 0.5 * MinMod(d2LSdY2[idx(i, j, k)], d2LSdY2[idx(i, j + 1, k)]);
 		dMY[idx(i, j, k)] = (ls[idx(i, j, k)] - ls[idx(i, j - 1, k)]) / kDy
-			+ kDy * 0.5 * MinMod(
-			(ls[idx(i, j - 1, k)] - 2.0 * ls[idx(i, j, k)] + ls[idx(i, j + 1, k)]) / (kDy * kDy),
-			(ls[idx(i, j - 2, k)] - 2.0 * ls[idx(i, j - 1, k)] + ls[idx(i, j, k)]) / (kDy * kDy));
+			+ kDy * 0.5 * MinMod(d2LSdY2[idx(i, j, k)], d2LSdY2[idx(i, j - 1, k)]);
 
 		if (lsInit[idx(i, j, k)] * lsInit[idx(i, j + 1, k)] < 0) {
 			DDY = MinMod(
@@ -1079,13 +1081,9 @@ LevelSetSolver3D::SubcellENO_DerivAbsLS_3D(const std::vector<double>& ls, const 
 	for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
 		// 2nd order ENO Method
 		dPZ[idx(i, j, k)] = (ls[idx(i, j, k + 1)] - ls[idx(i, j, k)]) / kDz
-			- kDz * 0.5 * MinMod(
-			(ls[idx(i, j, k - 1)] - 2.0 * ls[idx(i, j, k)] + ls[idx(i, j, k + 1)]) / (kDz * kDz),
-			(ls[idx(i, j, k)] - 2.0 * ls[idx(i, j, k + 1)] + ls[idx(i, j, k + 2)]) / (kDz * kDz));
+			- kDz * 0.5 * MinMod(d2LSdZ2[idx(i, j, k)], d2LSdZ2[idx(i, j, k + 1)]);
 		dMZ[idx(i, j, k)] = (ls[idx(i, j, k)] - ls[idx(i, j, k - 1)]) / kDz
-			+ kDz * 0.5 * MinMod(
-			(ls[idx(i, j, k - 1)] - 2.0 * ls[idx(i, j, k)] + ls[idx(i, j, k + 1)]) / (kDz * kDz),
-			(ls[idx(i, j, k - 2)] - 2.0 * ls[idx(i, j, k - 1)] + ls[idx(i, j, k)]) / (kDz * kDz));
+			+ kDz * 0.5 * MinMod(d2LSdZ2[idx(i, j, k)], d2LSdZ2[idx(i, j, k - 1)]);
 
 		if (lsInit[idx(i, j, k)] * lsInit[idx(i, j, k + 1)] < 0) {
 			DDZ = MinMod(
@@ -1380,5 +1378,5 @@ double LevelSetSolver3D::MinMod(const double& val1, const double& val2) {
 }
 
 inline int LevelSetSolver3D::idx(int i, int j, int k) {
-	return (k + (kNz + 2 * kNumBCGrid) * j + (kNz + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid) * i);
+	return (k + (kNz + 2 * kNumBCGrid) * (j + (kNy + 2 * kNumBCGrid) * i));
 }
