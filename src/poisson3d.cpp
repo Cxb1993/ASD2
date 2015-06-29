@@ -339,5 +339,5 @@ std::vector<double> PoissonSolver3D::InvertMatrixDiagonal(const std::vector<doub
 }
 
 inline int PoissonSolver3D::idx(int i, int j, int k) {
-	return (static_cast<int64_t>(k) + (kNz + 2 * kNumBCGrid) * static_cast<int64_t>(j) + (kNz + 2 * kNumBCGrid) * (kNy + 2 * kNumBCGrid) * static_cast<int64_t>(i));
+	return (k + (kNz + 2 * kNumBCGrid) * (j + (kNy + 2 * kNumBCGrid) * i));
 }
