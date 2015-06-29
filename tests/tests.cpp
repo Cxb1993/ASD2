@@ -11,14 +11,15 @@ int main(int argc, char *argv[]) {
 	// LevelSetTest_2D_Simple();
 	// LevelSetTest_2D_ReinitOnly_Original();
 	// LevelSetTest_2D_ReinitOnly_Sussman();
-	LevelSetTest_2D_ReinitOnly_MinRK2();
+	// LevelSetTest_2D_ReinitOnly_MinRK2();
 	LevelSetTest_2D_ReinitOnly_MinRK2_2();
-	LevelSetTest_2D_ReinitOnlyWithKinks();
+	// LevelSetTest_2D_ReinitOnlyWithKinks();
 	// LevelSetTest_2DAxisym_ReinitOnly_Sussman();
+	// LevelSetTest_2DAxisym_ReinitOnly_MinRK2();
 	// LevelSetTest_2D_FirstTimeReinit();
 	// LevelSetTest_2D_Sussman621_ReinitSussman();
 
-	// test_poisson2D_GuassSeidel();
+	// test_poisson2D_GuassSeidel(;)
 	// test_poisson2D_CG();
 	// test_poisson2D_BiCGStab();
 	// test_poisson3D_CG();
