@@ -236,7 +236,7 @@ int MACSolver2D::UpdateKappa(const std::vector<double>& ls) {
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++) {
 		m_kappa[idx(i, j)]
-			= -(dLSdX[idx(i, j)] * dLSdX[idx(i, j)] * (ls[idx(i, j - 1)] - 2.0 * ls[idx(i, j)] + ls[idx(i, j + 1)]) / (kDy * kDy) // phi^2_x \phi_yy
+			= (dLSdX[idx(i, j)] * dLSdX[idx(i, j)] * (ls[idx(i, j - 1)] - 2.0 * ls[idx(i, j)] + ls[idx(i, j + 1)]) / (kDy * kDy) // phi^2_x \phi_yy
 			// - 2.0 * dLSdX[idx(i, j)] * dLSdY[idx(i, j)] * (ls[idx(i + 1, j + 1)] - ls[idx(i - 1, j + 1)] -ls[idx(i + 1, j - 1)] + ls[idx(i - 1, j - 1)]) / (4.0 * kDx * kDy) //2 \phi_x \phi_y \phi_xy
 			- 2.0 * dLSdX[idx(i, j)] * dLSdY[idx(i, j)] * (dLSdX[idx(i, j + 1)] - dLSdX[idx(i, j - 1)]) / (2.0 * kDy) //2 \phi_x \phi_y \phi_xy
 			+ dLSdY[idx(i, j)] * dLSdY[idx(i, j)] * (ls[idx(i - 1, j)] - 2.0 * ls[idx(i, j)] + ls[idx(i + 1, j)]) / (kDx * kDx)) // phi^2_y \phi_xx
@@ -1555,7 +1555,7 @@ std::vector<double> MACSolver2D::AddViscosityFV(const std::vector<double>& u, co
 			exit(1);
 		}
 	}
-	
+	/*
 	std::ofstream outF;
 	std::string fname("VisV_ASCII.plt");
 	if (m_iter == 1) {
@@ -1595,7 +1595,7 @@ std::vector<double> MACSolver2D::AddViscosityFV(const std::vector<double>& u, co
 			<< std::endl;
 
 	outF.close();
-	
+	*/
 	return dV;	
 }
 
@@ -2925,7 +2925,7 @@ double MACSolver2D::UpdateDt(const std::vector<double>& u, const std::vector<dou
 	Vefl = std::max(kMuH, kMuL) * (2.0 / (kDx * kDx) + 2.0 / (kDy * kDy));
 	Gefl = std::max(std::sqrt(std::fabs(kG) / kDy), std::sqrt(std::fabs(kG) / kDx));
 	Sefl = std::sqrt((kSigma / std::min(kDx, kDy))
-		/ (std::min(kRhoH, kRhoL) * std::pow(std::min(kDx, kDy), 2.0));
+		/ (std::min(kRhoH, kRhoL) * std::pow(std::min(kDx, kDy), 2.0)));
 	
 	dt = std::min(dt,
 		1.0 / (0.5 * (Cefl + Vefl +
