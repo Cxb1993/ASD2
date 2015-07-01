@@ -95,10 +95,8 @@ public:
 		std::tuple<std::vector<double>&, std::vector<double>&, std::vector<double>&> t2Vec,
 		std::vector<double>& kappa);
 	int UpdateKappa(const std::vector<double>& ls);
-	std::vector<double> UpdateFU(const std::shared_ptr<LevelSetSolver2D>& LSolver,
-		const std::vector<double>& ls, const std::vector<double>& u, const std::vector<double>& v, const std::vector<double>& H);
-	std::vector<double> UpdateFV(const std::shared_ptr<LevelSetSolver2D>& LSolver,
-		const std::vector<double>& ls, const std::vector<double>& u, const std::vector<double>& v, const std::vector<double>& H);
+	std::vector<double> UpdateFU(const std::vector<double>& ls, const std::vector<double>& u, const std::vector<double>& v, const std::vector<double>& H);
+	std::vector<double> UpdateFV(const std::vector<double>& ls, const std::vector<double>& u, const std::vector<double>& uhat, const std::vector<double>& v, const std::vector<double>& H);
 
 	// Convection Term
 	std::vector<double> AddConvectionFU(const std::vector<double>& u, const std::vector<double>& v);
@@ -107,20 +105,20 @@ public:
 		const std::vector<double> &F, std::vector<double> &FP, std::vector<double> &FM, const double d, const int n);
 
 	// Viscosity Term
-	std::vector<double> AddViscosityFU(
+	std::vector<double> AddExternalViscosityFU(
 		const std::vector<double>& u, const std::vector<double>& v, const std::vector<double>& ls, const std::vector<double>& H);
-	std::vector<double> AddViscosityFV(
-		const std::vector<double>& u, const std::vector<double>& v, const std::vector<double>& ls, const std::vector<double>& H);
+	std::vector<double> AddExternalViscosityFV(
+		const std::vector<double>& u, const std::vector<double>& uhat, const std::vector<double>& v, const std::vector<double>& ls, const std::vector<double>& H);
 	
 	// Gravity Term
 	std::vector<double> AddGravityFU();
 	std::vector<double> AddGravityFV();
 	
 	// Intermediate Velocity
-	int GetIntermediateVel(const std::shared_ptr<LevelSetSolver2D>& LSolver,
-		const std::vector<double>& ls, const std::vector<double>& u, const std::vector<double>& v,
-		std::vector<double>& uhat, std::vector<double>& vhat, const std::vector<double>& H);
-	
+	std::vector<double> GetUHat(const std::vector<double>& ls, const std::vector<double>& u,
+		const std::vector<double>& rhs, const std::vector<double>& H);
+	std::vector<double> GetVHat(const std::vector<double>& ls, const std::vector<double>& v,
+		const std::vector<double>& rhs, const std::vector<double>& H);
 	// Poisson 
 	int SetPoissonSolver(POISSONTYPE type);
 	int SolvePoisson(std::vector<double>& ps, const std::vector<double>& div,
@@ -156,7 +154,7 @@ public:
 	void SetBCConstantPS(double BC_ConstantS);
 	void SetBCConstantPN(double BC_ConstantN);
 
-	void TDMA(double* a, double* b, double* c, double* d, int n);
+	int SolveTDMA(std::vector<double>& a, std::vector<double>& b, std::vector<double>& c, std::vector<double>& d, int n);
 	int sign(const double& val);
 	int SetPLTType(PLTTYPE type);
 	int OutRes(const int iter, const double curTime, const std::string fname_vel_base, const std::string fname_div_base,

@@ -959,7 +959,7 @@ int MAC2DAxisymTest_StationaryBubble() {
 	// # of cells
 	const int nr = 64, nz = 128;
 	// related to initialize level set
-	const double baseR = 0.0, baseZ = 0.0, lenR = 0.02, lenZ = 0.04, cfl = 0.3;
+	const double baseR = 0.0, baseZ = 0.0, lenR = 0.02, lenZ = 0.04, cfl = 0.5;
 	
 	const int maxiter = 20, niterskip = 1, num_bc_grid = 3;
 	const double maxtime = 0.06;
@@ -1058,7 +1058,10 @@ int MAC2DAxisymTest_StationaryBubble() {
 	MSolver->m_dt = cfl * std::min(dr, dz) / U;
 	std::cout << " dt : " << MSolver->m_dt << std::endl;
 
-	std::vector<double> uhat((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid)), vhat((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid));
+	std::vector<double> uhat((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid)),
+		vhat((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid));
+	std::vector<double> rhsU((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid)),
+		rhsV((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid));
 	std::vector<double> div((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid));
 	MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
 		MSolver->m_u, MSolver->m_v, MSolver->m_ps, ls);
@@ -1080,7 +1083,11 @@ int MAC2DAxisymTest_StationaryBubble() {
 		HSmooth = MSolver->UpdateSmoothHeavisideFunc(ls);
 
 		// Get intermediate velocity
-		MSolver->GetIntermediateVel(LSolver, ls, MSolver->m_u, MSolver->m_v, uhat, vhat, HSmooth);
+		rhsU = MSolver->UpdateFU(ls, MSolver->m_u, MSolver->m_v, HSmooth);
+		uhat = MSolver->GetUHat(ls, MSolver->m_u, rhsU, HSmooth);
+
+		rhsV = MSolver->UpdateFV(ls, MSolver->m_u, uhat, MSolver->m_v, HSmooth);
+		vhat = MSolver->GetVHat(ls, MSolver->m_v, rhsV, HSmooth);
 
 		MSolver->ApplyBC_U_2D(uhat);
 		MSolver->ApplyBC_V_2D(vhat);
@@ -1249,7 +1256,10 @@ int MAC2DAxisymTest_SmallAirBubbleRising() {
 	MSolver->m_dt = cfl * std::min(dr, dz) / U;
 	std::cout << " dt : " << MSolver->m_dt << std::endl;
 
-	std::vector<double> uhat((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid)), vhat((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid));
+	std::vector<double> uhat((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid)),
+		vhat((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid));
+	std::vector<double> rhsU((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid)),
+		rhsV((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid));
 	std::vector<double> div((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid));
 	MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
 		MSolver->m_u, MSolver->m_v, MSolver->m_ps, ls);
@@ -1271,7 +1281,11 @@ int MAC2DAxisymTest_SmallAirBubbleRising() {
 		HSmooth = MSolver->UpdateSmoothHeavisideFunc(ls);
 
 		// Get intermediate velocity
-		MSolver->GetIntermediateVel(LSolver, ls, MSolver->m_u, MSolver->m_v, uhat, vhat, HSmooth);
+		rhsU = MSolver->UpdateFU(ls, MSolver->m_u, MSolver->m_v, HSmooth);
+		uhat = MSolver->GetUHat(ls, MSolver->m_u, rhsU, HSmooth);
+
+		rhsV = MSolver->UpdateFV(ls, MSolver->m_u, uhat, MSolver->m_v, HSmooth);
+		vhat = MSolver->GetVHat(ls, MSolver->m_v, rhsV, HSmooth);
 
 		MSolver->ApplyBC_U_2D(uhat);
 		MSolver->ApplyBC_V_2D(vhat);
@@ -1453,6 +1467,8 @@ int MAC2DAxisymTest_WaterDropletCollison1() {
 
 	std::vector<double> uhat((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid)),
 		vhat((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid));
+	std::vector<double> rhsU((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid)),
+		rhsV((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid));
 	std::vector<double> div((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid));
 	MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
 		MSolver->m_u, MSolver->m_v, MSolver->m_ps, ls);
@@ -1474,7 +1490,11 @@ int MAC2DAxisymTest_WaterDropletCollison1() {
 		HSmooth = MSolver->UpdateSmoothHeavisideFunc(ls);
 
 		// Get intermediate velocity
-		MSolver->GetIntermediateVel(LSolver, ls, MSolver->m_u, MSolver->m_v, uhat, vhat, HSmooth);
+		rhsU = MSolver->UpdateFU(ls, MSolver->m_u, MSolver->m_v, HSmooth);
+		uhat = MSolver->GetUHat(ls, MSolver->m_u, rhsU, HSmooth);
+
+		rhsV = MSolver->UpdateFV(ls, MSolver->m_u, uhat, MSolver->m_v, HSmooth);
+		vhat = MSolver->GetVHat(ls, MSolver->m_v, rhsV, HSmooth);
 
 		MSolver->ApplyBC_U_2D(uhat);
 		MSolver->ApplyBC_V_2D(vhat);

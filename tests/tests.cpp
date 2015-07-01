@@ -12,7 +12,7 @@ int main(int argc, char *argv[]) {
 	// LevelSetTest_2D_ReinitOnly_Original();
 	// LevelSetTest_2D_ReinitOnly_Sussman();
 	// LevelSetTest_2D_ReinitOnly_MinRK2();
-	LevelSetTest_2D_ReinitOnly_MinRK2_2();
+	// LevelSetTest_2D_ReinitOnly_MinRK2_2();
 	// LevelSetTest_2D_ReinitOnlyWithKinks();
 	// LevelSetTest_2DAxisym_ReinitOnly_Sussman();
 	// LevelSetTest_2DAxisym_ReinitOnly_MinRK2();
@@ -31,7 +31,7 @@ int main(int argc, char *argv[]) {
 	// MAC2DTest_TaylorInstability();
 
 	// MAC3DTest_StationaryBubble();
-	// MAC2DAxisymTest_StationaryBubble();
+	MAC2DAxisymTest_StationaryBubble();
 	// MAC2DAxisymTest_SmallAirBubbleRising();
 	// MAC2DAxisymTest_WaterDropletCollison1();
 }
