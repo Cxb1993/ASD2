@@ -2507,7 +2507,7 @@ double MACSolver3D::UpdateDt(const std::vector<double>& u, const std::vector<dou
 	Sefl = std::sqrt((kSigma / std::min(std::min(kDx, kDy), kDz))
 		/ (std::min(kRhoH, kRhoL) * std::pow(std::min(std::min(kDx, kDy), kDz), 2.0)));
 	dt = std::min(dt,
-		1.0 / (0.5 * (Cefl + Vefl +
+		kCFL / (0.5 * (Cefl + Vefl +
 		std::sqrt(std::pow(Cefl + Vefl, 2.0) +
 		4.0 * Gefl * Gefl + 4.0 * Sefl * Sefl))));
 

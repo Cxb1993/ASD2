@@ -2526,7 +2526,7 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 	}
 	
 	ApplyBC_P_2D(ps);
-
+	/*
 	std::ofstream outF;
 	std::string fname("P_ASCII.plt");
 	if (m_iter == 1) {
@@ -2571,6 +2571,7 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 			<< static_cast<double>(m_kappa[idx(i, j)]) << std::endl;
 	
 	outF.close();
+	*/
 	return 0;
 }
 
@@ -2856,7 +2857,7 @@ int MACSolver2D::UpdateVel(std::vector<double>& u, std::vector<double>& v,
 		iRhoEffSVec[idx(i, j)] = iRhoEff;
 		v[idx(i, j)] += vs[idx(i, j)] - iRhoEff * (ps[idx(i, j)] - ps[idx(i, j - 1)]) / kDy;
 	}
-	
+	/*
 	std::ofstream outF;
 	std::string fname("VUpdate_ASCII.plt");
 	if (m_iter == 1) {
@@ -2901,7 +2902,7 @@ int MACSolver2D::UpdateVel(std::vector<double>& u, std::vector<double>& v,
 		<< static_cast<double>(m_kappa[idx(i, j)]) << std::endl;
 
 	outF.close();
-	
+	*/
 	ApplyBC_U_2D(u);
 	ApplyBC_V_2D(v);
 	
@@ -2922,13 +2923,13 @@ double MACSolver2D::UpdateDt(const std::vector<double>& u, const std::vector<dou
 	}
 	
 	Cefl = uAMax / kDx + vAMax / kDy;
-	Vefl = std::max(kMuH, kMuL) * (2.0 / (kDx * kDx) + 2.0 / (kDy * kDy));
+	Vefl = std::max(kMuH, kMuL) * (2.0 / (kDx * kDx + kDy * kDy));
 	Gefl = std::max(std::sqrt(std::fabs(kG) / kDy), std::sqrt(std::fabs(kG) / kDx));
 	Sefl = std::sqrt((kSigma / std::min(kDx, kDy))
 		/ (std::min(kRhoH, kRhoL) * std::pow(std::min(kDx, kDy), 2.0)));
 	
 	dt = std::min(dt,
-		1.0 / (0.5 * (Cefl + Vefl +
+		kCFL / (0.5 * (Cefl + Vefl +
 		std::sqrt(std::pow(Cefl + Vefl, 2.0) +
 		4.0 * Gefl * Gefl + 4.0 * Sefl * Sefl))));
 
