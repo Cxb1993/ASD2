@@ -23,7 +23,7 @@ public:
 
 	const int kNx, kNy;
 	const int kNumBCGrid;
-
+	double m_AmbientPressure;
 	// Boundary Condition Variables
 	
 	BC2D m_BC_UW, m_BC_UE, m_BC_US, m_BC_UN;
@@ -113,6 +113,8 @@ public:
 	void SetBCConstantPE(double BC_ConstantE);
 	void SetBCConstantPS(double BC_ConstantS);
 	void SetBCConstantPN(double BC_ConstantN);
+
+	void SetAmbientPressure(double ambientPressure);
 };
 
 #endif __BC2D_H_

@@ -15,6 +15,11 @@ int BoundaryCondition2D::SetBC_U_2D(std::string BC_W, std::string BC_E, std::str
 	std::transform(BC_S.begin(), BC_S.end(), BC_S.begin(), ::tolower);
 	std::transform(BC_N.begin(), BC_N.end(), BC_N.begin(), ::tolower);
 	
+	if (BC_W == "pressure" || BC_E == "pressure" || BC_S == "pressure" || BC_N == "pressure") {
+		std::cout << "Boundary Condition Error : constant pressure BC is not allowed at velocity" << std::endl;
+		exit(1);
+	}
+
 	if (BC_W == "periodic")
 		m_BC_UW = BC2D::PERIODIC;
 	else if (BC_W == "neumann")
@@ -27,6 +32,10 @@ int BoundaryCondition2D::SetBC_U_2D(std::string BC_W, std::string BC_E, std::str
 	}
 	else if (BC_W == "wall" || BC_W == "dirichlet")
 		m_BC_UW = BC2D::DIRICHLET;
+	else if (BC_W == "inlet")
+		m_BC_UW = BC2D::INLET;
+	else if (BC_W == "outlet")
+		m_BC_UW = BC2D::OUTLET;
 	// not supported
 	else
 		m_BC_UW = BC2D::CUSTOM;
@@ -43,6 +52,10 @@ int BoundaryCondition2D::SetBC_U_2D(std::string BC_W, std::string BC_E, std::str
 	}
 	else if (BC_E == "wall" || BC_E == "dirichlet")
 		m_BC_UE = BC2D::DIRICHLET;
+	else if (BC_E == "inlet")
+		m_BC_UE = BC2D::INLET;
+	else if (BC_E == "outlet")
+		m_BC_UE = BC2D::OUTLET;
 	// not supported
 	else
 		m_BC_UE = BC2D::CUSTOM;
@@ -57,6 +70,10 @@ int BoundaryCondition2D::SetBC_U_2D(std::string BC_W, std::string BC_E, std::str
 		m_BC_US = BC2D::AXISYM;
 	else if (BC_S == "wall" || BC_S == "dirichlet")
 		m_BC_US = BC2D::DIRICHLET;
+	else if (BC_S == "inlet")
+		m_BC_US = BC2D::INLET;
+	else if (BC_S == "outlet")
+		m_BC_US = BC2D::OUTLET;
 	// not supported
 	else
 		m_BC_US = BC2D::CUSTOM;
@@ -71,6 +88,10 @@ int BoundaryCondition2D::SetBC_U_2D(std::string BC_W, std::string BC_E, std::str
 		m_BC_UN = BC2D::AXISYM;
 	else if (BC_N == "wall" || BC_N == "dirichlet")
 		m_BC_UN = BC2D::DIRICHLET;
+	else if (BC_N == "inlet")
+		m_BC_UN = BC2D::INLET;
+	else if (BC_N == "outlet")
+		m_BC_UN = BC2D::OUTLET;
 	// not supported
 	else
 		m_BC_UN = BC2D::CUSTOM;
@@ -94,6 +115,11 @@ int BoundaryCondition2D::SetBC_V_2D(std::string BC_W, std::string BC_E, std::str
 	std::transform(BC_S.begin(), BC_S.end(), BC_S.begin(), ::tolower);
 	std::transform(BC_N.begin(), BC_N.end(), BC_N.begin(), ::tolower);
 	
+	if (BC_W == "pressure" || BC_E == "pressure" || BC_S == "pressure" || BC_N == "pressure") {
+		std::cout << "Boundary Condition Error : constant pressure BC is not allowed at velocity" << std::endl;
+		exit(1);
+	}
+
 	if (BC_W == "periodic")
 		m_BC_VW = BC2D::PERIODIC;
 	else if (BC_W == "neumann")
@@ -104,6 +130,10 @@ int BoundaryCondition2D::SetBC_V_2D(std::string BC_W, std::string BC_E, std::str
 		m_BC_VW = BC2D::AXISYM;
 	else if (BC_W == "wall" || BC_W == "dirichlet")
 		m_BC_VW = BC2D::DIRICHLET;
+	else if (BC_W == "inlet")
+		m_BC_VW = BC2D::INLET;
+	else if (BC_W == "outlet")
+		m_BC_VW = BC2D::OUTLET;
 	// not supported
 	else
 		m_BC_VW = BC2D::CUSTOM;
@@ -118,6 +148,10 @@ int BoundaryCondition2D::SetBC_V_2D(std::string BC_W, std::string BC_E, std::str
 		m_BC_VE = BC2D::AXISYM;
 	else if (BC_E == "wall" || BC_E == "dirichlet")
 		m_BC_VE = BC2D::DIRICHLET;
+	else if (BC_E == "inlet")
+		m_BC_VE = BC2D::INLET;
+	else if (BC_E == "outlet")
+		m_BC_VE = BC2D::OUTLET;
 	// not supported
 	else
 		m_BC_VE = BC2D::CUSTOM;
@@ -134,6 +168,10 @@ int BoundaryCondition2D::SetBC_V_2D(std::string BC_W, std::string BC_E, std::str
 	}
 	else if (BC_S == "wall" || BC_S == "dirichlet")
 		m_BC_VS = BC2D::DIRICHLET;
+	else if (BC_S == "inlet")
+		m_BC_VS = BC2D::INLET;
+	else if (BC_S == "outlet")
+		m_BC_VS = BC2D::OUTLET;
 	// not supported
 	else
 		m_BC_VS = BC2D::CUSTOM;
@@ -150,6 +188,10 @@ int BoundaryCondition2D::SetBC_V_2D(std::string BC_W, std::string BC_E, std::str
 	}
 	else if (BC_N == "wall" || BC_N == "dirichlet")
 		m_BC_VN = BC2D::DIRICHLET;
+	else if (BC_N == "inlet")
+		m_BC_VN = BC2D::INLET;
+	else if (BC_N == "outlet")
+		m_BC_VN = BC2D::OUTLET;
 	// not supported
 	else
 		m_BC_VN = BC2D::CUSTOM;
@@ -172,6 +214,7 @@ int BoundaryCondition2D::SetBC_P_2D(std::string BC_W, std::string BC_E,	std::str
 	std::transform(BC_E.begin(), BC_E.end(), BC_E.begin(), ::tolower);
 	std::transform(BC_S.begin(), BC_S.end(), BC_S.begin(), ::tolower);
 	std::transform(BC_N.begin(), BC_N.end(), BC_N.begin(), ::tolower);
+
 	if (BC_W == "periodic")
 		m_BC_PW = BC2D::PERIODIC;
 	else if (BC_W == "neumann")
@@ -180,6 +223,12 @@ int BoundaryCondition2D::SetBC_P_2D(std::string BC_W, std::string BC_E,	std::str
 		m_BC_PW = BC2D::AXISYM;
 	else if (BC_W == "wall" || BC_W == "dirichlet")
 		m_BC_PW = BC2D::DIRICHLET;
+	else if (BC_W == "inlet")
+		m_BC_PW = BC2D::INLET;
+	else if (BC_W == "outlet")
+		m_BC_PW = BC2D::OUTLET;
+	else if (BC_W == "pressure")
+		m_BC_PW = BC2D::PRESSURE;
 	// not supported
 	else
 		m_BC_PW = BC2D::CUSTOM;
@@ -192,6 +241,12 @@ int BoundaryCondition2D::SetBC_P_2D(std::string BC_W, std::string BC_E,	std::str
 		m_BC_PE = BC2D::AXISYM;
 	else if (BC_E == "wall" || BC_E == "dirichlet")
 		m_BC_PE = BC2D::DIRICHLET;
+	else if (BC_E == "inlet")
+		m_BC_PE = BC2D::INLET;
+	else if (BC_E == "outlet")
+		m_BC_PE = BC2D::OUTLET;
+	else if (BC_E == "pressure")
+		m_BC_PE = BC2D::PRESSURE;
 	// not supported
 	else
 		m_BC_PE = BC2D::CUSTOM;
@@ -204,6 +259,12 @@ int BoundaryCondition2D::SetBC_P_2D(std::string BC_W, std::string BC_E,	std::str
 		m_BC_PS = BC2D::AXISYM;
 	else if (BC_S == "wall" || BC_S == "dirichlet")
 		m_BC_PS = BC2D::DIRICHLET;
+	else if (BC_S == "inlet")
+		m_BC_PS = BC2D::INLET;
+	else if (BC_S == "outlet")
+		m_BC_PS = BC2D::OUTLET;
+	else if (BC_S == "pressure")
+		m_BC_PS = BC2D::PRESSURE;
 	// not supported
 	else
 		m_BC_PS = BC2D::CUSTOM;
@@ -216,6 +277,12 @@ int BoundaryCondition2D::SetBC_P_2D(std::string BC_W, std::string BC_E,	std::str
 		m_BC_PN = BC2D::AXISYM;
 	else if (BC_N == "wall" || BC_N == "dirichlet")
 		m_BC_PN = BC2D::DIRICHLET;
+	else if (BC_N == "inlet")
+		m_BC_PN = BC2D::INLET;
+	else if (BC_N == "outlet")
+		m_BC_PN = BC2D::OUTLET;
+	else if (BC_N == "pressure")
+		m_BC_PN = BC2D::PRESSURE;
 	// not supported
 	else
 		m_BC_PN = BC2D::CUSTOM;
@@ -241,6 +308,10 @@ void BoundaryCondition2D::BC_UW(std::vector<double>& arr) {
 		BC_DirichletUW(arr);
 	else if (m_BC_UW == BC2D::DIRICHLET)
 		BC_DirichletUW(arr);
+	else if (m_BC_UW == BC2D::INLET)
+		BC_DirichletUW(arr);
+	else if (m_BC_UW == BC2D::OUTLET)
+		BC_NeumannUW(arr);
 }
 
 void BoundaryCondition2D::BC_UE(std::vector<double>& arr) {
@@ -252,6 +323,10 @@ void BoundaryCondition2D::BC_UE(std::vector<double>& arr) {
 		BC_DirichletUE(arr);
 	else if (m_BC_UE == BC2D::DIRICHLET)
 		BC_DirichletUE(arr);
+	else if (m_BC_UE == BC2D::INLET)
+		BC_DirichletUE(arr);
+	else if (m_BC_UE == BC2D::OUTLET)
+		BC_NeumannUE(arr);
 }
 
 void BoundaryCondition2D::BC_US(std::vector<double>& arr) {
@@ -263,6 +338,10 @@ void BoundaryCondition2D::BC_US(std::vector<double>& arr) {
 		BC_NeumannUS(arr);
 	else if (m_BC_US == BC2D::DIRICHLET)
 		BC_DirichletUS(arr);
+	else if (m_BC_US == BC2D::INLET)
+		BC_DirichletUS(arr);
+	else if (m_BC_US == BC2D::OUTLET)
+		BC_NeumannUS(arr);
 }
 
 void BoundaryCondition2D::BC_UN(std::vector<double>& arr) {
@@ -274,6 +353,10 @@ void BoundaryCondition2D::BC_UN(std::vector<double>& arr) {
 		BC_NeumannUN(arr);
 	else if (m_BC_UN == BC2D::DIRICHLET)
 		BC_DirichletUN(arr);
+	else if (m_BC_UN == BC2D::INLET)
+		BC_DirichletUN(arr);
+	else if (m_BC_UN == BC2D::OUTLET)
+		BC_NeumannUN(arr);
 }
 
 void BoundaryCondition2D::BC_VW(std::vector<double>& arr) {
@@ -285,6 +368,10 @@ void BoundaryCondition2D::BC_VW(std::vector<double>& arr) {
 		BC_NeumannVW(arr);
 	else if (m_BC_VW == BC2D::DIRICHLET)
 		BC_DirichletVW(arr);
+	else if (m_BC_VW == BC2D::INLET)
+		BC_DirichletVW(arr);
+	else if (m_BC_VW == BC2D::OUTLET)
+		BC_NeumannVW(arr);
 }
 
 void BoundaryCondition2D::BC_VE(std::vector<double>& arr) {
@@ -296,6 +383,10 @@ void BoundaryCondition2D::BC_VE(std::vector<double>& arr) {
 		BC_NeumannVE(arr);
 	else if (m_BC_VE == BC2D::DIRICHLET)
 		BC_DirichletVE(arr);
+	else if (m_BC_VE == BC2D::INLET)
+		BC_DirichletVE(arr);
+	else if (m_BC_VE == BC2D::OUTLET)
+		BC_NeumannVE(arr);
 }
 
 void BoundaryCondition2D::BC_VS(std::vector<double>& arr) {
@@ -307,6 +398,10 @@ void BoundaryCondition2D::BC_VS(std::vector<double>& arr) {
 		BC_DirichletVS(arr);
 	else if (m_BC_VS == BC2D::DIRICHLET)
 		BC_DirichletVS(arr);
+	else if (m_BC_VS == BC2D::INLET)
+		BC_DirichletVS(arr);
+	else if (m_BC_VS == BC2D::OUTLET)
+		BC_NeumannVS(arr);
 }
 
 void BoundaryCondition2D::BC_VN(std::vector<double>& arr) {
@@ -318,6 +413,10 @@ void BoundaryCondition2D::BC_VN(std::vector<double>& arr) {
 		BC_DirichletVN(arr);
 	else if (m_BC_VN == BC2D::DIRICHLET)
 		BC_DirichletVN(arr);
+	else if (m_BC_VN == BC2D::INLET)
+		BC_DirichletVN(arr);
+	else if (m_BC_VN == BC2D::OUTLET)
+		BC_NeumannVN(arr);
 }
 
 void BoundaryCondition2D::BC_PW(std::vector<double>& arr) {
@@ -328,6 +427,12 @@ void BoundaryCondition2D::BC_PW(std::vector<double>& arr) {
 	else if (m_BC_PW == BC2D::AXISYM)
 		BC_NeumannPW(arr);
 	else if (m_BC_PW == BC2D::DIRICHLET)
+		BC_DirichletPW(arr);
+	else if (m_BC_PW == BC2D::INLET)
+		BC_DirichletPW(arr);
+	else if (m_BC_PW == BC2D::OUTLET)
+		BC_DirichletPW(arr);
+	else if (m_BC_PW == BC2D::PRESSURE)
 		BC_DirichletPW(arr);
 }
 
@@ -340,6 +445,12 @@ void BoundaryCondition2D::BC_PE(std::vector<double>& arr) {
 		BC_NeumannPE(arr);
 	else if (m_BC_PE == BC2D::DIRICHLET)
 		BC_DirichletPE(arr);
+	else if (m_BC_PE == BC2D::INLET)
+		BC_DirichletPE(arr);
+	else if (m_BC_PE == BC2D::OUTLET)
+		BC_DirichletPE(arr);
+	else if (m_BC_PE == BC2D::PRESSURE)
+		BC_DirichletPE(arr);
 }
 
 void BoundaryCondition2D::BC_PS(std::vector<double>& arr) {
@@ -351,6 +462,12 @@ void BoundaryCondition2D::BC_PS(std::vector<double>& arr) {
 		BC_NeumannPS(arr);
 	else if (m_BC_PS == BC2D::DIRICHLET)
 		BC_DirichletPS(arr);
+	else if (m_BC_PS == BC2D::INLET)
+		BC_DirichletPS(arr);
+	else if (m_BC_PS == BC2D::OUTLET)
+		BC_DirichletPS(arr);
+	else if (m_BC_PS == BC2D::PRESSURE)
+		BC_DirichletPS(arr);
 }
 
 void BoundaryCondition2D::BC_PN(std::vector<double>& arr) {
@@ -361,6 +478,12 @@ void BoundaryCondition2D::BC_PN(std::vector<double>& arr) {
 	else if (m_BC_PN == BC2D::AXISYM)
 		BC_NeumannPN(arr);
 	else if (m_BC_PN == BC2D::DIRICHLET)
+		BC_DirichletPN(arr);
+	else if (m_BC_PN == BC2D::INLET)
+		BC_DirichletPN(arr);
+	else if (m_BC_PN == BC2D::OUTLET)
+		BC_DirichletPN(arr);
+	else if (m_BC_PN == BC2D::PRESSURE)
 		BC_DirichletPN(arr);
 }
 
@@ -632,6 +755,23 @@ void BoundaryCondition2D::SetBCConstantPS(double BC_ConstantS) {
 
 void BoundaryCondition2D::SetBCConstantPN(double BC_ConstantN) {
 	m_BC_DirichletConstantPN = BC_ConstantN;
+}
+
+void BoundaryCondition2D::SetAmbientPressure(double ambientPressure) {
+	m_AmbientPressure = ambientPressure;
+
+	// set ambient pressure as dirichlet condition constant
+	if (m_BC_PW == BC2D::INLET || m_BC_PW == BC2D::OUTLET || m_BC_PW == BC2D::PRESSURE)
+		SetBCConstantPW(ambientPressure);
+
+	if (m_BC_PE == BC2D::INLET || m_BC_PE == BC2D::OUTLET || m_BC_PE == BC2D::PRESSURE)
+		SetBCConstantPE(ambientPressure);
+
+	if (m_BC_PS == BC2D::INLET || m_BC_PS == BC2D::OUTLET || m_BC_PS == BC2D::PRESSURE)
+		SetBCConstantPS(ambientPressure);
+
+	if (m_BC_PN == BC2D::INLET || m_BC_PN == BC2D::OUTLET || m_BC_PN == BC2D::PRESSURE)
+		SetBCConstantPN(ambientPressure);
 }
 
 void BoundaryCondition2D::BC_DirichletPW(std::vector<double>& arr) {
