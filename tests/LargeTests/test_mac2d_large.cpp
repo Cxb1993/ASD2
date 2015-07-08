@@ -180,6 +180,200 @@ int MAC2DTest_CavityFlow() {
 	return 0;
 }
 
+int MAC2DTest_NonSurfaceTension() {
+	// Set initial level set
+	const double Re = 0.0, We = 0.0, Fr = 0.0;
+	const double L = 1.0, U = 1.0;
+	const double rhoL = 1.0, muL = 0.1, sigma = 0.0;
+	const double rhoH = 1.0, muH = 0.1;
+	const double gConstant = 0.0;
+	GAXISENUM2D GAxis = GAXISENUM2D::Y;
+	// # of cells
+	const int nx = 128, ny = 128;
+	// related to initialize level set
+	const double baseX = 0.0, baseY = 0.0, lenX = 1.0, lenY = 1.0, cfl = 0.3;
+	double radius = 0.25, x = 0.0, y = 0.0, d = 0.0;
+
+	const int maxiter = 10000, niterskip = 100, num_bc_grid = 3;
+	const double maxtime = 4.0;
+	const bool writeVTK = false;
+	// length of each cell
+	const double dx = lenX / nx, dy = lenY / ny;
+	std::ostringstream outfname_stream1;
+	outfname_stream1 << "testMAC2D_NonSurfaceTensionVel_Re_"
+		<< std::to_string(Re) << "_"
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nx))->str()
+		<< "x"
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << ny))->str();
+	const std::string fname_vel = outfname_stream1.str();
+
+	std::ostringstream outfname_stream2;
+	outfname_stream2 << "testMAC2D_NonSurfaceTensionDiv_Re_"
+		<< std::to_string(Re) << "_"
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nx))->str()
+		<< "x"
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << ny))->str();
+	const std::string fname_div = outfname_stream2.str();
+	const int iterskip = 1;
+	const TIMEORDERENUM timeOrder = TIMEORDERENUM::RK3;
+	int stat = 0;
+
+	std::unique_ptr<MACSolver2D> MSolver;
+	MSolver = std::make_unique<MACSolver2D>(rhoH, rhoL, muH, muL, gConstant, GAxis,
+		L, U, sigma, nx, ny, baseX, baseY, lenX, lenY,
+		timeOrder, cfl, maxtime, maxiter, niterskip, num_bc_grid, writeVTK);
+	MSolver->SetBC_U_2D("dirichlet", "dirichlet", "dirichlet", "dirichlet");
+	MSolver->SetBC_V_2D("dirichlet", "dirichlet", "dirichlet", "dirichlet");
+	MSolver->SetBC_P_2D("neumann", "neumann", "neumann", "neumann");
+	MSolver->SetBCConstantUW(0.0);
+	MSolver->SetBCConstantUE(0.0);
+	MSolver->SetBCConstantUS(0.0);
+	MSolver->SetBCConstantUN(1.0);
+	MSolver->SetBCConstantVW(0.0);
+	MSolver->SetBCConstantVE(0.0);
+	MSolver->SetBCConstantVS(0.0);
+	MSolver->SetBCConstantVN(0.0);
+	MSolver->SetPLTType(PLTTYPE::BOTH);
+
+	// MSolver->SetPoissonSolver(POISSONTYPE::BICGSTAB);
+	MSolver->SetPoissonSolver(POISSONTYPE::CG);
+	// MSolver->SetPoissonSolver(POISSONTYPE::GS);
+	const int poissonMaxIter = 20000;
+
+	std::shared_ptr<LevelSetSolver2D> LSolver;
+	LSolver = std::make_shared<LevelSetSolver2D>(nx, ny, num_bc_grid, baseX, baseY, dx, dy);
+	// \phi^n
+	std::vector<double> lsB((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid), 0.0);
+	// \phi^{n + 1}
+	std::vector<double> ls((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid), 0.0);
+	// inside value must be positive levelset, otherwise, negative
+
+	std::vector<double> H((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid), 0.0), HSmooth((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid), 0.0);
+	// init velocity and pseudo-pressure
+	MSolver->AllocateVariables();
+
+	MSolver->ApplyBC_U_2D(MSolver->m_u);
+	MSolver->ApplyBC_V_2D(MSolver->m_v);
+	MSolver->ApplyBC_P_2D(MSolver->m_ps);
+	MSolver->ApplyBC_P_2D(MSolver->m_p);
+
+	LSolver->SetBC_P_2D("neumann", "neumann", "neumann", "neumann");
+	LSolver->SetBCConstantPW(0.0);
+	LSolver->SetBCConstantPE(0.0);
+	LSolver->SetBCConstantPS(0.0);
+	LSolver->SetBCConstantPN(0.0);
+
+	for (int j = 0; j < ny + 2 * num_bc_grid; j++)
+	for (int i = 0; i < nx + 2 * num_bc_grid; i++) {
+		// positive : inside & gas, negative : outside & liquid 
+		x = baseX + (i + 0.5 - num_bc_grid) * dx;
+		y = baseY + (j + 0.5 - num_bc_grid) * dy;
+
+		// d - inside : -, outside : +
+		d = std::sqrt(std::pow(x - 0.5, 2.0) + std::pow(y - 0.5, 2.0)) - radius;
+
+		// ls - inside : -(gas), outside : +(liquid)
+		ls[idx3_2D(ny, i, j)] = d;
+	}
+
+	for (int i = 0; i < nx + 2 * num_bc_grid; i++)
+	for (int j = 0; j < ny + 2 * num_bc_grid; j++) {
+		MSolver->m_u[idx3_2D(ny, i, j)] = 0.0;
+		MSolver->m_v[idx3_2D(ny, i, j)] = 0.0;
+		MSolver->m_p[idx3_2D(ny, i, j)] = 0.0;
+		MSolver->m_ps[idx3_2D(ny, i, j)] = 0.0;
+	}
+
+	LSolver->ApplyBC_P_2D(ls);
+	LSolver->Reinit_MinRK2_2D(ls);
+
+	LSolver->ApplyBC_P_2D(ls);
+
+	// prevent dt == 0.0
+	MSolver->m_dt = cfl * std::min(dx, dy) / U;
+	std::cout << " dt : " << MSolver->m_dt << std::endl;
+
+	std::vector<double> uhat((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid)), vhat((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid));
+	std::vector<double> div((nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid));
+	MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
+		MSolver->m_u, MSolver->m_v, MSolver->m_ps, ls);
+
+	while (MSolver->m_curTime < MSolver->kMaxTime && MSolver->m_iter < MSolver->kMaxIter) {
+		// Solver Level set part first
+		// Have to use \phi^{n+1} for rho, mu, kappa
+		MSolver->m_iter++;
+
+		lsB = ls;
+		LSolver->Solve_LevelSet_2D(ls, MSolver->m_u, MSolver->m_v, MSolver->m_dt);
+		LSolver->ApplyBC_P_2D(ls);
+		LSolver->Reinit_MinRK2_2D(ls);
+
+		LSolver->ApplyBC_P_2D(ls);
+		// Solve Momentum Part
+		MSolver->UpdateKappa(ls);
+		H = MSolver->UpdateHeavisideFunc(ls);
+		HSmooth = MSolver->UpdateSmoothHeavisideFunc(ls);
+
+		// Get intermediate velocity
+		MSolver->GetIntermediateVel(LSolver, ls, MSolver->m_u, MSolver->m_v, uhat, vhat, HSmooth);
+
+		MSolver->ApplyBC_U_2D(uhat);
+		MSolver->ApplyBC_V_2D(vhat);
+
+		// From intermediate velocity, get divergence
+		div = MSolver->GetDivergence(uhat, vhat);
+		MSolver->ApplyBC_P_2D(MSolver->m_ps);
+		LSolver->ApplyBC_P_2D(ls);
+
+		// Solve Poisson equation
+		// m_phi = pressure * dt
+		stat = MSolver->SolvePoisson(MSolver->m_ps, div, ls, lsB, MSolver->m_u, MSolver->m_v, H, poissonMaxIter);
+		MSolver->ApplyBC_P_2D(MSolver->m_ps);
+
+		stat = MSolver->UpdateVel(MSolver->m_u, MSolver->m_v,
+			uhat, vhat, MSolver->m_ps, ls, lsB, H);
+
+		MSolver->ApplyBC_U_2D(MSolver->m_u);
+		MSolver->ApplyBC_V_2D(MSolver->m_v);
+
+		MSolver->m_dt = MSolver->UpdateDt(MSolver->m_u, MSolver->m_v);
+		MSolver->m_curTime += MSolver->m_dt;
+
+		if ((MSolver->m_iter % MSolver->kNIterSkip) == 0) {
+			std::chrono::high_resolution_clock::time_point p = std::chrono::high_resolution_clock::now();
+			std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(p.time_since_epoch());
+
+			std::chrono::seconds s = std::chrono::duration_cast<std::chrono::seconds>(ms);
+			std::time_t t = s.count();
+			std::size_t fractional_seconds = ms.count() % 1000;
+
+			std::cout << "Non Surface Tension : " << std::ctime(&t) << " " << MSolver->m_iter << " " << MSolver->m_curTime << " " << MSolver->m_dt << " " << std::endl;
+
+			MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
+				MSolver->m_u, MSolver->m_v, MSolver->m_ps, ls);
+		}
+		std::fill(uhat.begin(), uhat.end(), 0.0);
+		std::fill(vhat.begin(), vhat.end(), 0.0);
+	}
+	// http://stackoverflow.com/a/12836048/743078
+	std::chrono::high_resolution_clock::time_point p = std::chrono::high_resolution_clock::now();
+	std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(p.time_since_epoch());
+
+	std::chrono::seconds s = std::chrono::duration_cast<std::chrono::seconds>(ms);
+	std::time_t t = s.count();
+	std::size_t fractional_seconds = ms.count() % 1000;
+
+	std::cout << "(Final) Non Surface Tension : " << std::ctime(&t) << " " << MSolver->m_iter << " " << MSolver->m_curTime << " " << MSolver->m_dt << " " << std::endl;
+	MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
+		MSolver->m_u, MSolver->m_v, MSolver->m_ps, ls);
+	MSolver->OutResClose();
+
+	MSolver.reset();
+	LSolver.reset();
+
+	return 0;
+}
+
 int MAC2DTest_StationaryBubble() {
 	// Set initial level set
 	const double Re = 0.0, We = 0.0, Fr = 0.0;
@@ -364,7 +558,7 @@ int MAC2DTest_StationaryBubble() {
 	std::time_t t = s.count();
 	std::size_t fractional_seconds = ms.count() % 1000;
 
-	std::cout << "(Final) Small Bubble : " << std::ctime(&t) << " " << MSolver->m_iter << " " << MSolver->m_curTime << " " << MSolver->m_dt << " " << std::endl;
+	std::cout << "(Final) Stationary Bubble : " << std::ctime(&t) << " " << MSolver->m_iter << " " << MSolver->m_curTime << " " << MSolver->m_dt << " " << std::endl;
 	MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
 		MSolver->m_u, MSolver->m_v, MSolver->m_ps, ls);
 	MSolver->OutResClose();
@@ -948,6 +1142,244 @@ int MAC2DTest_TaylorInstability() {
 	return 0;
 }
 
+int MAC2DAxisymTest_NonSurfaceTension() {
+	// Set initial level set
+	const double Re = 0.0, We = 0.0, Fr = 0.0;
+	const double L = 1.0, U = 1.0;
+	const double rhoL = 1.226, muL = 1.78e-5;
+	const double rhoH = 1.226, muH = 1.78e-5, sigma = 0.0;
+	const double gConstant = 0.0;
+	GAXISENUM2DAXISYM GAxis = GAXISENUM2DAXISYM::Z;
+	// # of cells
+	const int nr = 64, nz = 128;
+	// related to initialize level set
+	const double baseR = 0.0, baseZ = 0.0, lenR = 0.02, lenZ = 0.04, cfl = 0.5;
+
+	const int maxiter = 20, niterskip = 1, num_bc_grid = 3;
+	const double maxtime = 1.0;
+	const bool writeVTK = false;
+	// length of each cell
+	const double dr = lenR / nr, dz = lenZ / nz;
+	std::ostringstream outfname_stream1;
+	outfname_stream1 << "testMAC2DAxisym_NonSurfaceTensionVel_Re_"
+		<< std::to_string(Re) << "_"
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nr))->str()
+		<< "x"
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nz))->str();
+	std::string fname_vel = outfname_stream1.str();
+
+	std::ostringstream outfname_stream2;
+	outfname_stream2 << "testMAC2DAxisym_NonSurfaceTensionDiv_Re_"
+		<< std::to_string(Re) << "_"
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nr))->str()
+		<< "x"
+		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nz))->str();
+	std::string fname_div = outfname_stream2.str();
+	const int iterskip = 1;
+	int stat = 0;
+
+	std::unique_ptr<MACSolver2DAxisym> MSolver;
+	MSolver = std::make_unique<MACSolver2DAxisym>(rhoH, rhoL, muH, muL, gConstant, GAxis,
+		L, U, sigma, nr, nz, baseR, baseZ, lenR, lenZ,
+		cfl, maxtime, maxiter, niterskip, num_bc_grid, writeVTK);
+	MSolver->SetBC_U_2D("axisym", "wall", "inlet", "outlet");
+	MSolver->SetBC_V_2D("axisym", "wall", "inlet", "outlet");
+	MSolver->SetBC_P_2D("neumann", "pressure", "pressure", "pressure");
+	MSolver->SetBCConstantUE(0.0);
+	MSolver->SetBCConstantUS(0.0);
+	MSolver->SetBCConstantUN(0.0);
+	MSolver->SetBCConstantVE(0.0);
+	MSolver->SetBCConstantVS(1.0);
+	MSolver->SetBCConstantVN(0.0);
+	MSolver->SetAmbientPressure(1.0);
+	MSolver->SetPLTType(PLTTYPE::BOTH);
+
+	MSolver->SetPoissonSolver(POISSONTYPE::BICGSTAB);
+	const int poissonMaxIter = 20000;
+
+	std::shared_ptr<LevelSetSolver2D> LSolver;
+	LSolver = std::make_shared<LevelSetSolver2D>(nr, nz, num_bc_grid, baseR, baseZ, dr, dz);
+	// \phi^n
+	std::vector<double> lsB((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid), 0.0);
+	// \phi^{n + 1}
+	std::vector<double> ls((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid), 0.0);
+	// inside value must be positive levelset, otherwise, negative
+
+	std::vector<double> H((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid), 0.0),
+		HSmooth((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid), 0.0);
+	// init velocity and pseudo-pressure
+	MSolver->AllocateVariables();
+
+	LSolver->SetBC_P_2D("axisym", "wall", "inlet", "outlet");
+	LSolver->SetBCConstantPW(0.0);
+	LSolver->SetBCConstantPE(0.0);
+	LSolver->SetBCConstantPS(0.0);
+	LSolver->SetBCConstantPN(0.0);
+	double radius = 0.01, r = 0.0, z = 0.0, d = 0.0;
+	for (int i = 0; i < nr + 2 * num_bc_grid; i++)
+	for (int j = 0; j < nz + 2 * num_bc_grid; j++) {
+		// positive : inside & gas, negative : outside & liquid 
+		r = baseR + (i + 0.5 - num_bc_grid) * dr;
+		z = baseZ + (j + 0.5 - num_bc_grid) * dz;
+
+		// d - inside : -, outside : +
+		d = std::sqrt(std::pow(r, 2.0) + std::pow(z - lenZ * 0.5, 2.0)) - radius;
+
+		// ls - inside : -(gas), outside : +(liquid)
+		ls[idx3_2D(nz, i, j)] = d;
+	}
+	LSolver->ApplyBC_P_2D(ls);
+	LSolver->Reinit_MinRK2_2D(ls);
+	
+	LSolver->ApplyBC_P_2D(ls);
+
+	for (int i = 0; i < nr + 2 * num_bc_grid; i++)
+	for (int j = 0; j < nz + 2 * num_bc_grid; j++) {
+		MSolver->m_u[idx3_2D(nz, i, j)] = 0.0;
+		// if (ls[idx3_2D(nz, i, j)] < 0)
+			MSolver->m_v[idx3_2D(nz, i, j)] = 1.0;
+		// else
+		// 	MSolver->m_v[idx3_2D(nz, i, j)] = 0.0;
+		MSolver->m_p[idx3_2D(nz, i, j)] = 1.0;
+		MSolver->m_ps[idx3_2D(nz, i, j)] = 1.0;
+	}
+
+	MSolver->ApplyBC_U_2D(MSolver->m_u);
+	MSolver->ApplyBC_V_2D(MSolver->m_v);
+	MSolver->ApplyBC_P_2D(MSolver->m_ps);
+	MSolver->ApplyBC_P_2D(MSolver->m_p);
+
+	// prevent dt == 0.0
+	MSolver->m_dt = cfl * std::min(dr, dz) / U;
+	std::cout << " dt : " << MSolver->m_dt << std::endl;
+
+	std::vector<double> uhat((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid)),
+		vhat((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid));
+	std::vector<double> rhsU((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid)),
+		rhsV((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid));
+	std::vector<double> div((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid));
+	MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
+		MSolver->m_u, MSolver->m_v, MSolver->m_ps, ls);
+
+	while (MSolver->m_curTime < MSolver->kMaxTime && MSolver->m_iter < MSolver->kMaxIter) {
+		// Solver Level set part first
+		// Have to use \phi^{n+1} for rho, mu, kappa
+		MSolver->m_iter++;
+
+		lsB = ls;
+		LSolver->Solve_LevelSet_2D(ls, MSolver->m_u, MSolver->m_v, MSolver->m_dt);
+		LSolver->ApplyBC_P_2D(ls);
+		LSolver->Reinit_MinRK2_2D(ls);
+
+		LSolver->ApplyBC_P_2D(ls);
+		// Solve Momentum Part
+		MSolver->UpdateKappa(ls);
+		H = MSolver->UpdateHeavisideFunc(ls);
+		HSmooth = MSolver->UpdateSmoothHeavisideFunc(ls);
+
+		// Get intermediate velocity
+		rhsU = MSolver->UpdateFU(ls, MSolver->m_u, MSolver->m_v, HSmooth);
+		uhat = MSolver->GetUHat(ls, MSolver->m_u, rhsU, HSmooth);
+
+		MSolver->ApplyBC_U_2D(uhat);
+
+		rhsV = MSolver->UpdateFV(ls, MSolver->m_u, uhat, MSolver->m_v, HSmooth);
+		vhat = MSolver->GetVHat(ls, MSolver->m_v, rhsV, HSmooth);
+
+		MSolver->ApplyBC_U_2D(uhat);
+		MSolver->ApplyBC_V_2D(vhat);
+
+		// From intermediate velocity, get divergence
+		div = MSolver->GetDivergence4Poisson(uhat, vhat);
+		MSolver->ApplyBC_P_2D(MSolver->m_ps);
+		LSolver->ApplyBC_P_2D(ls);
+
+		// Solve Poisson equation
+		// m_phi = pressure * dt
+		stat = MSolver->SolvePoisson(MSolver->m_ps, div, ls, lsB, MSolver->m_u, MSolver->m_v, H, poissonMaxIter);
+		MSolver->ApplyBC_P_2D(MSolver->m_ps);
+
+		stat = MSolver->UpdateVel(MSolver->m_u, MSolver->m_v,
+			uhat, vhat, MSolver->m_ps, ls, lsB, H);
+
+		MSolver->ApplyBC_U_2D(MSolver->m_u);
+		MSolver->ApplyBC_V_2D(MSolver->m_v);
+
+		// MSolver->m_dt = MSolver->UpdateDt(MSolver->m_u, MSolver->m_v);
+		MSolver->m_curTime += MSolver->m_dt;
+
+		std::ofstream outF;
+		std::string fname("RR_ASCII.plt");
+		if (MSolver->m_iter == 1) {
+			outF.open(fname.c_str(), std::ios::out);
+
+			outF << "TITLE = VEL" << std::endl;
+			outF << "VARIABLES = \"R\", \"Z\",\"RHSU\", \"UHAT\", \"RHSV\", \"VHAT\", \"HATDIV\", \"HatRealDiv\"" << std::endl;
+			outF.close();
+		}
+		if (MSolver->m_iter % MSolver->kNIterSkip == 0) {
+			std::vector<double> realDiv((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid));
+
+			realDiv = MSolver->GetDivergence(uhat, vhat);
+
+			outF.open(fname.c_str(), std::ios::app);
+
+			outF << std::string("ZONE T=\"") << MSolver->m_iter
+				<< std::string("\", I=") << nr + 6 << std::string(", J=") << nz + 6
+				<< std::string(", SOLUTIONTIME=") << MSolver->m_iter * 0.1
+				<< std::string(", STRANDID=") << MSolver->m_iter + 1
+				<< std::endl;
+
+			// for (int j = kNumBCGrid; j < kNz + kNumBCGrid; j++)
+			// for (int i = kNumBCGrid; i < kNr + kNumBCGrid; i++)
+			for (int j = 0; j < nz + 2 * num_bc_grid; j++)
+			for (int i = 0; i < nr + 2 * num_bc_grid; i++)
+				outF << baseR + static_cast<double>(i + 0.5 - num_bc_grid) * dr << std::string(",")
+					<< baseZ + static_cast<double>(j + 0.5 - num_bc_grid) * dz << std::string(",")
+					<< static_cast<double>(rhsU[idx3_2D(nz, i, j)]) << std::string(",")
+					<< static_cast<double>(uhat[idx3_2D(nz, i, j)]) << std::string(",")
+					<< static_cast<double>(rhsV[idx3_2D(nz, i, j)]) << std::string(",")
+					<< static_cast<double>(vhat[idx3_2D(nz, i, j)]) << std::string(",")
+					<< static_cast<double>(div[idx3_2D(nz, i, j)])	<< std::string(",")
+					<< static_cast<double>(realDiv[idx3_2D(nz, i, j)]) << std::endl;
+			outF.close();
+		}
+
+		if ((MSolver->m_iter % MSolver->kNIterSkip) == 0) {
+			std::chrono::high_resolution_clock::time_point p = std::chrono::high_resolution_clock::now();
+			std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(p.time_since_epoch());
+
+			std::chrono::seconds s = std::chrono::duration_cast<std::chrono::seconds>(ms);
+			std::time_t t = s.count();
+			std::size_t fractional_seconds = ms.count() % 1000;
+
+			std::cout << "Non Surface Tension : " << std::ctime(&t) << " " << MSolver->m_iter << " " << MSolver->m_curTime << " " << MSolver->m_dt << " " << std::endl;
+
+			MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
+				MSolver->m_u, MSolver->m_v, MSolver->m_ps, ls);
+		}
+		std::fill(uhat.begin(), uhat.end(), 0.0);
+		std::fill(vhat.begin(), vhat.end(), 0.0);
+	}
+	// http://stackoverflow.com/a/12836048/743078
+	std::chrono::high_resolution_clock::time_point p = std::chrono::high_resolution_clock::now();
+	std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(p.time_since_epoch());
+
+	std::chrono::seconds s = std::chrono::duration_cast<std::chrono::seconds>(ms);
+	std::time_t t = s.count();
+	std::size_t fractional_seconds = ms.count() % 1000;
+
+	std::cout << "(Final) Non Surface Tension : " << std::ctime(&t) << " " << MSolver->m_iter << " " << MSolver->m_curTime << " " << MSolver->m_dt << " " << std::endl;
+	MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
+		MSolver->m_u, MSolver->m_v, MSolver->m_ps, ls);
+	MSolver->OutResClose();
+
+	MSolver.reset();
+	LSolver.reset();
+
+	return 0;
+}
+
 int MAC2DAxisymTest_StationaryBubble() {
 	// Set initial level set
 	const double Re = 0.0, We = 0.0, Fr = 0.0;
@@ -961,8 +1393,8 @@ int MAC2DAxisymTest_StationaryBubble() {
 	// related to initialize level set
 	const double baseR = 0.0, baseZ = 0.0, lenR = 0.02, lenZ = 0.04, cfl = 0.5;
 	
-	const int maxiter = 20, niterskip = 1, num_bc_grid = 3;
-	const double maxtime = 0.06;
+	const int maxiter = 2000, niterskip = 50, num_bc_grid = 3;
+	const double maxtime = 1.0;
 	const bool writeVTK = false;
 	// length of each cell
 	const double dr = lenR / nr, dz = lenZ / nz;
@@ -982,15 +1414,14 @@ int MAC2DAxisymTest_StationaryBubble() {
 		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nz))->str();
 	std::string fname_div = outfname_stream2.str();
 	const int iterskip = 1;
-	const TIMEORDERENUM timeOrder = TIMEORDERENUM::RK3;
 	int stat = 0;
 
 	std::unique_ptr<MACSolver2DAxisym> MSolver;
 	MSolver = std::make_unique<MACSolver2DAxisym>(rhoH, rhoL, muH, muL, gConstant, GAxis,
 		L, U, sigma, nr, nz, baseR, baseZ, lenR, lenZ,
-		timeOrder, cfl, maxtime, maxiter, niterskip, num_bc_grid, writeVTK);
-	MSolver->SetBC_U_2D("axisym", "dirichlet", "dirichlet", "dirichlet");
-	MSolver->SetBC_V_2D("axisym", "dirichlet", "dirichlet", "dirichlet");
+		cfl, maxtime, maxiter, niterskip, num_bc_grid, writeVTK);
+	MSolver->SetBC_U_2D("axisym", "dirichlet", "neumann", "neumann");
+	MSolver->SetBC_V_2D("axisym", "dirichlet", "neumann", "neumann");
 	MSolver->SetBC_P_2D("neumann", "neumann", "neumann", "neumann");
 	MSolver->SetBCConstantUE(0.0);
 	MSolver->SetBCConstantUS(0.0);
@@ -1000,8 +1431,8 @@ int MAC2DAxisymTest_StationaryBubble() {
 	MSolver->SetBCConstantVN(0.0);
 	MSolver->SetPLTType(PLTTYPE::BOTH);
 
-	// MSolver->SetPoissonSolver(POISSONTYPE::BICGSTAB);
-	MSolver->SetPoissonSolver(POISSONTYPE::CG);
+	MSolver->SetPoissonSolver(POISSONTYPE::BICGSTAB);
+	// MSolver->SetPoissonSolver(POISSONTYPE::CG);
 	// MSolver->SetPoissonSolver(POISSONTYPE::GS);
 	const int poissonMaxIter = 20000;
 
@@ -1155,12 +1586,12 @@ int MAC2DAxisymTest_SmallAirBubbleRising() {
 	const double gConstant = 9.81;
 	GAXISENUM2DAXISYM GAxis = GAXISENUM2DAXISYM::Z;
 	// # of cells
-	const int nr = 40, nz = 120;
+	const int nr = 64, nz = 128;
 	// related to initialize level set
-	const double baseR = 0.0, baseZ = -0.01, lenR = 0.01, lenZ = 0.03, cfl = 0.1;
+	const double baseR = 0.0, baseZ = -0.01, lenR = 0.01, lenZ = 0.03, cfl = 0.5;
 	
 	const double maxtime = 2.0;
-	const int maxiter = 10, niterskip = 1, num_bc_grid = 3;
+	const int maxiter = 1000, niterskip = 50, num_bc_grid = 3;
 	const bool writeVTK = false;
 	// length of each cell
 	const double dr = lenR / nr, dz = lenZ / nz;
@@ -1180,13 +1611,12 @@ int MAC2DAxisymTest_SmallAirBubbleRising() {
 		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nz))->str();
 	std::string fname_div = outfname_stream2.str();
 	const int iterskip = 1;
-	const TIMEORDERENUM timeOrder = TIMEORDERENUM::EULER;
 	int stat = 0;
 
 	std::unique_ptr<MACSolver2DAxisym> MSolver;
 	MSolver = std::make_unique<MACSolver2DAxisym>(rhoH, rhoL, muH, muL, gConstant, GAxis,
 		L, U, sigma, nr, nz, baseR, baseZ, lenR, lenZ,
-		timeOrder, cfl, maxtime, maxiter, niterskip, num_bc_grid, writeVTK);
+		cfl, maxtime, maxiter, niterskip, num_bc_grid, writeVTK);
 	MSolver->SetBC_U_2D("axisym", "dirichlet", "dirichlet", "dirichlet");
 	MSolver->SetBC_V_2D("axisym", "dirichlet", "dirichlet", "dirichlet");
 	MSolver->SetBC_P_2D("neumann", "neumann", "neumann", "neumann");
@@ -1200,8 +1630,8 @@ int MAC2DAxisymTest_SmallAirBubbleRising() {
 	MSolver->SetBCConstantVN(0.0);
 	MSolver->SetPLTType(PLTTYPE::BOTH);
 
-	// MSolver->SetPoissonSolver(POISSONTYPE::BICGSTAB);
-	MSolver->SetPoissonSolver(POISSONTYPE::CG);
+	MSolver->SetPoissonSolver(POISSONTYPE::BICGSTAB);
+	// MSolver->SetPoissonSolver(POISSONTYPE::CG);
 	// MSolver->SetPoissonSolver(POISSONTYPE::GS);
 	const int poissonMaxIter = 20000;
 
@@ -1381,14 +1811,13 @@ int MAC2DAxisymTest_WaterDropletCollison1() {
 		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nz))->str();
 	std::string fname_div = outfname_stream2.str();
 	const int iterskip = 1;
-	const TIMEORDERENUM timeOrder = TIMEORDERENUM::EULER;
 	int stat = 0;
 
 	std::unique_ptr<MACSolver2DAxisym> MSolver;
 	MSolver = std::make_unique<MACSolver2DAxisym>(Re, We, Fr, GAxis,
 		L, U, sigma, densityRatio, viscosityRatio, rhoH, muH,
 		nr, nz, baseR, baseZ, lenR, lenZ,
-		timeOrder, cfl, maxtime, maxiter, niterskip, num_bc_grid, writeVTK);
+		cfl, maxtime, maxiter, niterskip, num_bc_grid, writeVTK);
 	MSolver->SetBC_U_2D("axisym", "dirichlet", "neumann", "neumann");
 	MSolver->SetBC_V_2D("axisym", "dirichlet", "neumann", "neumann");
 	MSolver->SetBC_P_2D("neumann", "neumann", "neumann", "neumann");
@@ -1402,9 +1831,7 @@ int MAC2DAxisymTest_WaterDropletCollison1() {
 	MSolver->SetBCConstantVN(0.0);
 	MSolver->SetPLTType(PLTTYPE::BOTH);
 
-	// MSolver->SetPoissonSolver(POISSONTYPE::BICGSTAB);
-	MSolver->SetPoissonSolver(POISSONTYPE::CG);
-	// MSolver->SetPoissonSolver(POISSONTYPE::GS);
+	MSolver->SetPoissonSolver(POISSONTYPE::BICGSTAB);
 	const int poissonMaxIter = 20000;
 
 	std::shared_ptr<LevelSetSolver2D> LSolver;

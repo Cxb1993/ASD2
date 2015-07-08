@@ -238,7 +238,7 @@ int test_poisson2D_CG() {
 		else if (i == kNumBCGrid && PBC->m_BC_PW == BC2D::DIRICHLET) {
 			AColsDic["W"] = -1;
 			AValsDic["W"] = 0.0;
-			AValsDic["C"] += 1.0 / (kDx * kDx);
+			// AValsDic["C"] += 1.0 / (kDx * kDx);
 			b[idx3_2D(kNy, i, j)] -= -1.0 / (kDx * kDx) * (PBC->m_BC_DirichletConstantPW);
 		}
 
@@ -251,7 +251,7 @@ int test_poisson2D_CG() {
 		else if (i == kNumBCGrid + kNx - 1 && PBC->m_BC_PE == BC2D::DIRICHLET) {
 			AColsDic["E"] = -1;
 			AValsDic["E"] = 0.0;
-			AValsDic["C"] += 1.0 / (kDy * kDy);
+			// AValsDic["C"] += 1.0 / (kDy * kDy);
 			b[idx3_2D(kNy, i, j)] -= -1.0 / (kDx * kDx) * (PBC->m_BC_DirichletConstantPE);
 		}
 
@@ -263,7 +263,7 @@ int test_poisson2D_CG() {
 		else if (j == kNumBCGrid && PBC->m_BC_PS == BC2D::DIRICHLET) {
 			AColsDic["S"] = -1;
 			AValsDic["S"] = 0.0;
-			AValsDic["C"] += 1.0 / (kDy * kDy);
+			// AValsDic["C"] += 1.0 / (kDy * kDy);
 			b[idx3_2D(kNy, i, j)] -= -1.0 / (kDy * kDy) * (PBC->m_BC_DirichletConstantPS);
 		}
 
@@ -275,7 +275,7 @@ int test_poisson2D_CG() {
 		else if (j == kNumBCGrid + kNy - 1 && PBC->m_BC_PN == BC2D::DIRICHLET) {
 			AColsDic["N"] = -1;
 			AValsDic["N"] = 0.0;
-			AValsDic["C"] += 1.0 / (kDx * kDx);
+			// AValsDic["C"] += 1.0 / (kDx * kDx);
 			b[idx3_2D(kNy, i, j)] -= -1.0 / (kDy * kDy) * (PBC->m_BC_DirichletConstantPN);
 		}
 
@@ -417,7 +417,7 @@ int test_poisson2D_BiCGStab() {
 		else if (i == kNumBCGrid && PBC->m_BC_PW == BC2D::DIRICHLET) {
 			AColsDic["W"] = -1;
 			AValsDic["W"] = 0.0;
-			AValsDic["C"] += 1.0 / (kDx * kDx);
+			// AValsDic["C"] += 1.0 / (kDx * kDx);
 			b[idx3_2D(kNy, i, j)] -= -1.0 / (kDx * kDx) * (PBC->m_BC_DirichletConstantPW);
 		}
 
@@ -430,7 +430,7 @@ int test_poisson2D_BiCGStab() {
 		else if (i == kNumBCGrid + kNx - 1 && PBC->m_BC_PE == BC2D::DIRICHLET) {
 			AColsDic["E"] = -1;
 			AValsDic["E"] = 0.0;
-			AValsDic["C"] += 1.0 / (kDy * kDy);
+			// AValsDic["C"] += 1.0 / (kDy * kDy);
 			b[idx3_2D(kNy, i, j)] -= -1.0 / (kDx * kDx) * (PBC->m_BC_DirichletConstantPE);
 		}
 
@@ -442,7 +442,7 @@ int test_poisson2D_BiCGStab() {
 		else if (j == kNumBCGrid && PBC->m_BC_PS == BC2D::DIRICHLET) {
 			AColsDic["S"] = -1;
 			AValsDic["S"] = 0.0;
-			AValsDic["C"] += 1.0 / (kDy * kDy);
+			// AValsDic["C"] += 1.0 / (kDy * kDy);
 			b[idx3_2D(kNy, i, j)] -= -1.0 / (kDy * kDy) * (PBC->m_BC_DirichletConstantPS);
 		}
 
@@ -454,7 +454,7 @@ int test_poisson2D_BiCGStab() {
 		else if (j == kNumBCGrid + kNy - 1 && PBC->m_BC_PN == BC2D::DIRICHLET) {
 			AColsDic["N"] = -1;
 			AValsDic["N"] = 0.0;
-			AValsDic["C"] += 1.0 / (kDx * kDx);
+			// AValsDic["C"] += 1.0 / (kDx * kDx);
 			b[idx3_2D(kNy, i, j)] -= -1.0 / (kDy * kDy) * (PBC->m_BC_DirichletConstantPN);
 		}
 

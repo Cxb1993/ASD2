@@ -18,11 +18,13 @@
 #include "../include/levelset2d.h"
 
 int MAC2DTest_CavityFlow();
+int MAC2DTest_NonSurfaceTension();
 int MAC2DTest_StationaryBubble();
 int MAC2DTest_SmallAirBubbleRising();
 int MAC2DTest_LargeAirBubbleRising();
 int MAC2DTest_TaylorInstability();
 
+int MAC2DAxisymTest_NonSurfaceTension();
 int MAC2DAxisymTest_StationaryBubble();
 int MAC2DAxisymTest_SmallAirBubbleRising();
 int MAC2DAxisymTest_WaterDropletCollison1();

@@ -563,7 +563,7 @@ int LevelSetTest_2D_ReinitOnly_MinRK2() {
 	int iter = 0, maxIter = 1;
 	double curTime = 0.0, maxTime = 10.0;
 	double x = 0.0, y = 0.0, r = 1.0, a = 0.7;
-	double baseX = -2.0, baseY = -2.0;
+	double baseX = -5.0, baseY = -5.0;
 	int orgMass = 0, LSMass = 0, errMass = 0;
 
 	std::vector<double> lsInit((nx + 2 * NBC3) * (ny + 2 * NBC3), 0.0);
@@ -700,12 +700,11 @@ int LevelSetTest_2D_ReinitOnly_MinRK2() {
 			errWholeDomainL1 += std::fabs(ls[idx3_2D(ny, i, j)] - lsInit[idx3_2D(ny, i, j)]);
 		}
 	}
+
 	errMass = std::fabs(static_cast<double>(LSMass - orgMass)) / orgMass * 100;
-	errNearInterfaceLInfty /= nx * ny;
-	errNearInterfaceL1 /= nx * ny;
-	errWholeDomainLInfty /= nx * ny;
-	errWholeDomainL1 /= nx * ny;
-	
+	errNearInterfaceL1 *= std::min(dx, dy) * std::min(dx, dy);
+	errWholeDomainL1 *= std::min(dx, dy) * std::min(dx, dy);
+
 	std::cout << "Reinit Only(2D, MinRK2) - err(Mass loss) : " << errMass << "%" << std::endl;
 	std::cout << "Reinit Only(2D, MinRK2) Near Interface - err(L1) : " << errNearInterfaceL1 << " err(LInfty) : " << errNearInterfaceLInfty << std::endl;
 	std::cout << "Reinit Only(2D, MinRK2) WholeDomain - err(L1) : " << errWholeDomainL1 << " err(LInfty) : " << errWholeDomainLInfty << std::endl;
