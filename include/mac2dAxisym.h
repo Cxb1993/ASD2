@@ -41,7 +41,6 @@ public:
 	const double kMuH, kMuL, kMuRatio;
 	
 	const int kMaxIter, kNIterSkip;
-	const TIMEORDERENUM kTimeOrder;
 	const double kCFL, kMaxTime;
 	const bool kWriteVTK;
 	POISSONTYPE m_PoissonSolverType;
@@ -75,12 +74,12 @@ public:
 	MACSolver2DAxisym(double Re, double We, double Fr, GAXISENUM2DAXISYM GAxis,
 		double L, double U, double sigma, double densityRatio, double viscosityRatio, double rhoI, double mu1,
 		int nr, int nz, double baseR, double baseZ, double lenR, double lenZ, 
-		TIMEORDERENUM RKOrder, double cfl, double maxtime, int maxiter, int niterskip,
+		double cfl, double maxtime, int maxiter, int niterskip,
 		int num_bc_grid, bool writeVTK);
 	MACSolver2DAxisym(double rhoI, double rhoO, double muI, double muO, double gConstant, GAXISENUM2DAXISYM GAxis,
 		double L, double U, double sigma,
 		int nr, int nz, double baseR, double baseZ, double lenR, double lenZ,
-		TIMEORDERENUM RKOrder, double cfl, double maxtime, int maxiter, int niterskip,
+		double cfl, double maxtime, int maxiter, int niterskip,
 		int num_bc_grid, bool writeVTK);
 	~MACSolver2DAxisym();
 
@@ -153,6 +152,7 @@ public:
 	void SetBCConstantPE(double BC_ConstantE);
 	void SetBCConstantPS(double BC_ConstantS);
 	void SetBCConstantPN(double BC_ConstantN);
+	void SetAmbientPressure(double ambientPressure);
 
 	int SolveTDMA(std::vector<double>& a, std::vector<double>& b, std::vector<double>& c, std::vector<double>& d, int n);
 	int sign(const double& val);
