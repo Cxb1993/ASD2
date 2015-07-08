@@ -23,6 +23,10 @@ int BoundaryCondition3D::SetBC_U_3D(std::string BC_W, std::string BC_E, std::str
 		m_BC_UW = BC3D::NEUMANN;
 	else if (BC_W == "wall" || BC_W == "dirichlet")
 		m_BC_UW = BC3D::DIRICHLET;
+	else if (BC_W == "inlet")
+		m_BC_UW = BC3D::INLET;
+	else if (BC_W == "outlet")
+		m_BC_UW = BC3D::OUTLET;
 	// not supported
 	else
 		m_BC_UW = BC3D::CUSTOM;
@@ -33,6 +37,10 @@ int BoundaryCondition3D::SetBC_U_3D(std::string BC_W, std::string BC_E, std::str
 		m_BC_UE = BC3D::NEUMANN;
 	else if (BC_E == "wall" || BC_E == "dirichlet")
 		m_BC_UE = BC3D::DIRICHLET;
+	else if (BC_E == "inlet")
+		m_BC_UE = BC3D::INLET;
+	else if (BC_E == "outlet")
+		m_BC_UE = BC3D::OUTLET;
 	// not supported
 	else
 		m_BC_UE = BC3D::CUSTOM;
@@ -43,6 +51,10 @@ int BoundaryCondition3D::SetBC_U_3D(std::string BC_W, std::string BC_E, std::str
 		m_BC_US = BC3D::NEUMANN;
 	else if (BC_S == "wall" || BC_S == "dirichlet")
 		m_BC_US = BC3D::DIRICHLET;
+	else if (BC_S == "inlet")
+		m_BC_US = BC3D::INLET;
+	else if (BC_S == "outlet")
+		m_BC_US = BC3D::OUTLET;
 	// not supported
 	else
 		m_BC_US = BC3D::CUSTOM;
@@ -53,6 +65,10 @@ int BoundaryCondition3D::SetBC_U_3D(std::string BC_W, std::string BC_E, std::str
 		m_BC_UN = BC3D::NEUMANN;
 	else if (BC_N == "wall" || BC_N == "dirichlet")
 		m_BC_UN = BC3D::DIRICHLET;
+	else if (BC_N == "inlet")
+		m_BC_UN = BC3D::INLET;
+	else if (BC_N == "outlet")
+		m_BC_UN = BC3D::OUTLET;
 	// not supported
 	else
 		m_BC_UN = BC3D::CUSTOM;
@@ -63,6 +79,10 @@ int BoundaryCondition3D::SetBC_U_3D(std::string BC_W, std::string BC_E, std::str
 		m_BC_UB = BC3D::NEUMANN;
 	else if (BC_B == "wall" || BC_B == "dirichlet")
 		m_BC_UB = BC3D::DIRICHLET;
+	else if (BC_B == "inlet")
+		m_BC_UB = BC3D::INLET;
+	else if (BC_B == "outlet")
+		m_BC_UB = BC3D::OUTLET;
 	// not supported
 	else
 		m_BC_UB = BC3D::CUSTOM;
@@ -73,6 +93,10 @@ int BoundaryCondition3D::SetBC_U_3D(std::string BC_W, std::string BC_E, std::str
 		m_BC_UT = BC3D::NEUMANN;
 	else if (BC_T == "wall" || BC_T == "dirichlet")
 		m_BC_UT = BC3D::DIRICHLET;
+	else if (BC_T == "inlet")
+		m_BC_UT = BC3D::INLET;
+	else if (BC_T == "outlet")
+		m_BC_UT = BC3D::OUTLET;
 	// not supported
 	else
 		m_BC_UT = BC3D::CUSTOM;
@@ -106,6 +130,10 @@ int BoundaryCondition3D::SetBC_V_3D(std::string BC_W, std::string BC_E, std::str
 		m_BC_VW = BC3D::NEUMANN;
 	else if (BC_W == "wall" || BC_W == "dirichlet")
 		m_BC_VW = BC3D::DIRICHLET;
+	else if (BC_W == "inlet")
+		m_BC_VW = BC3D::INLET;
+	else if (BC_W == "outlet")
+		m_BC_VW = BC3D::OUTLET;
 	// not supported
 	else
 		m_BC_VW = BC3D::CUSTOM;
@@ -116,6 +144,10 @@ int BoundaryCondition3D::SetBC_V_3D(std::string BC_W, std::string BC_E, std::str
 		m_BC_VE = BC3D::NEUMANN;
 	else if (BC_E == "wall" || BC_E == "dirichlet")
 		m_BC_VE = BC3D::DIRICHLET;
+	else if (BC_E == "inlet")
+		m_BC_VE = BC3D::INLET;
+	else if (BC_E == "outlet")
+		m_BC_VE = BC3D::OUTLET;
 	// not supported
 	else
 		m_BC_VE = BC3D::CUSTOM;
@@ -126,6 +158,10 @@ int BoundaryCondition3D::SetBC_V_3D(std::string BC_W, std::string BC_E, std::str
 		m_BC_VS = BC3D::NEUMANN;
 	else if (BC_S == "wall" || BC_S == "dirichlet")
 		m_BC_VS = BC3D::DIRICHLET;
+	else if (BC_S == "inlet")
+		m_BC_VS = BC3D::INLET;
+	else if (BC_S == "outlet")
+		m_BC_VS = BC3D::OUTLET;
 	// not supported
 	else
 		m_BC_VS = BC3D::CUSTOM;
@@ -136,6 +172,10 @@ int BoundaryCondition3D::SetBC_V_3D(std::string BC_W, std::string BC_E, std::str
 		m_BC_VN = BC3D::NEUMANN;
 	else if (BC_N == "wall" || BC_N == "dirichlet")
 		m_BC_VN = BC3D::DIRICHLET;
+	else if (BC_N == "inlet")
+		m_BC_VN = BC3D::INLET;
+	else if (BC_N == "outlet")
+		m_BC_VN = BC3D::OUTLET;
 	// not supported
 	else
 		m_BC_VN = BC3D::CUSTOM;
@@ -146,6 +186,10 @@ int BoundaryCondition3D::SetBC_V_3D(std::string BC_W, std::string BC_E, std::str
 		m_BC_VB = BC3D::NEUMANN;
 	else if (BC_B == "wall" || BC_B == "dirichlet")
 		m_BC_VB = BC3D::DIRICHLET;
+	else if (BC_B == "inlet")
+		m_BC_VB = BC3D::INLET;
+	else if (BC_B == "outlet")
+		m_BC_VB = BC3D::OUTLET;
 	// not supported
 	else
 		m_BC_VB = BC3D::CUSTOM;
@@ -156,6 +200,10 @@ int BoundaryCondition3D::SetBC_V_3D(std::string BC_W, std::string BC_E, std::str
 		m_BC_VT = BC3D::NEUMANN;
 	else if (BC_T == "wall" || BC_T == "dirichlet")
 		m_BC_VT = BC3D::DIRICHLET;
+	else if (BC_T == "inlet")
+		m_BC_VT = BC3D::INLET;
+	else if (BC_T == "outlet")
+		m_BC_VT = BC3D::OUTLET;
 	// not supported
 	else
 		m_BC_VT = BC3D::CUSTOM;
@@ -189,6 +237,10 @@ int BoundaryCondition3D::SetBC_W_3D(std::string BC_W, std::string BC_E, std::str
 		m_BC_WW = BC3D::NEUMANN;
 	else if (BC_W == "wall" || BC_W == "dirichlet")
 		m_BC_WW = BC3D::DIRICHLET;
+	else if (BC_W == "inlet")
+		m_BC_WW = BC3D::INLET;
+	else if (BC_W == "outlet")
+		m_BC_WW = BC3D::OUTLET;
 	// not supported
 	else
 		m_BC_WW = BC3D::CUSTOM;
@@ -199,6 +251,10 @@ int BoundaryCondition3D::SetBC_W_3D(std::string BC_W, std::string BC_E, std::str
 		m_BC_WE = BC3D::NEUMANN;
 	else if (BC_E == "wall" || BC_E == "dirichlet")
 		m_BC_WE = BC3D::DIRICHLET;
+	else if (BC_E == "inlet")
+		m_BC_WE = BC3D::INLET;
+	else if (BC_E == "outlet")
+		m_BC_WE = BC3D::OUTLET;
 	// not supported
 	else
 		m_BC_WE = BC3D::CUSTOM;
@@ -209,6 +265,10 @@ int BoundaryCondition3D::SetBC_W_3D(std::string BC_W, std::string BC_E, std::str
 		m_BC_WS = BC3D::NEUMANN;
 	else if (BC_S == "wall" || BC_S == "dirichlet")
 		m_BC_WS = BC3D::DIRICHLET;
+	else if (BC_S == "inlet")
+		m_BC_WS = BC3D::INLET;
+	else if (BC_S == "outlet")
+		m_BC_WS = BC3D::OUTLET;
 	// not supported
 	else
 		m_BC_WS = BC3D::CUSTOM;
@@ -219,6 +279,10 @@ int BoundaryCondition3D::SetBC_W_3D(std::string BC_W, std::string BC_E, std::str
 		m_BC_WN = BC3D::NEUMANN;
 	else if (BC_N == "wall" || BC_N == "dirichlet")
 		m_BC_WN = BC3D::DIRICHLET;
+	else if (BC_N == "inlet")
+		m_BC_WN = BC3D::INLET;
+	else if (BC_N == "outlet")
+		m_BC_WN = BC3D::OUTLET;
 	// not supported
 	else
 		m_BC_WN = BC3D::CUSTOM;
@@ -229,16 +293,24 @@ int BoundaryCondition3D::SetBC_W_3D(std::string BC_W, std::string BC_E, std::str
 		m_BC_WB = BC3D::NEUMANN;
 	else if (BC_B == "wall" || BC_B == "dirichlet")
 		m_BC_WB = BC3D::DIRICHLET;
+	else if (BC_B == "inlet")
+		m_BC_WB = BC3D::INLET;
+	else if (BC_B == "outlet")
+		m_BC_WB = BC3D::OUTLET;
 	// not supported
 	else
 		m_BC_WB = BC3D::CUSTOM;
 
 	if (BC_T == "periodic")
-		m_BC_PT = BC3D::PERIODIC;
+		m_BC_WT = BC3D::PERIODIC;
 	else if (BC_T == "neumann")
-		m_BC_PT = BC3D::NEUMANN;
+		m_BC_WT = BC3D::NEUMANN;
 	else if (BC_T == "wall" || BC_T == "dirichlet")
-		m_BC_PT = BC3D::DIRICHLET;
+		m_BC_WT = BC3D::DIRICHLET;
+	else if (BC_T == "inlet")
+		m_BC_WT = BC3D::INLET;
+	else if (BC_T == "outlet")
+		m_BC_WT = BC3D::OUTLET;
 	// not supported
 	else
 		m_BC_PT = BC3D::CUSTOM;
@@ -272,6 +344,12 @@ int BoundaryCondition3D::SetBC_P_3D(std::string BC_W, std::string BC_E, std::str
 		m_BC_PW = BC3D::NEUMANN;
 	else if (BC_W == "wall" || BC_W == "dirichlet")
 		m_BC_PW = BC3D::DIRICHLET;
+	else if (BC_W == "inlet")
+		m_BC_PW = BC3D::INLET;
+	else if (BC_W == "outlet")
+		m_BC_PW = BC3D::OUTLET;
+	else if (BC_W == "pressure")
+		m_BC_PW = BC3D::PRESSURE;
 	// not supported
 	else
 		m_BC_PW = BC3D::CUSTOM;
@@ -282,6 +360,12 @@ int BoundaryCondition3D::SetBC_P_3D(std::string BC_W, std::string BC_E, std::str
 		m_BC_PE = BC3D::NEUMANN;
 	else if (BC_E == "wall" || BC_E == "dirichlet")
 		m_BC_PE = BC3D::DIRICHLET;
+	else if (BC_E == "inlet")
+		m_BC_PE = BC3D::INLET;
+	else if (BC_E == "outlet")
+		m_BC_PE = BC3D::OUTLET;
+	else if (BC_E == "pressure")
+		m_BC_PE = BC3D::PRESSURE;
 	// not supported
 	else
 		m_BC_PE = BC3D::CUSTOM;
@@ -292,6 +376,12 @@ int BoundaryCondition3D::SetBC_P_3D(std::string BC_W, std::string BC_E, std::str
 		m_BC_PS = BC3D::NEUMANN;
 	else if (BC_S == "wall" || BC_S == "dirichlet")
 		m_BC_PS = BC3D::DIRICHLET;
+	else if (BC_S == "inlet")
+		m_BC_PS = BC3D::INLET;
+	else if (BC_S == "outlet")
+		m_BC_PS = BC3D::OUTLET;
+	else if (BC_S == "pressure")
+		m_BC_PS = BC3D::PRESSURE;
 	// not supported
 	else
 		m_BC_PS = BC3D::CUSTOM;
@@ -302,6 +392,12 @@ int BoundaryCondition3D::SetBC_P_3D(std::string BC_W, std::string BC_E, std::str
 		m_BC_PN = BC3D::NEUMANN;
 	else if (BC_N == "wall" || BC_N == "dirichlet")
 		m_BC_PN = BC3D::DIRICHLET;
+	else if (BC_N == "inlet")
+		m_BC_PN = BC3D::INLET;
+	else if (BC_N == "outlet")
+		m_BC_PN = BC3D::OUTLET;
+	else if (BC_N == "pressure")
+		m_BC_PN = BC3D::PRESSURE;
 	// not supported
 	else
 		m_BC_PN = BC3D::CUSTOM;
@@ -312,6 +408,12 @@ int BoundaryCondition3D::SetBC_P_3D(std::string BC_W, std::string BC_E, std::str
 		m_BC_PB = BC3D::NEUMANN;
 	else if (BC_B == "wall" || BC_B == "dirichlet")
 		m_BC_PB = BC3D::DIRICHLET;
+	else if (BC_B == "inlet")
+		m_BC_PB = BC3D::INLET;
+	else if (BC_B == "outlet")
+		m_BC_PB = BC3D::OUTLET;
+	else if (BC_B == "pressure")
+		m_BC_PB = BC3D::PRESSURE;
 	// not supported
 	else
 		m_BC_PB = BC3D::CUSTOM;
@@ -322,6 +424,12 @@ int BoundaryCondition3D::SetBC_P_3D(std::string BC_W, std::string BC_E, std::str
 		m_BC_PT = BC3D::NEUMANN;
 	else if (BC_T == "wall" || BC_T == "dirichlet")
 		m_BC_PT = BC3D::DIRICHLET;
+	else if (BC_T == "inlet")
+		m_BC_PT = BC3D::INLET;
+	else if (BC_T == "outlet")
+		m_BC_PT = BC3D::OUTLET;
+	else if (BC_T == "pressure")
+		m_BC_PT = BC3D::PRESSURE;
 	// not supported
 	else
 		m_BC_PT = BC3D::CUSTOM;
@@ -347,6 +455,10 @@ void BoundaryCondition3D::BC_UW(std::vector<double>& arr) {
 		BC_NeumannUW(arr);
 	else if (m_BC_UW == BC3D::DIRICHLET)
 		BC_DirichletUW(arr);
+	else if (m_BC_UW == BC3D::INLET)
+		BC_DirichletUW(arr);
+	else if (m_BC_UW == BC3D::OUTLET)
+		BC_NeumannUW(arr);
 }
 
 void BoundaryCondition3D::BC_UE(std::vector<double>& arr) {
@@ -356,6 +468,10 @@ void BoundaryCondition3D::BC_UE(std::vector<double>& arr) {
 		BC_NeumannUE(arr);
 	else if (m_BC_UE == BC3D::DIRICHLET)
 		BC_DirichletUE(arr);
+	else if (m_BC_UE == BC3D::INLET)
+		BC_DirichletUE(arr);
+	else if (m_BC_UE == BC3D::OUTLET)
+		BC_NeumannUE(arr);
 }
 
 void BoundaryCondition3D::BC_US(std::vector<double>& arr) {
@@ -365,6 +481,10 @@ void BoundaryCondition3D::BC_US(std::vector<double>& arr) {
 		BC_NeumannUS(arr);
 	else if (m_BC_US == BC3D::DIRICHLET)
 		BC_DirichletUS(arr);
+	else if (m_BC_US == BC3D::INLET)
+		BC_DirichletUS(arr);
+	else if (m_BC_US == BC3D::OUTLET)
+		BC_NeumannUS(arr);
 }
 
 void BoundaryCondition3D::BC_UN(std::vector<double>& arr) {
@@ -374,6 +494,10 @@ void BoundaryCondition3D::BC_UN(std::vector<double>& arr) {
 		BC_NeumannUN(arr);
 	else if (m_BC_UN == BC3D::DIRICHLET)
 		BC_DirichletUN(arr);
+	else if (m_BC_UN == BC3D::INLET)
+		BC_DirichletUN(arr);
+	else if (m_BC_UN == BC3D::OUTLET)
+		BC_NeumannUN(arr);
 }
 
 void BoundaryCondition3D::BC_UB(std::vector<double>& arr) {
@@ -383,6 +507,10 @@ void BoundaryCondition3D::BC_UB(std::vector<double>& arr) {
 		BC_NeumannUB(arr);
 	else if (m_BC_UB == BC3D::DIRICHLET)
 		BC_DirichletUB(arr);
+	else if (m_BC_UB == BC3D::INLET)
+		BC_DirichletUB(arr);
+	else if (m_BC_UB == BC3D::OUTLET)
+		BC_NeumannUB(arr);
 }
 
 void BoundaryCondition3D::BC_UT(std::vector<double>& arr) {
@@ -392,6 +520,10 @@ void BoundaryCondition3D::BC_UT(std::vector<double>& arr) {
 		BC_NeumannUT(arr);
 	else if (m_BC_UT == BC3D::DIRICHLET)
 		BC_DirichletUT(arr);
+	else if (m_BC_UT == BC3D::INLET)
+		BC_DirichletUT(arr);
+	else if (m_BC_UT == BC3D::OUTLET)
+		BC_NeumannUT(arr);
 }
 
 void BoundaryCondition3D::BC_VW(std::vector<double>& arr) {
@@ -401,6 +533,10 @@ void BoundaryCondition3D::BC_VW(std::vector<double>& arr) {
 		BC_NeumannVW(arr);
 	else if (m_BC_VW == BC3D::DIRICHLET)
 		BC_DirichletVW(arr);
+	else if (m_BC_VW == BC3D::INLET)
+		BC_DirichletVW(arr);
+	else if (m_BC_VW == BC3D::OUTLET)
+		BC_NeumannVW(arr);
 }
 
 void BoundaryCondition3D::BC_VE(std::vector<double>& arr) {
@@ -410,6 +546,10 @@ void BoundaryCondition3D::BC_VE(std::vector<double>& arr) {
 		BC_NeumannVE(arr);
 	else if (m_BC_VE == BC3D::DIRICHLET)
 		BC_DirichletVE(arr);
+	else if (m_BC_VE == BC3D::INLET)
+		BC_DirichletVE(arr);
+	else if (m_BC_VE == BC3D::OUTLET)
+		BC_NeumannVE(arr);
 }
 
 void BoundaryCondition3D::BC_VS(std::vector<double>& arr) {
@@ -419,6 +559,10 @@ void BoundaryCondition3D::BC_VS(std::vector<double>& arr) {
 		BC_NeumannVS(arr);
 	else if (m_BC_VS == BC3D::DIRICHLET)
 		BC_DirichletVS(arr);
+	else if (m_BC_VS == BC3D::INLET)
+		BC_DirichletVS(arr);
+	else if (m_BC_VS == BC3D::OUTLET)
+		BC_NeumannVS(arr);
 }
 
 void BoundaryCondition3D::BC_VN(std::vector<double>& arr) {
@@ -428,6 +572,10 @@ void BoundaryCondition3D::BC_VN(std::vector<double>& arr) {
 		BC_NeumannVN(arr);
 	else if (m_BC_VN == BC3D::DIRICHLET)
 		BC_DirichletVN(arr);
+	else if (m_BC_VN == BC3D::INLET)
+		BC_DirichletVN(arr);
+	else if (m_BC_VN == BC3D::OUTLET)
+		BC_NeumannVN(arr);
 }
 
 void BoundaryCondition3D::BC_VB(std::vector<double>& arr) {
@@ -437,6 +585,10 @@ void BoundaryCondition3D::BC_VB(std::vector<double>& arr) {
 		BC_NeumannVB(arr);
 	else if (m_BC_VB == BC3D::DIRICHLET)
 		BC_DirichletVB(arr);
+	else if (m_BC_VB == BC3D::INLET)
+		BC_DirichletVB(arr);
+	else if (m_BC_VB == BC3D::OUTLET)
+		BC_NeumannVB(arr);
 }
 
 void BoundaryCondition3D::BC_VT(std::vector<double>& arr) {
@@ -446,6 +598,10 @@ void BoundaryCondition3D::BC_VT(std::vector<double>& arr) {
 		BC_NeumannVT(arr);
 	else if (m_BC_VT == BC3D::DIRICHLET)
 		BC_DirichletVT(arr);
+	else if (m_BC_VT == BC3D::INLET)
+		BC_DirichletVT(arr);
+	else if (m_BC_VT == BC3D::OUTLET)
+		BC_NeumannVT(arr);
 }
 
 void BoundaryCondition3D::BC_WW(std::vector<double>& arr) {
@@ -455,6 +611,10 @@ void BoundaryCondition3D::BC_WW(std::vector<double>& arr) {
 		BC_NeumannWW(arr);
 	else if (m_BC_WW == BC3D::DIRICHLET)
 		BC_DirichletWW(arr);
+	else if (m_BC_WW == BC3D::INLET)
+		BC_DirichletWW(arr);
+	else if (m_BC_WW == BC3D::OUTLET)
+		BC_NeumannWW(arr);
 }
 
 void BoundaryCondition3D::BC_WE(std::vector<double>& arr) {
@@ -464,6 +624,10 @@ void BoundaryCondition3D::BC_WE(std::vector<double>& arr) {
 		BC_NeumannWE(arr);
 	else if (m_BC_WE == BC3D::DIRICHLET)
 		BC_DirichletWE(arr);
+	else if (m_BC_WE == BC3D::INLET)
+		BC_DirichletWE(arr);
+	else if (m_BC_WE == BC3D::OUTLET)
+		BC_NeumannWE(arr);
 }
 
 void BoundaryCondition3D::BC_WS(std::vector<double>& arr) {
@@ -473,6 +637,10 @@ void BoundaryCondition3D::BC_WS(std::vector<double>& arr) {
 		BC_NeumannWS(arr);
 	else if (m_BC_WS == BC3D::DIRICHLET)
 		BC_DirichletWS(arr);
+	else if (m_BC_WS == BC3D::INLET)
+		BC_DirichletWS(arr);
+	else if (m_BC_WS == BC3D::OUTLET)
+		BC_NeumannWS(arr);
 }
 
 void BoundaryCondition3D::BC_WN(std::vector<double>& arr) {
@@ -482,6 +650,10 @@ void BoundaryCondition3D::BC_WN(std::vector<double>& arr) {
 		BC_NeumannWN(arr);
 	else if (m_BC_WN == BC3D::DIRICHLET)
 		BC_DirichletWN(arr);
+	else if (m_BC_WN == BC3D::INLET)
+		BC_DirichletWN(arr);
+	else if (m_BC_WN == BC3D::OUTLET)
+		BC_NeumannWN(arr);
 }
 
 void BoundaryCondition3D::BC_WB(std::vector<double>& arr) {
@@ -491,6 +663,10 @@ void BoundaryCondition3D::BC_WB(std::vector<double>& arr) {
 		BC_NeumannWB(arr);
 	else if (m_BC_WB == BC3D::DIRICHLET)
 		BC_DirichletWB(arr);
+	else if (m_BC_WB == BC3D::INLET)
+		BC_DirichletWB(arr);
+	else if (m_BC_WB == BC3D::OUTLET)
+		BC_NeumannWB(arr);
 }
 
 void BoundaryCondition3D::BC_WT(std::vector<double>& arr) {
@@ -500,6 +676,10 @@ void BoundaryCondition3D::BC_WT(std::vector<double>& arr) {
 		BC_NeumannWT(arr);
 	else if (m_BC_WT == BC3D::DIRICHLET)
 		BC_DirichletWT(arr);
+	else if (m_BC_WT == BC3D::INLET)
+		BC_DirichletWT(arr);
+	else if (m_BC_WT == BC3D::OUTLET)
+		BC_NeumannWT(arr);
 }
 
 void BoundaryCondition3D::BC_PW(std::vector<double>& arr) {
@@ -508,6 +688,12 @@ void BoundaryCondition3D::BC_PW(std::vector<double>& arr) {
 	else if (m_BC_PW == BC3D::NEUMANN)
 		BC_NeumannPW(arr);
 	else if (m_BC_PW == BC3D::DIRICHLET)
+		BC_DirichletPW(arr);
+	else if (m_BC_PW == BC3D::INLET)
+		BC_DirichletPW(arr);
+	else if (m_BC_PW == BC3D::OUTLET)
+		BC_DirichletPW(arr);
+	else if (m_BC_PW == BC3D::PRESSURE)
 		BC_DirichletPW(arr);
 }
 
@@ -518,6 +704,12 @@ void BoundaryCondition3D::BC_PE(std::vector<double>& arr) {
 		BC_NeumannPE(arr);
 	else if (m_BC_PE == BC3D::DIRICHLET)
 		BC_DirichletPE(arr);
+	else if (m_BC_PE == BC3D::INLET)
+		BC_DirichletPE(arr);
+	else if (m_BC_PE == BC3D::OUTLET)
+		BC_DirichletPE(arr);
+	else if (m_BC_PE == BC3D::PRESSURE)
+		BC_DirichletPE(arr);
 }
 
 void BoundaryCondition3D::BC_PS(std::vector<double>& arr) {
@@ -526,6 +718,12 @@ void BoundaryCondition3D::BC_PS(std::vector<double>& arr) {
 	else if (m_BC_PS == BC3D::NEUMANN)
 		BC_NeumannPS(arr);
 	else if (m_BC_PS == BC3D::DIRICHLET)
+		BC_DirichletPS(arr);
+	else if (m_BC_PS == BC3D::INLET)
+		BC_DirichletPS(arr);
+	else if (m_BC_PS == BC3D::OUTLET)
+		BC_DirichletPS(arr);
+	else if (m_BC_PS == BC3D::PRESSURE)
 		BC_DirichletPS(arr);
 }
 
@@ -536,6 +734,12 @@ void BoundaryCondition3D::BC_PN(std::vector<double>& arr) {
 		BC_NeumannPN(arr);
 	else if (m_BC_PN == BC3D::DIRICHLET)
 		BC_DirichletPN(arr);
+	else if (m_BC_PN == BC3D::INLET)
+		BC_DirichletPN(arr);
+	else if (m_BC_PN == BC3D::OUTLET)
+		BC_DirichletPN(arr);
+	else if (m_BC_PN == BC3D::PRESSURE)
+		BC_DirichletPN(arr);
 }
 
 void BoundaryCondition3D::BC_PB(std::vector<double>& arr) {
@@ -545,6 +749,12 @@ void BoundaryCondition3D::BC_PB(std::vector<double>& arr) {
 		BC_NeumannPB(arr);
 	else if (m_BC_PB == BC3D::DIRICHLET)
 		BC_DirichletPB(arr);
+	else if (m_BC_PB == BC3D::INLET)
+		BC_DirichletPB(arr);
+	else if (m_BC_PB == BC3D::OUTLET)
+		BC_DirichletPB(arr);
+	else if (m_BC_PB == BC3D::PRESSURE)
+		BC_DirichletPB(arr);
 }
 
 void BoundaryCondition3D::BC_PT(std::vector<double>& arr) {
@@ -553,6 +763,12 @@ void BoundaryCondition3D::BC_PT(std::vector<double>& arr) {
 	else if (m_BC_PT == BC3D::NEUMANN)
 		BC_NeumannPT(arr);
 	else if (m_BC_PT == BC3D::DIRICHLET)
+		BC_DirichletPT(arr);
+	else if (m_BC_PT == BC3D::INLET)
+		BC_DirichletPT(arr);
+	else if (m_BC_PT == BC3D::OUTLET)
+		BC_DirichletPT(arr);
+	else if (m_BC_PT == BC3D::PRESSURE)
 		BC_DirichletPT(arr);
 }
 
@@ -1170,6 +1386,29 @@ void BoundaryCondition3D::SetBCConstantPB(double BC_ConstantB) {
 
 void BoundaryCondition3D::SetBCConstantPT(double BC_ConstantT) {
 	m_BC_DirichletConstantPT = BC_ConstantT;
+}
+
+void BoundaryCondition3D::SetAmbientPressure(double ambientPressure) {
+	m_AmbientPressure = ambientPressure;
+
+	// set ambient pressure as dirichlet condition constant
+	if (m_BC_PW == BC3D::INLET || m_BC_PW == BC3D::OUTLET || m_BC_PW == BC3D::PRESSURE)
+		SetBCConstantPW(ambientPressure);
+
+	if (m_BC_PE == BC3D::INLET || m_BC_PE == BC3D::OUTLET || m_BC_PE == BC3D::PRESSURE)
+		SetBCConstantPE(ambientPressure);
+
+	if (m_BC_PS == BC3D::INLET || m_BC_PS == BC3D::OUTLET || m_BC_PS == BC3D::PRESSURE)
+		SetBCConstantPS(ambientPressure);
+
+	if (m_BC_PN == BC3D::INLET || m_BC_PN == BC3D::OUTLET || m_BC_PN == BC3D::PRESSURE)
+		SetBCConstantPN(ambientPressure);
+
+	if (m_BC_PB == BC3D::INLET || m_BC_PB == BC3D::OUTLET || m_BC_PB == BC3D::PRESSURE)
+		SetBCConstantPS(ambientPressure);
+
+	if (m_BC_PT == BC3D::INLET || m_BC_PT == BC3D::OUTLET || m_BC_PT == BC3D::PRESSURE)
+		SetBCConstantPN(ambientPressure);
 }
 
 void BoundaryCondition3D::BC_DirichletPW(std::vector<double>& arr) {
