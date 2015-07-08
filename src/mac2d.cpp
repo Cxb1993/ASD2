@@ -275,36 +275,6 @@ std::vector<double> MACSolver2D::UpdateFU(const std::shared_ptr<LevelSetSolver2D
 		rhsU[idx(i, j)] = -cU[idx(i, j)] + vU[idx(i, j)] + gU[idx(i, j)];
 	}
 	
-	std::ofstream outF;
-	std::string fname("FU_ASCII.plt");
-	if (m_iter == 1) {
-	outF.open(fname.c_str(), std::ios::out);
-
-	outF << "TITLE = VEL" << std::endl;
-	outF << "VARIABLES = \"X\", \"Y\", \"-cU\", \"vV\", \"gU\", \"rhsU\"" << std::endl;
-	outF.close();
-	}
-
-	outF.open(fname.c_str(), std::ios::app);
-
-	outF << std::string("ZONE T=\"") << m_iter
-	<< std::string("\", I=") << kNx << std::string(", J=") << kNy
-	<< std::string(", SOLUTIONTIME=") << m_iter * 0.1
-	<< std::string(", STRANDID=") << m_iter + 1
-	<< std::endl;
-
-	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
-	outF << kBaseX + static_cast<double>(i + 0.5 - kNumBCGrid) * kDx << std::string(",")
-	<< kBaseY + static_cast<double>(j + 0.5 - kNumBCGrid) * kDy << std::string(",")
-	<< static_cast<double>(-cU[idx(i, j)]) << std::string(",")
-	<< static_cast<double>(vU[idx(i, j)]) << std::string(",")
-	<< static_cast<double>(gU[idx(i, j)]) << std::string(",")
-	<< static_cast<double>(rhsU[idx(i, j)])
-	<< std::endl;
-
-	outF.close();
-	
 	return rhsU;
 }
 
@@ -2363,7 +2333,7 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 		else if (i == kNumBCGrid && m_BC->m_BC_PW == BC2D::DIRICHLET) {
 			AColsDic["W"] = -1;
 			AValsDic["W"] = 0.0;
-			AValsDic["C"] -= iRhoW[idx(i, j)] / (kDx * kDx);
+			// AValsDic["C"] -= iRhoW[idx(i, j)] / (kDx * kDx);
 			rhs[idx(i, j)] -= iRhoW[idx(i, j)] / (kDx * kDx) * (m_BC->m_BC_DirichletConstantPW);
 		}
 		else if (i == kNumBCGrid && m_BC->m_BC_PW == BC2D::PERIODIC) {
@@ -2379,7 +2349,7 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 		else if (i == kNumBCGrid + kNx - 1 && m_BC->m_BC_PE == BC2D::DIRICHLET) {
 			AColsDic["E"] = -1;
 			AValsDic["E"] = 0.0;
-			AValsDic["C"] -= iRhoE[idx(i, j)] / (kDx * kDx);
+			// AValsDic["C"] -= iRhoE[idx(i, j)] / (kDx * kDx);
 			rhs[idx(i, j)] -= iRhoE[idx(i, j)] / (kDx * kDx) * (m_BC->m_BC_DirichletConstantPE);
 		}
 		else if (i == kNumBCGrid + kNx - 1 && m_BC->m_BC_PE == BC2D::PERIODIC) {
@@ -2394,7 +2364,7 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 		else if (j == kNumBCGrid && m_BC->m_BC_PS == BC2D::DIRICHLET) {
 			AColsDic["S"] = -1;
 			AValsDic["S"] = 0.0;
-			AValsDic["C"] -= iRhoS[idx(i, j)] / (kDy * kDy);
+			// AValsDic["C"] -= iRhoS[idx(i, j)] / (kDy * kDy);
 			rhs[idx(i, j)] -= iRhoS[idx(i, j)] / (kDy * kDy) * (m_BC->m_BC_DirichletConstantPS);
 		}
 		else if (j == kNumBCGrid && m_BC->m_BC_PS == BC2D::PERIODIC) {
@@ -2409,7 +2379,7 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 		else if (j == kNumBCGrid + kNy - 1 && m_BC->m_BC_PN == BC2D::DIRICHLET) {
 			AColsDic["N"] = -1;
 			AValsDic["N"] = 0.0;
-			AValsDic["C"] -= iRhoN[idx(i, j)] / (kDy * kDy);
+			// AValsDic["C"] -= iRhoN[idx(i, j)] / (kDy * kDy);
 			rhs[idx(i, j)] -= iRhoN[idx(i, j)] / (kDy * kDy) * (m_BC->m_BC_DirichletConstantPN);
 		}
 		else if (j == kNumBCGrid + kNy - 1 && m_BC->m_BC_PN == BC2D::PERIODIC) {
@@ -2453,6 +2423,7 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 		
 		rowIdx += tmpRowIdx;
 		MRowIdx += tmpMRowIdx;
+		
 		assert(rhs[idx(i, j)] == rhs[idx(i, j)]);
 		if (std::isnan(rhs[idx(i, j)]) || std::isinf(rhs[idx(i, j)])) {
 			std::cout << "right hand side of poisson equation nan/inf error : " 
