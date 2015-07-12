@@ -697,7 +697,6 @@ std::vector<double> MACSolver2DAxisym::AddExternalViscosityFU(const std::vector<
 			theta = std::fabs(lsW) / (std::fabs(lsW) + std::fabs(lsM));
 			// |(lsW)| === inside(+)  === |(interface)| ===    outside(-)   === |(lsM)|
 			// |(lsW)| === theta * d  === |(interface)| === (1 - theta) * d === |(lsM)|
-			// rhoEffWE = kRhoL * kRhoH / (kRhoL * theta + kRhoH * (1.0 - theta));
 			rhoEffWE = kRhoH * theta + kRhoL * (1.0 - theta);
 			iRhoEffWE = 1.0 / (kRhoL * kRhoH) / (1.0 / kRhoL * theta + 1.0 / kRhoH * (1.0 - theta));
 		}
@@ -706,7 +705,6 @@ std::vector<double> MACSolver2DAxisym::AddExternalViscosityFU(const std::vector<
 			theta = std::fabs(lsW) / (std::fabs(lsW) + std::fabs(lsM));
 			// |(lsW)| ===  outside(-) === |(interface)| ===    inside(+)    === |(lsM)|
 			// |(lsW)| ===  theta * d  === |(interface)| === (1 - theta) * d === |(lsM)|
-			// rhoEffWE = kRhoH * kRhoL / (kRhoH * theta + kRhoL * (1.0 - theta));
 			rhoEffWE = kRhoL * theta + kRhoH * (1.0 - theta);
 			iRhoEffWE = 1.0 / (kRhoH * kRhoL) / (1.0 / kRhoH * theta + 1.0 / kRhoL * (1.0 - theta));
 		}
@@ -724,7 +722,6 @@ std::vector<double> MACSolver2DAxisym::AddExternalViscosityFU(const std::vector<
 			theta = std::fabs(lsUSHalf) / (std::fabs(lsUSHalf) + std::fabs(lsUNHalf));
 			// |(lsUSHalf)| === inside(+)  === |(interface)| ===    outside(-)   === |(lsUNHalf)|
 			// |(lsUSHalf)| === theta * d  === |(interface)| === (1 - theta) * d === |(lsUNHalf)|
-			// rhoEffU = kRhoL * kRhoH / (kRhoL * theta + kRhoH * (1.0 - theta));
 			rhoEffSN = kRhoH * theta + kRhoL * (1.0 - theta);
 			iRhoEffSN = 1.0 / (kRhoL * kRhoH) / (1.0 / kRhoL * theta + 1.0 / kRhoH * (1.0 - theta));
 		}
@@ -733,7 +730,6 @@ std::vector<double> MACSolver2DAxisym::AddExternalViscosityFU(const std::vector<
 			theta = std::fabs(lsUSHalf) / (std::fabs(lsUSHalf) + std::fabs(lsUNHalf));
 			// |(lsUSHalf)| ===  outside(-) === |(interface)| ===    inside(+)    === |(lsUNHalf)|
 			// |(lsUSHalf)| ===  theta * d  === |(interface)| === (1 - theta) * d === |(lsUNHalf)|
-			// rhoEffU = kRhoH * kRhoL / (kRhoH * theta + kRhoL * (1.0 - theta));
 			rhoEffSN = kRhoL * theta + kRhoH * (1.0 - theta);
 			iRhoEffSN = 1.0 / (kRhoH * kRhoL) / (1.0 / kRhoH * theta + 1.0 / kRhoL * (1.0 - theta));
 		}
@@ -849,7 +845,6 @@ std::vector<double> MACSolver2DAxisym::AddExternalViscosityFV(const std::vector<
 			theta = std::fabs(lsVWHalf) / (std::fabs(lsVWHalf) + std::fabs(lsVEHalf));
 			// |(lsVWHalf)| === inside(+)  === |(interface)| ===    outside(-)   === |(lsVEHalf)|
 			// |(lsVWHalf)| === theta * d  === |(interface)| === (1 - theta) * d === |(lsVEHalf)|
-			// rhoEffU = kRhoL * kRhoH / (kRhoL * theta + kRhoH * (1.0 - theta));
 			rhoEffWE = kRhoH * theta + kRhoL * (1.0 - theta);
 			iRhoEffWE = 1.0 / (kRhoL * kRhoH) / (1.0 / kRhoL * theta + 1.0 / kRhoH * (1.0 - theta));
 		}
@@ -858,7 +853,6 @@ std::vector<double> MACSolver2DAxisym::AddExternalViscosityFV(const std::vector<
 			theta = std::fabs(lsVWHalf) / (std::fabs(lsVWHalf) + std::fabs(lsVEHalf));
 			// |(lsVWHalf)| ===  outside(-) === |(interface)| ===    inside(+)    === |(lsVEHalf)|
 			// |(lsVWHalf)| ===  theta * d  === |(interface)| === (1 - theta) * d === |(lsVEHalf)|
-			// rhoEffU = kRhoH * kRhoL / (kRhoH * theta + kRhoL * (1.0 - theta));
 			rhoEffWE = kRhoL * theta + kRhoH * (1.0 - theta);
 			iRhoEffWE = 1.0 / (kRhoH * kRhoL) / (1.0 / kRhoH * theta + 1.0 / kRhoL * (1.0 - theta));
 		}
@@ -876,7 +870,6 @@ std::vector<double> MACSolver2DAxisym::AddExternalViscosityFV(const std::vector<
 			theta = std::fabs(lsS) / (std::fabs(lsS) + std::fabs(lsM));
 			// |(lsS)| === inside(+)  === |(interface)| ===    outside(-)   === |(lsM)|
 			// |(lsS)| === theta * d  === |(interface)| === (1 - theta) * d === |(lsM)|
-			// rhoEffU = kRhoL * kRhoH / (kRhoL * theta + kRhoH * (1.0 - theta));
 			rhoEffSN = kRhoH * theta + kRhoL * (1.0 - theta);
 			iRhoEffSN = 1.0 / (kRhoL * kRhoH) / (1.0 / kRhoL * theta + 1.0 / kRhoH * (1.0 - theta));
 		}
@@ -885,7 +878,6 @@ std::vector<double> MACSolver2DAxisym::AddExternalViscosityFV(const std::vector<
 			theta = std::fabs(lsS) / (std::fabs(lsS) + std::fabs(lsM));
 			// |(lsS)| ===  outside(-) === |(interface)| ===    inside(+)    === |(lsM)|
 			// |(lsS)| ===  theta * d  === |(interface)| === (1 - theta) * d === |(lsM)|
-			// rhoEffU = kRhoH * kRhoL / (kRhoH * theta + kRhoL * (1.0 - theta));
 			rhoEffSN = kRhoL * theta + kRhoH * (1.0 - theta);
 			iRhoEffSN = 1.0 / (kRhoH * kRhoL) / (1.0 / kRhoH * theta + 1.0 / kRhoL * (1.0 - theta));
 		}
@@ -1819,7 +1811,7 @@ int MACSolver2DAxisym::SolvePoisson(std::vector<double>& ps, const std::vector<d
 			rhs[idx(i, j)] -= pCoefN[idx(i, j)] / (kDz * kDz) * (m_BC->m_BC_DirichletConstantPN);
 		}
 		else if (j == kNumBCGrid + kNz - 1 && m_BC->m_BC_PN == BC2D::PERIODIC) {
-			AValsDic["N"] = pCoefN[idx(i, kNumBCGrid + kNz + 1)];
+			AValsDic["N"] = pCoefN[idx(i, kNumBCGrid)];
 		}
 		// add non zero values to AVals and ACols
 		// KEEP ORDER OF PUSH_BACK!!
