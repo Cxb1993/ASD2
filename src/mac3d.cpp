@@ -523,7 +523,7 @@ std::vector<double> MACSolver3D::AddConvectionFV(const std::vector<double>& u, c
 	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
 	for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
 		tmpU[idx(i, j, k)] = (u[idx(i, j, k)] + u[idx(i, j - 1, k)] + u[idx(i + 1, j - 1, k)] + u[idx(i + 1, j, k)]) * 0.25;
-		tmpW[idx(i, j, k)] = (w[idx(i, j, k)] + u[idx(i, j - 1, k)] + w[idx(i, j - 1, k + 1)] + w[idx(i, j, k + 1)]) * 0.25;
+		tmpW[idx(i, j, k)] = (w[idx(i, j, k)] + w[idx(i, j - 1, k)] + w[idx(i, j - 1, k + 1)] + w[idx(i, j, k + 1)]) * 0.25;
 	}
 		
 	std::vector<double> vecF_VX(kNx + 2 * kNumBCGrid, 0.0), vecF_VY(kNy + 2 * kNumBCGrid), vecF_VZ(kNz + 2 * kNumBCGrid);
@@ -632,7 +632,7 @@ std::vector<double> MACSolver3D::AddConvectionFW(const std::vector<double>& u, c
 	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
 	for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
 		tmpU[idx(i, j, k)] = (u[idx(i, j, k)] + u[idx(i, j, k - 1)] + u[idx(i + 1, j, k - 1)] + u[idx(i + 1, j, k)]) * 0.25;
-		tmpV[idx(i, j, k)] = (w[idx(i, j, k)] + u[idx(i, j + 1, k)] + w[idx(i, j + 1, k - 1)] + w[idx(i, j + 1, k)]) * 0.25;
+		tmpV[idx(i, j, k)] = (v[idx(i, j, k)] + v[idx(i, j + 1, k)] + v[idx(i, j + 1, k - 1)] + v[idx(i, j, k - 1)]) * 0.25;
 	}
 
 	std::vector<double> vecF_VX(kNx + 2 * kNumBCGrid, 0.0), vecF_VY(kNy + 2 * kNumBCGrid), vecF_VZ(kNz + 2 * kNumBCGrid);
@@ -849,9 +849,9 @@ std::vector<double> MACSolver3D::AddViscosityFU(const std::vector<double>& u, co
 		return dU;
 	}
 
-	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
-	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-	for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++)
+	for (int i = 0; i < kNx + 2 * kNumBCGrid; i++)
+	for (int j = 0; j < kNy + 2 * kNumBCGrid; j++)
+	for (int k = 0; k < kNz + 2 * kNumBCGrid; k++)
 		mu[idx(i, j, k)] = kMuL + (kMuH - kMuL) * H[idx(i, j, k)];
 
 	// subcell
@@ -874,9 +874,6 @@ std::vector<double> MACSolver3D::AddViscosityFU(const std::vector<double>& u, co
 	|			|			|			|			|			|
 	|			|			|			|			|			|
 	-------------------------			-------------------------
-	*/
-	double lsW = 0.0, lsM = 0.0, lsUSHalf = 0.0, lsUNHalf = 0.0, lsUBHalf = 0.0, lsUTHalf = 0.0;
-	/*
 	xy plane (k fixed)					xz plane (j fixed)
 	-------------------------			-------------------------
 	|			|			|			|			|			|
@@ -886,48 +883,26 @@ std::vector<double> MACSolver3D::AddViscosityFU(const std::vector<double>& u, co
 	|			|			|			|			|			|
   lsUW		  lsUM  (i,j) lsUE			|		  lsUM	(i,k)	|
 	|			|			|			|			|			|
-	----lsVW---------lsVM----			-----lsWW--------lwWM----
+	----lsVW---------lsVM----			-----lsWW--------lsWM----
 	|			|			|			|			|			|
 	|		  lsUS			|			|		  lsUB			|
 	|			|			|			|			|			|
 	-------------------------			-------------------------
 	*/
-	// u_xx, u_yy, u_zz
-	double lsUW = 0.0, lsUE = 0.0, lsUS = 0.0, lsUN = 0.0, lsUM = 0.0, lsUB = 0.0, lsUT = 0.0;
-	// v_xy
-	double lsVW_N = 0.0, lsVW = 0.0, lsVM = 0.0, lsVN = 0.0;
-	// w_xz
-	double lsWW_T = 0.0, lsWW = 0.0, lsWM = 0.0, lsWT = 0.0;
+	double lsW = 0.0, lsM = 0.0, lsUSHalf = 0.0, lsUNHalf = 0.0, lsUBHalf = 0.0, lsUTHalf = 0.0;
+	double muW = 0.0, muM = 0.0, muUSHalf = 0.0, muUNHalf = 0.0, muUBHalf = 0.0, muUTHalf = 0.0;
+
 	double uW = 0.0, uE = 0.0, uS = 0.0, uN = 0.0, uM = 0.0, uB = 0.0, uT = 0.0;
 	double vW = 0.0, vW_N = 0.0, vM = 0.0, vN = 0.0;
 	double wW = 0.0, wW_T = 0.0, wM = 0.0, wT = 0.0;
-	double muU_X_W = 0.0, muU_X_E = 0.0, muU_Y_S = 0.0, muU_Y_N = 0.0, muU_Z_B = 0.0, muU_Z_T = 0.0;
-	double muV_X_S = 0.0, muV_X_N = 0.0, muW_X_B = 0.0, muW_X_T = 0.0;
 	double visX = 0.0, visY = 0.0, visZ = 0.0;
+	double rhoEffWE = 0.0, rhoEffSN = 0.0, rhoEffBT = 0.0, iRhoEffWE = 0.0, iRhoEffSN = 0.0, iRhoEffBT = 0.0;
 
 	for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
 	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
 	for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
-		muU_X_W = 0.0; muU_X_E = 0.0; muU_Y_S = 0.0; muU_Y_N = 0.0, muU_Z_B = 0.0, muU_Z_T = 0.0;
-		muV_X_S = 0.0; muV_X_N = 0.0, muW_X_B = 0.0, muW_X_T = 0.0;
 		visX = 0.0; visY = 0.0; visZ = 0.0;
 		
-		lsUM = 0.5 * (ls[idx(i - 1, j, k)] + ls[idx(i, j, k)]);
-		lsUW = 0.5 * (ls[idx(i - 2, j, k)] + ls[idx(i - 1, j, k)]);
-		lsUE = 0.5 * (ls[idx(i, j, k)] + ls[idx(i + 1, j, k)]);
-		lsUS = 0.5 * (ls[idx(i - 1, j - 1, k)] + ls[idx(i, j - 1, k)]);
-		lsUN = 0.5 * (ls[idx(i - 1, j + 1, k)] + ls[idx(i, j + 1, k)]);
-		lsUB = 0.5 * (ls[idx(i - 1, j, k - 1)] + ls[idx(i, j, k - 1)]);
-		lsUT = 0.5 * (ls[idx(i - 1, j, k + 1)] + ls[idx(i, j, k + 1)]);
-		lsVW = 0.5 * (ls[idx(i - 1, j - 1, k)] + ls[idx(i - 1, j, k)]);
-		lsVW_N = 0.5 * (ls[idx(i - 1, j, k)] + ls[idx(i - 1, j + 1, k)]);
-		lsVM = 0.5 * (ls[idx(i, j - 1, k)] + ls[idx(i, j, k)]);
-		lsVN = 0.5 * (ls[idx(i, j, k)] + ls[idx(i, j + 1, k)]);
-		lsWW = 0.5 * (ls[idx(i - 1, j, k - 1)] + ls[idx(i - 1, j, k)]);
-		lsWW_T = 0.5 * (ls[idx(i - 1, j, k)] + ls[idx(i - 1, j, k + 1)]);
-		lsVM = 0.5 * (ls[idx(i, j, k - 1)] + ls[idx(i, j, k)]);
-		lsWT = 0.5 * (ls[idx(i, j, k)] + ls[idx(i, j, k + 1)]);
-
 		uM = u[idx(i, j, k)];
 		uW = u[idx(i - 1, j, k)];
 		uE = u[idx(i + 1, j, k)];
@@ -951,103 +926,100 @@ std::vector<double> MACSolver3D::AddViscosityFU(const std::vector<double>& u, co
 		lsUNHalf = 0.25 * (ls[idx(i, j, k)] + ls[idx(i - 1, j, k)] + ls[idx(i - 1, j + 1, k)] + ls[idx(i, j + 1, k)]);
 		lsUBHalf = 0.25 * (ls[idx(i, j, k)] + ls[idx(i - 1, j, k)] + ls[idx(i - 1, j, k - 1)] + ls[idx(i, j, k - 1)]);
 		lsUTHalf = 0.25 * (ls[idx(i, j, k)] + ls[idx(i - 1, j, k)] + ls[idx(i - 1, j, k + 1)] + ls[idx(i, j, k + 1)]);
-		
-		double rhoEffWE = 0.0, rhoEffSN = 0.0, rhoEffBT = 0.0, iRhoEffWE = 0.0, iRhoEffSN = 0.0, iRhoEffBT = 0.0;
+
+		muW = mu[idx(i - 1, j, k)];
+		muM = mu[idx(i, j, k)];
+		muUSHalf = 0.25 * (mu[idx(i, j, k)] + mu[idx(i - 1, j, k)] + mu[idx(i - 1, j - 1, k)] + mu[idx(i, j - 1, k)]);
+		muUNHalf = 0.25 * (mu[idx(i, j, k)] + mu[idx(i - 1, j, k)] + mu[idx(i - 1, j + 1, k)] + mu[idx(i, j + 1, k)]);
+		muUBHalf = 0.25 * (mu[idx(i, j, k)] + mu[idx(i - 1, j, k)] + mu[idx(i - 1, j, k - 1)] + mu[idx(i, j, k - 1)]);
+		muUTHalf = 0.25 * (mu[idx(i, j, k)] + mu[idx(i - 1, j, k)] + mu[idx(i - 1, j, k + 1)] + mu[idx(i, j, k + 1)]);
+
 		if (lsW >= 0 && lsM >= 0) {
-			thetaH = 1.0;
+			rhoEffWE = kRhoH;
 			iRhoEffWE = 1.0 / kRhoH;
 		}
 		else if (lsW <= 0 && lsM <= 0) {
-			thetaH = 0.0;
+			rhoEffWE = kRhoL;
 			iRhoEffWE = 1.0 / kRhoL;
 		}
-		else if (lsW > 0 && lsM <= 0) {
+		else if (lsW >= 0 && lsM < 0) {
+			// interface lies between u[i - 1, j, k] and u[i, j, k]
 			theta = std::fabs(lsW) / (std::fabs(lsW) + std::fabs(lsM));
+			thetaH = std::fabs(lsW) / (std::fabs(lsW) + std::fabs(lsM));
+			// |(lsW)| ===   high(+)  === |(interface)| ===      low(-)     === |(lsM)|
+			// |(lsW)| === theta * d  === |(interface)| === (1 - theta) * d === |(lsM)|
+			rhoEffWE = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
 			iRhoEffWE = 1.0 / (kRhoL * kRhoH) / (1.0 / kRhoL * theta + 1.0 / kRhoH * (1.0 - theta));
 		}
-		else if (lsW <= 0 && lsM > 0) {
+		else if (lsW < 0 && lsM >= 0) {
+			// interface lies between u[i - 1, j, k] and u[i, j, k]
 			theta = std::fabs(lsW) / (std::fabs(lsW) + std::fabs(lsM));
+			thetaH = std::fabs(lsM) / (std::fabs(lsW) + std::fabs(lsM));
+			// |(lsW)| ===    low(-)   === |(interface)| ===     high(+)     === |(lsM)|
+			// |(lsW)| ===  theta * d  === |(interface)| === (1 - theta) * d === |(lsM)|
+			rhoEffWE = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
 			iRhoEffWE = 1.0 / (kRhoH * kRhoL) / (1.0 / kRhoH * theta + 1.0 / kRhoL * (1.0 - theta));
 		}
-		/*
-		else  {
-			thetaH = (std::max(lsW, 0.0) + std::max(lsM, 0.0))
-				/ (std::fabs(lsW) + std::fabs(lsM));
-		}
-		iRhoEffWE = 1.0 / kRhoH * thetaH + 1.0 / kRhoL * (1.0 - thetaH);
-		*/
 
 		if (lsUSHalf >= 0 && lsUNHalf >= 0) {
-			thetaH = 1.0;
+			rhoEffSN = kRhoH;
 			iRhoEffSN = 1.0 / kRhoH;
 		}
 		else if (lsUSHalf <= 0 && lsUNHalf <= 0) {
-			thetaH = 0.0;
+			rhoEffSN = kRhoL;
 			iRhoEffSN = 1.0 / kRhoL;
 		}
-		else if (lsUSHalf > 0 && lsUNHalf <= 0) {
+		else if (lsUSHalf >= 0 && lsUNHalf < 0) {
+			// interface lies between lsUSHalf and lsUNHalf
 			theta = std::fabs(lsUSHalf) / (std::fabs(lsUSHalf) + std::fabs(lsUNHalf));
+			thetaH = std::fabs(lsUSHalf) / (std::fabs(lsUSHalf) + std::fabs(lsUNHalf));
+			// |(lsUSHalf)| ===   high(+)  === |(interface)| ===      low(-)     === |(lsUNHalf)|
+			// |(lsUSHalf)| === theta * d  === |(interface)| === (1 - theta) * d === |(lsUNHalf)|
+			rhoEffSN = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
 			iRhoEffSN = 1.0 / (kRhoL * kRhoH) / (1.0 / kRhoL * theta + 1.0 / kRhoH * (1.0 - theta));
 		}
-		else if (lsUSHalf <= 0 && lsUNHalf > 0) {
+		else if (lsUSHalf < 0 && lsUNHalf >= 0) {
+			// interface lies between lsUSHalf and lsUNHalf
 			theta = std::fabs(lsUSHalf) / (std::fabs(lsUSHalf) + std::fabs(lsUNHalf));
+			thetaH = std::fabs(lsUNHalf) / (std::fabs(lsUSHalf) + std::fabs(lsUNHalf));
+			// |(lsUSHalf)| ===    low(-)   === |(interface)| ===     high(+)     === |(lsUNHalf)|
+			// |(lsUSHalf)| ===  theta * d  === |(interface)| === (1 - theta) * d === |(lsUNHalf)|
+			rhoEffSN = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
 			iRhoEffSN = 1.0 / (kRhoH * kRhoL) / (1.0 / kRhoH * theta + 1.0 / kRhoL * (1.0 - theta));
 		}
-		/*
-		else {
-			thetaH = (std::max(lsUSHalf, 0.0) + std::max(lsUNHalf, 0.0))
-				/ (std::fabs(lsUSHalf) + std::fabs(lsUNHalf));
-		}
-		iRhoEffSN = 1.0 / kRhoH * thetaH + 1.0 / kRhoL * (1.0 - thetaH);
-		*/
 
-		if (lsUBHalf >= 0 && lsUTHalf >= 0) {
-			thetaH = 1.0;
+		if (lsUBHalf >= 0 && lsUBHalf >= 0) {
+			rhoEffBT = kRhoH;
 			iRhoEffBT = 1.0 / kRhoH;
 		}
 		else if (lsUBHalf <= 0 && lsUTHalf <= 0) {
-			thetaH = 0.0;
+			rhoEffBT = kRhoL;
 			iRhoEffBT = 1.0 / kRhoL;
 		}
-		else if (lsUBHalf > 0 && lsUTHalf <= 0) {
-			theta = std::fabs(lsUBHalf) / (std::fabs(lsUBHalf) + std::fabs(lsUTHalf));
+		else if (lsUBHalf >= 0 && lsUTHalf < 0) {
+			// interface lies between lsUBHalf and lsUTHalf
+			theta = std::fabs(lsUBHalf) / (std::fabs(lsUTHalf) + std::fabs(lsUTHalf));
+			// |(lsUBHalf)| ===   high(+)  === |(interface)| ===      low(-)     === |(lsUTHalf)|
+			// |(lsUBHalf)| === theta * d  === |(interface)| === (1 - theta) * d === |(lsUTHalf)|
+			rhoEffBT = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
 			iRhoEffBT = 1.0 / (kRhoL * kRhoH) / (1.0 / kRhoL * theta + 1.0 / kRhoH * (1.0 - theta));
 		}
-		else if (lsUBHalf <= 0 && lsUTHalf > 0) {
+		else if (lsUBHalf < 0 && lsUTHalf >= 0) {
+			// interface lies between lsUBHalf and lsUTHalf
 			theta = std::fabs(lsUBHalf) / (std::fabs(lsUBHalf) + std::fabs(lsUTHalf));
+			// |(lsUBHalf)| ===    low(-)   === |(interface)| ===     high(+)     === |(lsUTHalf)|
+			// |(lsUBHalf)| ===  theta * d  === |(interface)| === (1 - theta) * d === |(lsUTHalf)|
+			rhoEffBT = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
 			iRhoEffBT = 1.0 / (kRhoH * kRhoL) / (1.0 / kRhoH * theta + 1.0 / kRhoL * (1.0 - theta));
 		}
-		/*
-		else {
-			thetaH = (std::max(lsUBHalf, 0.0) + std::max(lsUTHalf, 0.0))
-				/ (std::fabs(lsUBHalf) + std::fabs(lsUTHalf));
-		}
-		iRhoEffBT = 1.0 / kRhoH * thetaH + 1.0 / kRhoL * (1.0 - thetaH);
-		*/
-
-		muU_X_W = mu[idx(i - 1, j, k)] * (uM - uW) / kDx;
-		muU_X_E = mu[idx(i, j, k)] * (uE - uM) / kDx;
-		muU_Y_S = 0.25 * (mu[idx(i, j, k)] + mu[idx(i - 1, j, k)] + mu[idx(i - 1, j - 1, k)] + mu[idx(i, j - 1, k)])
-			* (uM - uS) / kDy;
-		muU_Y_N = 0.25 * (mu[idx(i, j, k)] + mu[idx(i - 1, j, k)] + mu[idx(i - 1, j + 1, k)] + mu[idx(i, j + 1, k)])
-			* (uN - uM) / kDy;
-		muU_Z_B = 0.25 * (mu[idx(i, j, k)] + mu[idx(i - 1, j, k)] + mu[idx(i - 1, j, k - 1)] + mu[idx(i, j, k - 1)])
-			* (uM - uB) / kDz;
-		muU_Z_T = 0.25 * (mu[idx(i, j, k)] + mu[idx(i - 1, j, k)] + mu[idx(i - 1, j, k + 1)] + mu[idx(i, j, k + 1)])
-			* (uT - uM) / kDz;
-		muV_X_S = 0.25 * (mu[idx(i, j, k)] + mu[idx(i - 1, j, k)] + mu[idx(i - 1, j - 1, k)] + mu[idx(i, j - 1, k)])
-			* (vM - vW) / kDx;
-		muV_X_N = 0.25 * (mu[idx(i, j, k)] + mu[idx(i - 1, j, k)] + mu[idx(i - 1, j + 1, k)] + mu[idx(i, j + 1, k)])
-			* (vN - vW_N) / kDx;
-		muW_X_B = 0.25 * (mu[idx(i, j, k)] + mu[idx(i - 1, j, k)] + mu[idx(i - 1, j, k - 1)] + mu[idx(i, j, k - 1)])
-			* (wM - wW) / kDx;
-		muW_X_T = 0.25 * (mu[idx(i, j, k)] + mu[idx(i - 1, j, k)] + mu[idx(i - 1, j, k + 1)] + mu[idx(i, j, k + 1)])
-			* (wT - wW_T) / kDx;
-
-		visX = 2.0 * (muU_X_E - muU_X_W) / kDx;
-		visY = (muU_Y_N - muU_Y_S) / kDy + (muV_X_N - muV_X_S) / kDy;
-		visZ = (muU_Z_T - muU_Z_B) / kDz + (muW_X_T - muW_X_T) / kDz;
-		dU[idx(i, j, k)] = visX * iRhoEffWE + visY * iRhoEffSN + visZ * iRhoEffBT;
+		
+		visX = 2.0 * (muM * (uE - uM) / kDx - muW * (uM - uW) / kDx) / kDx;
+		visY = ((muUNHalf * (uN - uM) / kDy - muUSHalf * (uM - uS) / kDy) 
+			+ (muUNHalf * (vN - vW_N) / kDx - muUSHalf * (vM - vW) / kDx)) / kDy;
+		visZ = ((muUTHalf * (uT - uM) / kDz - muUBHalf * (uM - uB) / kDz)
+			+ (muUTHalf * (wT - wW_T) / kDx - muUBHalf * (wM - wW) / kDx)) / kDz;
+		
+		dU[idx(i, j, k)] = visX / rhoEffWE + visY / rhoEffSN + visZ / rhoEffBT;
 
 		if (std::isnan(dU[idx(i, j, k)]) || std::isinf(dU[idx(i, j, k)])) {
 			std::cout << "U-viscosity term nan/inf error : " << i << " " << j << " " << k << " " << dU[idx(i, j, k)] << std::endl;
@@ -1073,9 +1045,9 @@ std::vector<double> MACSolver3D::AddViscosityFV(const std::vector<double>& u, co
 		return dV;
 	}
 
-	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
-	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-	for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++)
+	for (int i = 0; i < kNx + 2 * kNumBCGrid; i++)
+	for (int j = 0; j < kNy + 2 * kNumBCGrid; j++)
+	for (int k = 0; k < kNz + 2 * kNumBCGrid; k++)
 		mu[idx(i, j, k)] = kMuL + (kMuH - kMuL) * H[idx(i, j, k)];
 
 	// subcell
@@ -1099,9 +1071,6 @@ std::vector<double> MACSolver3D::AddViscosityFV(const std::vector<double>& u, co
 												|			|			|
 												|			|			|
 												-------------------------
-	*/
-	double lsVWHalf = 0.0, lsVEHalf = 0.0, lsM = 0.0, lsS = 0.0, lsVBHalf = 0.0, lsVTHalf = 0.0;
-	/*
 	xy plane (k fixed)							yz plane (i fixed)
 	----------------lsVN-----------------		-------------------------
 	|			|			|			|		|			|			|
@@ -1109,7 +1078,7 @@ std::vector<double> MACSolver3D::AddViscosityFV(const std::vector<double>& u, co
 	|			|			|			|		|			|			|
 	-----lsVW-------lsVM--------lsVE-----		---lsWS_T-------lsWT-----
 	|			|			|			|		|			|			|
-	|		  lsUS		  lsUE_S		|	  lsVS	  	  lsVM	(j,k) lsVN
+	|		  lsUS		  lsUS_E		|	  lsVS	  	  lsVM	(j,k) lsVN
 	|			|			|			|		|			|			|
 	----------------lsVS-----------------		----lsWS--------lsWM-----
 												|			|			|
@@ -1117,44 +1086,21 @@ std::vector<double> MACSolver3D::AddViscosityFV(const std::vector<double>& u, co
 												|			|			|
 												-------------------------
 	*/
-	// v_xx, v_yy, v_zz
-	double lsVW = 0.0, lsVE = 0.0, lsVS = 0.0, lsVN = 0.0, lsVM = 0.0, lsVB = 0.0, lsVT = 0.0;
-	// u_xy
-	double lsUM = 0.0, lsUS = 0.0, lsUE = 0.0, lsUE_S = 0.0;
-	// w_yz
-	double lsWM = 0.0, lsWS = 0.0, lsWT = 0.0, lsWS_T = 0.0;
+	double lsVWHalf = 0.0, lsVEHalf = 0.0, lsM = 0.0, lsS = 0.0, lsVBHalf = 0.0, lsVTHalf = 0.0;
+	double muVWHalf = 0.0, muVEHalf = 0.0, muM = 0.0, muS = 0.0, muVBHalf = 0.0, muVTHalf = 0.0;
 	
 	// jump condition
-	double uS = 0.0, uM = 0.0, uE = 0.0, uE_S = 0.0;
+	double uS = 0.0, uM = 0.0, uE = 0.0, uS_E = 0.0;
 	double vM = 0.0, vW = 0.0, vE = 0.0, vS = 0.0, vN = 0.0, vB = 0.0, vT = 0.0;
 	double wS = 0.0, wM = 0.0, wT = 0.0, wS_T = 0.0;
-	double muV_X_W = 0.0, muV_X_E = 0.0, muV_Y_S = 0.0, muV_Y_N = 0.0, muV_Z_B = 0.0, muV_Z_T = 0.0;
-	double muU_Y_W = 0.0, muU_Y_E = 0.0, muW_Y_B = 0.0, muW_Y_T = 0.0;
 	double visX = 0.0, visY = 0.0, visZ = 0.0;
+	double rhoEffWE = 0.0, rhoEffSN = 0.0, rhoEffBT = 0.0, iRhoEffWE = 0.0, iRhoEffSN = 0.0, iRhoEffBT = 0.0;
 
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 	for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++)
 	for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
-		muV_X_W = 0.0; muV_X_E = 0.0; muV_Y_S = 0.0; muV_Y_N = 0.0; muV_Z_B = 0.0; muV_Z_T = 0.0;
-		muU_Y_W = 0.0; muU_Y_E = 0.0; muW_Y_B = 0.0; muW_Y_T = 0.0;
 		visX = 0.0; visY = 0.0; visZ = 0.0;
 		
-		lsVM = 0.5 * (ls[idx(i, j - 1, k)] + ls[idx(i, j, k)]);
-		lsVW = 0.5 * (ls[idx(i - 1, j - 1, k)] + ls[idx(i - 1, j, k)]);
-		lsVE = 0.5 * (ls[idx(i + 1, j - 1, k)] + ls[idx(i + 1, j, k)]);
-		lsVS = 0.5 * (ls[idx(i, j - 2, k)] + ls[idx(i, j - 1, k)]);
-		lsVN = 0.5 * (ls[idx(i, j, k)] + ls[idx(i, j + 1, k)]);
-		lsVB = 0.5 * (ls[idx(i, j - 1, k - 1)] + ls[idx(i, j, k - 1)]);
-		lsVT = 0.5 * (ls[idx(i, j - 1, k + 1)] + ls[idx(i, j, k + 1)]);
-		lsUM = 0.5 * (ls[idx(i - 1, j, k)] + ls[idx(i, j, k)]);
-		lsUS = 0.5 * (ls[idx(i - 1, j - 1, k)] + ls[idx(i, j - 1, k)]);
-		lsUE = 0.5 * (ls[idx(i, j, k)] + ls[idx(i + 1, j, k)]);
-		lsUE_S = 0.5 * (ls[idx(i, j - 1, k)] + ls[idx(i + 1, j - 1, k)]);
-		lsWM = 0.5 * (ls[idx(i, j, k - 1)] + ls[idx(i, j, k)]);
-		lsWT = 0.5 * (ls[idx(i, j, k)] + ls[idx(i, j, k + 1)]);
-		lsWS = 0.5 * (ls[idx(i, j - 1, k - 1)] + ls[idx(i, j - 1, k)]);
-		lsWS_T = 0.5 * (ls[idx(i, j - 1, k)] + ls[idx(i, j - 1, k + 1)]);
-
 		vM = v[idx(i, j, k)];
 		vW = v[idx(i - 1, j, k)];
 		vE = v[idx(i + 1, j, k)];
@@ -1166,116 +1112,114 @@ std::vector<double> MACSolver3D::AddViscosityFV(const std::vector<double>& u, co
 		uM = u[idx(i, j, k)];
 		uE = u[idx(i + 1, j, k)];
 		uS = u[idx(i, j - 1, k)];
-		uE_S = u[idx(i + 1, j - 1, k)];
+		uS_E = u[idx(i + 1, j - 1, k)];
 		wM = w[idx(i, j, k)];
 		wT = w[idx(i, j, k + 1)];
-		wS = w[idx(i - 1, j, k)];
-		wS_T = w[idx(i - 1, j, k + 1)];
+		wS = w[idx(i, j - 1, k)];
+		wS_T = w[idx(i, j - 1, k + 1)];
 		
-		lsS = ls[idx(i, j - 1, k)];
-		lsM = ls[idx(i, j, k)];
 		lsVWHalf = 0.25 * (ls[idx(i, j, k)] + ls[idx(i - 1, j, k)] + ls[idx(i - 1, j - 1, k)] + ls[idx(i, j - 1, k)]);
 		lsVEHalf = 0.25 * (ls[idx(i, j, k)] + ls[idx(i + 1, j, k)] + ls[idx(i + 1, j - 1, k)] + ls[idx(i, j - 1, k)]);
+		lsS = ls[idx(i, j - 1, k)];
+		lsM = ls[idx(i, j, k)];
 		lsVBHalf = 0.25 * (ls[idx(i, j, k)] + ls[idx(i, j, k - 1)] + ls[idx(i, j - 1, k - 1)] + ls[idx(i, j - 1, k)]);
 		lsVTHalf = 0.25 * (ls[idx(i, j, k)] + ls[idx(i, j, k + 1)] + ls[idx(i, j - 1, k + 1)] + ls[idx(i, j - 1, k)]);
-		
-		muV_X_W = 0.25 * (mu[idx(i, j, k)] + mu[idx(i - 1, j, k)] + mu[idx(i - 1, j - 1, k)] + mu[idx(i, j - 1, k)])
-			* (vM - vW) / kDx;
-		muV_X_E = 0.25 * (mu[idx(i, j, k)] + mu[idx(i + 1, j, k)] + mu[idx(i + 1, j - 1, k)] + mu[idx(i, j - 1, k)])
-			* (vE - vM) / kDx;
-		muV_Y_S = mu[idx(i, j - 1, k)] * (vM - vS) / kDy;
-		muV_Y_N = mu[idx(i, j, k)] * (vN - vM) / kDy;
-		muV_Z_B = 0.25 * (mu[idx(i, j, k)] + mu[idx(i, j, k - 1)] + mu[idx(i, j - 1, k - 1)] + mu[idx(i, j - 1, k)])
-			* (vM - vB) / kDz;
-		muV_Z_T = 0.25 * (mu[idx(i, j, k)] + mu[idx(i, j, k + 1)] + mu[idx(i, j - 1, k + 1)] + mu[idx(i, j - 1, k)])
-			* (vT - vM) / kDz;
-		muU_Y_W = 0.25 * (mu[idx(i, j, k)] + mu[idx(i - 1, j, k)] + mu[idx(i - 1, j - 1, k)] + mu[idx(i, j - 1, k)])
-			* (uM - uS) / kDy;
-		muU_Y_E = 0.25 * (mu[idx(i, j, k)] + mu[idx(i + 1, j, k)] + mu[idx(i + 1, j - 1, k)] + mu[idx(i, j - 1, k)])
-			* (uE - uE_S) / kDy;
-		muW_Y_B = 0.25 * (mu[idx(i, j, k)] + mu[idx(i, j, k - 1)] + mu[idx(i, j - 1, k - 1)] + mu[idx(i, j - 1, k)])
-			* (wM - wS) / kDy;
-		muW_Y_T = 0.25 * (mu[idx(i, j, k)] + mu[idx(i, j, k + 1)] + mu[idx(i, j - 1, k + 1)] + mu[idx(i, j - 1, k)])
-			* (wT - wS_T) / kDy;
 
-		double rhoEffWE = 0.0, rhoEffSN = 0.0, rhoEffBT = 0.0, iRhoEffWE = 0.0, iRhoEffSN = 0.0, iRhoEffBT = 0.0;
+		muVWHalf = 0.25 * (mu[idx(i, j, k)] + mu[idx(i - 1, j, k)] + mu[idx(i - 1, j - 1, k)] + mu[idx(i, j - 1, k)]);
+		muVEHalf = 0.25 * (mu[idx(i, j, k)] + mu[idx(i + 1, j, k)] + mu[idx(i + 1, j - 1, k)] + mu[idx(i, j - 1, k)]);
+		muS = mu[idx(i, j - 1, k)];
+		muM = mu[idx(i, j, k)];
+		muVBHalf = 0.25 * (mu[idx(i, j, k)] + mu[idx(i, j, k - 1)] + mu[idx(i, j - 1, k - 1)] + mu[idx(i, j - 1, k)]);
+		muVTHalf = 0.25 * (mu[idx(i, j, k)] + mu[idx(i, j, k + 1)] + mu[idx(i, j - 1, k + 1)] + mu[idx(i, j - 1, k)]);
+		
 		if (lsVWHalf >= 0 && lsVEHalf >= 0) {
-			thetaH = 1.0;
+			rhoEffWE = kRhoH;
 			iRhoEffWE = 1.0 / kRhoH;
 		}
 		else if (lsVWHalf <= 0 && lsVEHalf <= 0) {
-			thetaH = 0.0;
+			rhoEffWE = kRhoL;
 			iRhoEffWE = 1.0 / kRhoL;
 		}
-		else if (lsVWHalf > 0 && lsVEHalf <= 0) {
+		else if (lsVWHalf >= 0 && lsVEHalf < 0) {
+			// interface lies between lsVWHalf and lsVEHalf
 			theta = std::fabs(lsVWHalf) / (std::fabs(lsVWHalf) + std::fabs(lsVEHalf));
+			thetaH = std::fabs(lsVWHalf) / (std::fabs(lsVWHalf) + std::fabs(lsVEHalf));
+			// |(lsVWHalf)| ===   high(+)  === |(interface)| ===      low(-)     === |(lsVEHalf)|
+			// |(lsVWHalf)| === theta * d  === |(interface)| === (1 - theta) * d === |(lsVEHalf)|
+			rhoEffWE = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
 			iRhoEffWE = 1.0 / (kRhoL * kRhoH) / (1.0 / kRhoL * theta + 1.0 / kRhoH * (1.0 - theta));
 		}
-		else if (lsVWHalf <= 0 && lsVEHalf > 0) {
-			theta = std::fabs(lsVWHalf) / (std::fabs(lsVEHalf) + std::fabs(lsVEHalf));
+		else if (lsVWHalf < 0 && lsVEHalf >= 0) {
+			// interface lies between lsVWHalf and lsVEHalf
+			theta = std::fabs(lsVWHalf) / (std::fabs(lsVWHalf) + std::fabs(lsVEHalf));
+			thetaH = std::fabs(lsVEHalf) / (std::fabs(lsVWHalf) + std::fabs(lsVEHalf));
+			// |(lsVWHalf)| ===    low(-)   === |(interface)| ===     high(+)     === |(lsVEHalf)|
+			// |(lsVWHalf)| ===  theta * d  === |(interface)| === (1 - theta) * d === |(lsVEHalf)|
+			rhoEffWE = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
 			iRhoEffWE = 1.0 / (kRhoH * kRhoL) / (1.0 / kRhoH * theta + 1.0 / kRhoL * (1.0 - theta));
 		}
-		/*
-		else  {
-		thetaH = (std::max(lsVWHalf, 0.0) + std::max(lsVEHalf, 0.0))
-		/ (std::fabs(lsVWHalf) + std::fabs(lsVEHalf));
-		}
-		iRhoEffWE = 1.0 / kRhoH * thetaH + 1.0 / kRhoL * (1.0 - thetaH);
-		*/
-
+				
 		if (lsS >= 0 && lsM >= 0) {
-			thetaH = 1.0;
+			rhoEffSN = kRhoH;
 			iRhoEffSN = 1.0 / kRhoH;
 		}
 		else if (lsS <= 0 && lsM <= 0) {
-			thetaH = 0.0;
+			rhoEffSN = kRhoL;
 			iRhoEffSN = 1.0 / kRhoL;
 		}
-		else if (lsS > 0 && lsM <= 0) {
+		else if (lsS >= 0 && lsM < 0) {
+			// interface lies between v[i, j - 1, k] and v[i, j, k]
 			theta = std::fabs(lsS) / (std::fabs(lsS) + std::fabs(lsM));
-			iRhoEffWE = 1.0 / (kRhoL * kRhoH) / (1.0 / kRhoL * theta + 1.0 / kRhoH * (1.0 - theta));
+			thetaH = std::fabs(lsS) / (std::fabs(lsS) + std::fabs(lsM));
+			// |(lsS)| ===   high(+)  === |(interface)| ===      low(-)     === |(lsM)|
+			// |(lsS)| === theta * d  === |(interface)| === (1 - theta) * d === |(lsM)|
+			rhoEffSN = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
+			iRhoEffSN = 1.0 / (kRhoL * kRhoH) / (1.0 / kRhoL * theta + 1.0 / kRhoH * (1.0 - theta));
 		}
-		else if (lsS <= 0 && lsM > 0) {
+		else if (lsS < 0 && lsM >= 0) {
+			// interface lies between v[i, j - 1, k] and v[i, j, k]
 			theta = std::fabs(lsS) / (std::fabs(lsS) + std::fabs(lsM));
-			iRhoEffWE = 1.0 / (kRhoH * kRhoL) / (1.0 / kRhoH * theta + 1.0 / kRhoL * (1.0 - theta));
+			thetaH = std::fabs(lsM) / (std::fabs(lsS) + std::fabs(lsM));
+			// |(lsS)| ===    low(-)   === |(interface)| ===     high(+)     === |(lsM)|
+			// |(lsS)| ===  theta * d  === |(interface)| === (1 - theta) * d === |(lsM)|
+			rhoEffSN = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
+			iRhoEffSN = 1.0 / (kRhoH * kRhoL) / (1.0 / kRhoH * theta + 1.0 / kRhoL * (1.0 - theta));
 		}
-		/*
-		else {
-			thetaH = (std::max(lsS, 0.0) + std::max(lsM, 0.0))
-				/ (std::fabs(lsS) + std::fabs(lsM));
-		}
-		iRhoEffSN = 1.0 / kRhoH * thetaH + 1.0 / kRhoL * (1.0 - thetaH);
-		*/
 
 		if (lsVBHalf >= 0 && lsVTHalf >= 0) {
-			thetaH = 1.0;
+			rhoEffBT = kRhoH;
 			iRhoEffBT = 1.0 / kRhoH;
 		}
 		else if (lsVBHalf <= 0 && lsVTHalf <= 0) {
-			thetaH = 0.0;
+			rhoEffBT = kRhoL;
 			iRhoEffBT = 1.0 / kRhoL;
 		}
-		else if (lsVBHalf > 0 && lsVTHalf <= 0) {
+		else if (lsVBHalf >= 0 && lsVTHalf < 0) {
+			// interface lies between lsVBHalf and lsVTHalf
 			theta = std::fabs(lsVBHalf) / (std::fabs(lsVBHalf) + std::fabs(lsVTHalf));
+			thetaH = std::fabs(lsVBHalf) / (std::fabs(lsVBHalf) + std::fabs(lsVTHalf));
+			// |(lsVBHalf)| ===   high(+)  === |(interface)| ===      low(-)     === |(lsVTHalf)|
+			// |(lsVBHalf)| === theta * d  === |(interface)| === (1 - theta) * d === |(lsVTHalf)|
+			rhoEffBT = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
 			iRhoEffBT= 1.0 / (kRhoL * kRhoH) / (1.0 / kRhoL * theta + 1.0 / kRhoH * (1.0 - theta));
 		}
-		else if (lsVBHalf <= 0 && lsVTHalf > 0) {
+		else if (lsVBHalf < 0 && lsVTHalf >= 0) {
+			// interface lies between lsVBHalf and lsVTHalf
 			theta = std::fabs(lsVBHalf) / (std::fabs(lsVBHalf) + std::fabs(lsVTHalf));
+			thetaH = std::fabs(lsVTHalf) / (std::fabs(lsVBHalf) + std::fabs(lsVTHalf));
+			// |(lsVBHalf)| ===    low(-)   === |(interface)| ===     high(+)     === |(lsVTHalf)|
+			// |(lsVBHalf)| ===  theta * d  === |(interface)| === (1 - theta) * d === |(lsVTHalf)|
+			rhoEffBT = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
 			iRhoEffBT = 1.0 / (kRhoH * kRhoL) / (1.0 / kRhoH * theta + 1.0 / kRhoL * (1.0 - theta));
 		}
-		/*
-		else {
-			thetaH = (std::max(lsVBHalf, 0.0) + std::max(lsVTHalf, 0.0))
-				/ (std::fabs(lsVBHalf) + std::fabs(lsVTHalf));
-		}
-		iRhoEffBT = 1.0 / kRhoH * thetaH + 1.0 / kRhoL * (1.0 - thetaH);
-		*/
 
-		visX = (muU_Y_E - muU_Y_W) / kDx + (muV_X_E - muV_X_W) / kDx;
-		visY = 2.0 * (muV_Y_N - muV_Y_S) / kDy;
-		visZ = (muW_Y_T - muW_Y_B) / kDz + (muV_Z_T - muV_Z_B) / kDz;
-		
-		dV[idx(i, j, k)] = visX * iRhoEffWE + visY * iRhoEffSN + visZ * iRhoEffBT;
+		visX = ((muVEHalf * (uE - uS_E) / kDy - muVWHalf * (uM - uS) / kDy)
+			+ (muVEHalf * (vE - vM) / kDx - muVWHalf * (vM - vS) / kDx)) / kDx;
+		visY = 2.0 * (muM * (vN - vM) / kDy - muS * (vM - vS) / kDy) / kDy;
+		visZ = ((muVTHalf * (vT - vM) / kDz - muVBHalf * (vM - vB) / kDz)
+			+ (muVTHalf * (wT - wS_T) / kDy - muVBHalf * (wM - wS) / kDy)) / kDz;
+
+		dV[idx(i, j, k)] = visX / rhoEffWE + visY / rhoEffSN + visZ / rhoEffBT;
 		
 		assert(dV[idx(i, j, k)] == dV[idx(i, j, k)]);
 		if (std::isnan(dV[idx(i, j, k)]) || std::isinf(dV[idx(i, j, k)])) {
@@ -1301,9 +1245,9 @@ std::vector<double> MACSolver3D::AddViscosityFW(const std::vector<double>& u, co
 		return dW;
 	}
 
-	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
-	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-	for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++)
+	for (int i = 0; i < kNx + 2 * kNumBCGrid; i++)
+	for (int j = 0; j < kNy + 2 * kNumBCGrid; j++)
+	for (int k = 0; k < kNz + 2 * kNumBCGrid; k++)
 		mu[idx(i, j, k)] = kMuL + (kMuH - kMuL) * H[idx(i, j, k)];
 
 	// subcell
@@ -1323,10 +1267,7 @@ std::vector<double> MACSolver3D::AddViscosityFW(const std::vector<double>& u, co
 	|			|	 lsB	|			|		|	  		|	 lsB	|			|
 	|			|			|			|		|			|			|			|
 	-------------------------------------		------------------------------------
-												
-	*/
-	double lsM = 0.0, lsB = 0.0, lsWWHalf = 0.0, lsWEHalf = 0.0, lsWSHalf = 0.0, lsWNHalf = 0.0;
-	/*
+	
 	xz plane (j fixed)							yz plane (i fixed)
 	----------------lsWT-----------------		-----------------lsWT-----------------
 	|			|			|			|		|			|			|			|
@@ -1334,48 +1275,24 @@ std::vector<double> MACSolver3D::AddViscosityFW(const std::vector<double>& u, co
 	|			|			|			|		|			|			|			|
 	-----lsWW-------lsWM--------lsWE-----		-----lsWS--------lsWM-------lsWN-----
 	|			|			|			|		|			|			|			|
-	|		  lsUB		  lsUE_B		|		|	  	  lsVB		  lsVN_B		|
+	|		  lsUB		  lsUB_E		|		|	  	  lsVB		  lsVB_N		|
 	|			|			|			|		|			|			|			|
 	----------------lsWB-----------------		-----------------lsWB----------------
 	*/
-	// u_xy
-	double lsUM = 0.0, lsUB = 0.0, lsUE = 0.0, lsUE_B = 0.0;
-	// v_yz
-	double lsVM = 0.0, lsVB = 0.0, lsVN = 0.0, lsVN_B = 0.0;
-	// w_xx, w_yy, w_zz
-	double lsWW = 0.0, lsWE = 0.0, lsWS = 0.0, lsWN = 0.0, lsWM = 0.0, lsWB = 0.0, lsWT = 0.0;
+	double lsM = 0.0, lsB = 0.0, lsWWHalf = 0.0, lsWEHalf = 0.0, lsWSHalf = 0.0, lsWNHalf = 0.0;
+	double muM = 0.0, muB = 0.0, muWWHalf = 0.0, muWEHalf = 0.0, muWSHalf = 0.0, muWNHalf = 0.0;
 
 	// jump condition
-	double uB = 0.0, uM = 0.0, uE = 0.0, uE_B = 0.0;
-	double vB = 0.0, vM = 0.0, vN = 0.0, vN_B = 0.0;
+	double uB = 0.0, uM = 0.0, uE = 0.0, uB_E = 0.0;
+	double vB = 0.0, vM = 0.0, vN = 0.0, vB_N = 0.0;
 	double wM = 0.0, wW = 0.0, wE = 0.0, wS = 0.0, wN = 0.0, wB = 0.0, wT = 0.0;
-	
-	double muW_X_W = 0.0, muW_X_E = 0.0, muW_Y_S = 0.0, muW_Y_N = 0.0, muW_Z_B = 0.0, muW_Z_T = 0.0;
-	double muU_Z_W = 0.0, muU_Z_E = 0.0, muV_Z_S = 0.0, muV_Z_N = 0.0;
 	double visX = 0.0, visY = 0.0, visZ = 0.0;
+	double rhoEffWE = 0.0, rhoEffSN = 0.0, rhoEffBT = 0.0, iRhoEffWE = 0.0, iRhoEffSN = 0.0, iRhoEffBT = 0.0;
 
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
 	for (int k = kNumBCGrid + 1; k < kNz + kNumBCGrid; k++) {
-		muW_X_W = 0.0; muW_X_E = 0.0; muW_Y_S = 0.0; muW_Y_N = 0.0; muW_Z_B = 0.0; muW_Z_T = 0.0;
-		muU_Z_W = 0.0; muU_Z_E = 0.0; muV_Z_S = 0.0; muV_Z_N = 0.0;
 		visX = 0.0; visY = 0.0; visZ = 0.0;
-
-		lsWM = 0.5 * (ls[idx(i, j, k - 1)] + ls[idx(i, j, k)]);
-		lsWW = 0.5 * (ls[idx(i - 1, j, k - 1)] + ls[idx(i - 1, j, k)]);
-		lsWE = 0.5 * (ls[idx(i + 1, j, k - 1)] + ls[idx(i + 1, j, k)]);
-		lsWS = 0.5 * (ls[idx(i, j - 1, k - 1)] + ls[idx(i, j - 1, k)]);
-		lsWN = 0.5 * (ls[idx(i, j + 1, k - 1)] + ls[idx(i, j + 1, k)]);
-		lsWB = 0.5 * (ls[idx(i, j, k - 2)] + ls[idx(i, j, k - 1)]);
-		lsWT = 0.5 * (ls[idx(i, j, k)] + ls[idx(i, j, k + 1)]);
-		lsUM = 0.5 * (ls[idx(i - 1, j, k)] + ls[idx(i, j, k)]);
-		lsUB = 0.5 * (ls[idx(i - 1, j, k - 1)] + ls[idx(i, j, k - 1)]);
-		lsUE = 0.5 * (ls[idx(i, j, k)] + ls[idx(i + 1, j, k)]);
-		lsUE_B = 0.5 * (ls[idx(i, j - 1, k)] + ls[idx(i + 1, j - 1, k)]);
-		lsVM = 0.5 * (ls[idx(i, j, k - 1)] + ls[idx(i, j, k)]);
-		lsVB = 0.5 * (ls[idx(i, j - 1, k - 1)] + ls[idx(i, j - 1, k)]);
-		lsVN = 0.5 * (ls[idx(i, j, k)] + ls[idx(i, j + 1, k)]);
-		lsVN_B = 0.5 * (ls[idx(i, j + 1, k - 1)] + ls[idx(i, j + 1, k)]);
 
 		wM = w[idx(i, j, k)];
 		wW = w[idx(i - 1, j, k)];
@@ -1387,117 +1304,115 @@ std::vector<double> MACSolver3D::AddViscosityFW(const std::vector<double>& u, co
 
 		uM = u[idx(i, j, k)];
 		uE = u[idx(i + 1, j, k)];
-		uB = u[idx(i, j - 1, k)];
-		uE_B = u[idx(i + 1, j - 1, k)];
+		uB = u[idx(i, j, k - 1)];
+		uB_E = u[idx(i + 1, j, k - 1)];
 		vM = v[idx(i, j, k)];
 		vB = v[idx(i, j, k - 1)];
 		vN = v[idx(i, j + 1, k)];
-		vN_B = v[idx(i, j + 1, k - 1)];
+		vB_N = v[idx(i, j + 1, k - 1)];
 
-		lsB = ls[idx(i, j, k - 1)];
-		lsM = ls[idx(i, j, k)];
 		lsWWHalf = 0.25 * (ls[idx(i, j, k)] + ls[idx(i - 1, j, k)] + ls[idx(i - 1, j, k - 1)] + ls[idx(i, j, k - 1)]);
 		lsWEHalf = 0.25 * (ls[idx(i, j, k)] + ls[idx(i + 1, j, k)] + ls[idx(i + 1, j, k - 1)] + ls[idx(i, j, k - 1)]);
 		lsWSHalf = 0.25 * (ls[idx(i, j, k)] + ls[idx(i, j - 1, k)] + ls[idx(i, j - 1, k - 1)] + ls[idx(i, j, k - 1)]);
 		lsWNHalf = 0.25 * (ls[idx(i, j, k)] + ls[idx(i, j + 1, k)] + ls[idx(i, j + 1, k - 1)] + ls[idx(i, j, k - 1)]);
+		lsB = ls[idx(i, j, k - 1)];
+		lsM = ls[idx(i, j, k)];
 
-		muW_X_W = 0.25 * (mu[idx(i, j, k)] + mu[idx(i - 1, j, k)] + mu[idx(i - 1, j, k - 1)] + mu[idx(i, j, k - 1)])
-			* (wM - wW) / kDx;
-		muW_X_E = 0.25 * (mu[idx(i, j, k)] + mu[idx(i + 1, j, k)] + mu[idx(i + 1, j, k - 1)] + mu[idx(i, j, k - 1)])
-			* (wE - wM) / kDx;
-		muW_Y_S = 0.25 * (mu[idx(i, j, k)] + mu[idx(i, j - 1, k)] + mu[idx(i, j - 1, k - 1)] + mu[idx(i, j, k - 1)])
-			* (wM - wS) / kDy;
-		muW_Y_N = 0.25 * (mu[idx(i, j, k)] + mu[idx(i, j + 1, k)] + mu[idx(i, j + 1, k - 1)] + mu[idx(i, j, k - 1)])
-			* (wN - wM) / kDy;
-		muW_Z_B = mu[idx(i, j, k - 1)] * (wM - wB) / kDz;
-		muW_Z_T = mu[idx(i, j, k)] * (wT - wM) / kDz;
-		muU_Z_W = 0.25 * (mu[idx(i, j, k)] + mu[idx(i - 1, j, k)] + mu[idx(i - 1, j, k - 1)] + mu[idx(i, j, k - 1)])
-			* (uM - uB) / kDz;
-		muU_Z_E = 0.25 * (mu[idx(i, j, k)] + mu[idx(i + 1, j, k)] + mu[idx(i + 1, j, k - 1)] + mu[idx(i, j, k - 1)])
-			* (uE - uE_B) / kDz;
-		muV_Z_S = 0.25 * (mu[idx(i, j, k)] + mu[idx(i, j - 1, k)] + mu[idx(i, j - 1, k - 1)] + mu[idx(i, j - 1, k - 1)])
-			* (vM - vB) / kDz;
-		muV_Z_N = 0.25 * (mu[idx(i, j, k)] + mu[idx(i, j + 1, k)] + mu[idx(i, j + 1, k - 1)] + mu[idx(i, j + 1, k - 1)])
-			* (vN - vN_B) / kDz;
+		muWWHalf = 0.25 * (mu[idx(i, j, k)] + mu[idx(i - 1, j, k)] + mu[idx(i - 1, j, k - 1)] + mu[idx(i, j, k - 1)]);
+		muWEHalf = 0.25 * (mu[idx(i, j, k)] + mu[idx(i + 1, j, k)] + mu[idx(i + 1, j, k - 1)] + mu[idx(i, j, k - 1)]);
+		muWSHalf = 0.25 * (mu[idx(i, j, k)] + mu[idx(i, j - 1, k)] + mu[idx(i, j - 1, k - 1)] + mu[idx(i, j, k - 1)]);
+		muWNHalf = 0.25 * (mu[idx(i, j, k)] + mu[idx(i, j + 1, k)] + mu[idx(i, j + 1, k - 1)] + mu[idx(i, j, k - 1)]);
+		muB = mu[idx(i, j, k - 1)];
+		muM = mu[idx(i, j, k)];
 
-		double rhoEffWE = 0.0, rhoEffSN = 0.0, rhoEffBT = 0.0, iRhoEffWE = 0.0, iRhoEffSN = 0.0, iRhoEffBT = 0.0;
 		if (lsWWHalf >= 0 && lsWEHalf >= 0) {
-			thetaH = 1.0;
+			rhoEffWE = kRhoH;
 			iRhoEffWE = 1.0 / kRhoH;
 		}
 		else if (lsWWHalf <= 0 && lsWEHalf <= 0) {
-			thetaH = 0.0;
+			rhoEffWE = kRhoL;
 			iRhoEffWE = 1.0 / kRhoL;
 		}
-		else if (lsWWHalf > 0 && lsWEHalf <= 0) {
+		else if (lsWWHalf >= 0 && lsWEHalf < 0) {
+			// interface lies between lsWWHalf and lsWEHalf
 			theta = std::fabs(lsWWHalf) / (std::fabs(lsWWHalf) + std::fabs(lsWEHalf));
+			thetaH = std::fabs(lsWWHalf) / (std::fabs(lsWWHalf) + std::fabs(lsWEHalf));
+			// |(lsWWHalf)| ===   high(+)  === |(interface)| ===      low(-)     === |(lsWEHalf)|
+			// |(lsWWHalf)| === theta * d  === |(interface)| === (1 - theta) * d === |(lsWEHalf)|
+			rhoEffWE = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
 			iRhoEffWE = 1.0 / (kRhoL * kRhoH) / (1.0 / kRhoL * theta + 1.0 / kRhoH * (1.0 - theta));
 		}
-		else if (lsWWHalf <= 0 && lsWEHalf > 0) {
-			theta = std::fabs(lsWWHalf) / (std::fabs(lsWEHalf) + std::fabs(lsWEHalf));
+		else if (lsWWHalf < 0 && lsWEHalf >= 0) {
+			// interface lies between lsWWHalf and lsWEHalf
+			theta = std::fabs(lsWWHalf) / (std::fabs(lsWWHalf) + std::fabs(lsWEHalf));
+			thetaH = std::fabs(lsWEHalf) / (std::fabs(lsWWHalf) + std::fabs(lsWEHalf));
+			// |(lsWWHalf)| ===    low(-)   === |(interface)| ===     high(+)     === |(lsWEHalf)|
+			// |(lsWWHalf)| ===  theta * d  === |(interface)| === (1 - theta) * d === |(lsWEHalf)|
+			rhoEffWE = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
 			iRhoEffWE = 1.0 / (kRhoH * kRhoL) / (1.0 / kRhoH * theta + 1.0 / kRhoL * (1.0 - theta));
 		}
-		/*
-		else  {
-		thetaH = (std::max(lsWWHalf, 0.0) + std::max(lsWEHalf, 0.0))
-		/ (std::fabs(lsWWHalf) + std::fabs(lsWEHalf));
-		}
-		iRhoEffWE = 1.0 / kRhoH * thetaH + 1.0 / kRhoL * (1.0 - thetaH);
-		*/
 
 		if (lsWSHalf >= 0 && lsWNHalf >= 0) {
-			thetaH = 1.0;
+			rhoEffSN = kRhoH;
 			iRhoEffSN = 1.0 / kRhoH;
 		}
 		else if (lsWSHalf <= 0 && lsWNHalf <= 0) {
-			thetaH = 0.0;
+			rhoEffSN = kRhoL;
 			iRhoEffSN = 1.0 / kRhoL;
 		}
-		else if (lsWSHalf > 0 && lsWNHalf <= 0) {
+		else if (lsWSHalf >= 0 && lsWNHalf < 0) {
+			// interface lies between lsWSHalf and lsWNHalf
 			theta = std::fabs(lsWSHalf) / (std::fabs(lsWSHalf) + std::fabs(lsWNHalf));
+			thetaH = std::fabs(lsWSHalf) / (std::fabs(lsWSHalf) + std::fabs(lsWNHalf));
+			// |(lsWSHalf)| ===   high(+)  === |(interface)| ===      low(-)     === |(lsWNHalf)|
+			// |(lsWSHalf)| === theta * d  === |(interface)| === (1 - theta) * d === |(lsWNHalf)|
+			rhoEffSN = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
 			iRhoEffSN = 1.0 / (kRhoL * kRhoH) / (1.0 / kRhoL * theta + 1.0 / kRhoH * (1.0 - theta));
 		}
-		else if (lsWSHalf <= 0 && lsWNHalf > 0) {
+		else if (lsWSHalf < 0 && lsWNHalf >= 0) {
+			// interface lies between lsWSHalf and lsWNHalf
 			theta = std::fabs(lsWSHalf) / (std::fabs(lsWSHalf) + std::fabs(lsWNHalf));
+			thetaH = std::fabs(lsWNHalf) / (std::fabs(lsWSHalf) + std::fabs(lsWNHalf));
+			// |(lsWSHalf)| ===    low(-)   === |(interface)| ===     high(+)     === |(lsWNHalf)|
+			// |(lsWSHalf)| ===  theta * d  === |(interface)| === (1 - theta) * d === |(lsWNHalf)|
+			rhoEffSN = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
 			iRhoEffSN = 1.0 / (kRhoH * kRhoL) / (1.0 / kRhoH * theta + 1.0 / kRhoL * (1.0 - theta));
 		}
-		/*
-		else {
-			thetaH = (std::max(lsWSHalf, 0.0) + std::max(lsWNHalf, 0.0))
-				/ (std::fabs(lsWSHalf) + std::fabs(lsWNHalf));
-		}
-		iRhoEffSN = 1.0 / kRhoH * thetaH + 1.0 / kRhoL * (1.0 - thetaH);
-		*/
-
+		
 		if (lsB >= 0 && lsM >= 0) {
-			thetaH = 1.0;
-			iRhoEffSN = 1.0 / kRhoH;
+			rhoEffBT = kRhoH;
+			iRhoEffBT = 1.0 / kRhoH;
 		}
 		else if (lsB <= 0 && lsM <= 0) {
-			thetaH = 0.0;
-			iRhoEffSN = 1.0 / kRhoL;
+			rhoEffBT = kRhoL;
+			iRhoEffBT = 1.0 / kRhoL;
 		}
-		else if (lsB > 0 && lsM <= 0) {
+		else if (lsB >= 0 && lsM <= 0) {
+			// interface lies between w[i, j, k - 1] and w[i, j, k]
 			theta = std::fabs(lsB) / (std::fabs(lsB) + std::fabs(lsM));
-			iRhoEffSN = 1.0 / (kRhoL * kRhoH) / (1.0 / kRhoL * theta + 1.0 / kRhoH * (1.0 - theta));
+			thetaH = std::fabs(lsB) / (std::fabs(lsB) + std::fabs(lsM));
+			// |(lsB)| ===   high(+)  === |(interface)| ===      low(-)     === |(lsM)|
+			// |(lsB)| === theta * d  === |(interface)| === (1 - theta) * d === |(lsM)|
+			rhoEffBT = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
+			iRhoEffBT = 1.0 / (kRhoL * kRhoH) / (1.0 / kRhoL * theta + 1.0 / kRhoH * (1.0 - theta));
 		}
 		else if (lsB <= 0 && lsM > 0) {
+			// interface lies between w[i, j, k - 1] and w[i, j, k]
 			theta = std::fabs(lsB) / (std::fabs(lsB) + std::fabs(lsM));
-			iRhoEffSN = 1.0 / (kRhoH * kRhoL) / (1.0 / kRhoH * theta + 1.0 / kRhoL * (1.0 - theta));
+			thetaH = std::fabs(lsM) / (std::fabs(lsB) + std::fabs(lsM));
+			// |(lsB)| ===    low(-)   === |(interface)| ===     high(+)     === |(lsM)|
+			// |(lsB)| ===  theta * d  === |(interface)| === (1 - theta) * d === |(lsM)|
+			rhoEffBT = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
+			iRhoEffBT = 1.0 / (kRhoH * kRhoL) / (1.0 / kRhoH * theta + 1.0 / kRhoL * (1.0 - theta));
 		}
-		/*
-		else {
-		thetaH = (std::max(lsB, 0.0) + std::max(lsM, 0.0))
-		/ (std::fabs(lsB) + std::fabs(lsM));
-		}
-		iRhoEffBT = 1.0 / kRhoH * thetaH + 1.0 / kRhoL * (1.0 - thetaH);
-		*/
+		
+		visX = ((muWEHalf * (uE - uB_E) / kDz - muWWHalf * (uM - uB) / kDz)
+			+ (muWEHalf * (wT - wM) / kDz - muWWHalf * (wM - wB) / kDz)) / kDx;
+		visY = ((muWNHalf * (vN - vB_N) / kDz - muWSHalf * (vM - vB) / kDz)
+			+ (muWNHalf * (wN - wM) / kDy - muWSHalf * (wM - wS) / kDy)) / kDy;
+		visZ = 2.0 * (muM * (wT - wM) / kDz - muB * (wM - wB) / kDz) / kDz;
 
-		visX = (muU_Z_E - muU_Z_W) / kDx + (muW_X_E - muW_X_W) / kDx;
-		visY = (muV_Z_N - muV_Z_S) / kDy + (muW_Y_N - muW_Y_S) / kDy;
-		visZ = 2.0 * (muW_Z_T - muW_Z_B) / kDz;
-
-		dW[idx(i, j, k)] = visX * iRhoEffWE + visY * iRhoEffSN + visZ * iRhoEffBT;
+		dW[idx(i, j, k)] = visX / rhoEffWE + visY / rhoEffSN + visZ / rhoEffBT;
 
 		assert(dW[idx(i, j, k)] == dW[idx(i, j, k)]);
 		if (std::isnan(dW[idx(i, j, k)]) || std::isinf(dW[idx(i, j, k)])) {
@@ -1838,8 +1753,8 @@ int MACSolver3D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 		perror("Solver method for Poisson equations are not set. Please add SetPoissonSolver Method to running code");
 	}
 	std::vector<double> rhs(kArrSize, 0.0);
-	std::vector<double> iRhoW(kArrSize, 0.0), iRhoE(kArrSize, 0.0),
-		iRhoS(kArrSize, 0.0), iRhoN(kArrSize, 0.0), iRhoB(kArrSize, 0.0), iRhoT(kArrSize, 0.0);
+	std::vector<double> pCoefW(kArrSize, 0.0), pCoefE(kArrSize, 0.0),
+		pCoefS(kArrSize, 0.0), pCoefN(kArrSize, 0.0), pCoefB(kArrSize, 0.0), pCoefT(kArrSize, 0.0);
 	
 	/*
 	Solver \nabla \cdot ((\nabla p^*) / (\rho)) = rhs
@@ -1862,10 +1777,7 @@ int MACSolver3D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 	double lsM = 0.0, lsW = 0.0, lsE = 0.0, lsS = 0.0, lsN = 0.0, lsB = 0.0, lsT = 0.0;
 	double FW = 0.0, FE = 0.0, FS = 0.0, FN = 0.0, FB = 0.0, FT = 0.0;
 	// normal and tangent vector variable (n, t1, t2)
-	double nXW = 0.0, nYW = 0.0, nZW = 0.0, nXE = 0.0, nYE = 0.0, nZE = 0.0,
-		nXS = 0.0, nYS = 0.0, nZS = 0.0, nXN = 0.0, nYN = 0.0, nZN = 0.0,
-		nXB = 0.0, nYB = 0.0, nZB = 0.0, nXT = 0.0, nYT = 0.0, nZT = 0.0,
-		nXM = 0.0, nYM = 0.0, nZM = 0.0;
+	
 	// jump at grid node (if interface is at grid node, jump occurs and aW, aE, aS, aN, aM describe that condition)
 	// jump condition [u]_\Gamma = a, [\beta u_n]_\Gamma = b
 	double thetaH = 0.0, theta = 0.0, uEff = 0.0, vEff = 0.0, wEff = 0.0,
@@ -1895,37 +1807,6 @@ int MACSolver3D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 		rhs[idx(i, j, k)] = 0.0;
 	}
 	
-	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
-	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-	for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
-		lsM = ls[idx(i, j, k)];
-		lsW = ls[idx(i - 1, j, k)];
-		lsE = ls[idx(i + 1, j, k)];
-		lsS = ls[idx(i, j - 1, k)];
-		lsN = ls[idx(i, j + 1, k)];
-		lsB = ls[idx(i, j, k - 1)];
-		lsT = ls[idx(i, j, k + 1)];
-
-		dLSdX[idx(i, j, k)] = (lsE - lsW) / (2.0 * kDx);
-		dLSdY[idx(i, j, k)] = (lsN - lsS) / (2.0 * kDy);
-		dLSdZ[idx(i, j, k)] = (lsT - lsB) / (2.0 * kDz);
-		if (std::fabs(dLSdX[idx(i, j, k)]) < eps) {
-			dLSdX[idx(i, j, k)] = (lsE - lsM) / kDx;
-			if (std::fabs(dLSdX[idx(i, j, k)]) < eps)
-				dLSdX[idx(i, j, k)] = (lsM - lsW) / kDx;
-		}
-		if (std::fabs(dLSdY[idx(i, j, k)]) < eps) {
-			dLSdY[idx(i, j, k)] = (lsN - lsM) / kDy;
-			if (std::fabs(dLSdY[idx(i, j, k)]) < eps)
-				dLSdY[idx(i, j, k)] = (lsM - lsS) / kDy;
-		}
-		if (std::fabs(dLSdZ[idx(i, j, k)]) < eps) {
-			dLSdZ[idx(i, j, k)] = (lsT - lsM) / kDz;
-			if (std::fabs(dLSdZ[idx(i, j, k)]) < eps)
-				dLSdZ[idx(i, j, k)] = (lsM - lsB) / kDz;
-		}
-	}
-
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
 	for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
@@ -1967,7 +1848,7 @@ int MACSolver3D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 
 		rhoEff = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
 		// coefficient
-		iRhoW[idx(i, j, k)] = 1.0 / rhoEff;
+		pCoefW[idx(i, j, k)] = 1.0 / rhoEff;
 		kappaEff = m_kappa[idx(i, j, k)] * theta + m_kappa[idx(i - 1, j, k)] * (1.0 - theta);
 		
 		// pressure jump = Liquid - Gas = -sigma * kappa - [\rho] * normal * gvector
@@ -1975,7 +1856,7 @@ int MACSolver3D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 		// - level set : H = 1, + level set : H = 0;
 		// Bubble : (-ls)-kRhoL-Gas, (+ls)-kRhoH-Liquid
 		FW = -m_dt * (-kSigma * kappaEff) * (H[idx(i, j, k)] - H[idx(i - 1, j, k)]);
-		FW *= iRhoW[idx(i, j, k)] / (kDx * kDx);
+		FW *= pCoefW[idx(i, j, k)] / (kDx * kDx);
 	
 		// thetaH = portion of kRhoH
 		// theta = portion of fluid cell adjacent to lsM, such as |lsW| / (|lsW| + |lsM|), |lsE| / (|lsWE| + |lsM|), and so on
@@ -1992,14 +1873,14 @@ int MACSolver3D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 		}
 
 		rhoEff = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
-		iRhoE[idx(i, j, k)] = 1.0 / rhoEff;
+		pCoefE[idx(i, j, k)] = 1.0 / rhoEff;
 		kappaEff = m_kappa[idx(i, j, k)] * theta + m_kappa[idx(i + 1, j, k)] * (1.0 - theta);
 
 		// pressure jump = Liquid - Gas = -sigma * kappa - [\rho] * normal * gvector
 		// - level set : H = 1, + level set : H = 0; 
 		// Bubble : (-ls)-kRhoL-Gas, (+ls)-kRhoH-Liquid
 		FE = m_dt * (-kSigma * kappaEff) * (H[idx(i + 1, j, k)] - H[idx(i, j, k)]);
-		FE *= iRhoE[idx(i, j, k)] / (kDx * kDx);
+		FE *= pCoefE[idx(i, j, k)] / (kDx * kDx);
 		
 		// thetaH = portion of kRhoH
 		// theta = portion of fluid adjacent to lsM, such as |lsW| / (|lsW| + |lsM|), |lsE| / (|lsWE| + |lsM|), and so on
@@ -2016,7 +1897,7 @@ int MACSolver3D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 		}
 		
 		rhoEff = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
-		iRhoS[idx(i, j, k)] = 1.0 / rhoEff;
+		pCoefS[idx(i, j, k)] = 1.0 / rhoEff;
 		kappaEff = m_kappa[idx(i, j, k)] * theta + m_kappa[idx(i, j - 1, k)] * (1.0 - theta);
 		
 		// pressure jump = Liquid - Gas = -sigma * kappa - [\rho] * normal * gvector
@@ -2024,7 +1905,7 @@ int MACSolver3D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 		// - level set : H = 1, + level set : H = 0; 
 		// Bubble : (-ls)-kRhoL-Gas, (+ls)-kRhoH-Liquid
 		FS = -m_dt * (-kSigma * kappaEff) * (H[idx(i, j, k)] - H[idx(i, j - 1, k)]);
-		FS *= iRhoS[idx(i, j, k)] / (kDy * kDy);
+		FS *= pCoefS[idx(i, j, k)] / (kDy * kDy);
 		
 		// thetaH = portion of kRhoH
 		// theta = portion of fluid adjacent to lsM, such as |lsW| / (|lsW| + |lsM|), |lsE| / (|lsWE| + |lsM|), and so on
@@ -2041,7 +1922,7 @@ int MACSolver3D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 		}
 
 		rhoEff = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
-		iRhoN[idx(i, j, k)] = 1.0 / rhoEff;
+		pCoefN[idx(i, j, k)] = 1.0 / rhoEff;
 		kappaEff = m_kappa[idx(i, j, k)] * theta + m_kappa[idx(i, j + 1, k)] * (1.0 - theta);
 
 		// pressure jump = Liquid - Gas = -sigma * kappa - [\rho] * normal * gvector
@@ -2049,7 +1930,7 @@ int MACSolver3D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 		// - level set : H = 1, + level set : H = 0; 
 		// Bubble : (-ls)-kRhoL-Gas, (+ls)-kRhoH-Liquid
 		FN = m_dt * (-kSigma * kappaEff) * (H[idx(i, j + 1, k)] - H[idx(i, j, k)]);
-		FN *= iRhoN[idx(i, j, k)] / (kDy * kDy);
+		FN *= pCoefN[idx(i, j, k)] / (kDy * kDy);
 
 		// thetaH = portion of kRhoH
 		// theta = portion of fluid adjacent to lsM, such as |lsW| / (|lsW| + |lsM|), |lsE| / (|lsWE| + |lsM|), and so on
@@ -2066,7 +1947,7 @@ int MACSolver3D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 		}
 
 		rhoEff = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
-		iRhoB[idx(i, j, k)] = 1.0 / rhoEff;
+		pCoefB[idx(i, j, k)] = 1.0 / rhoEff;
 		kappaEff = m_kappa[idx(i, j, k)] * theta + m_kappa[idx(i, j, k - 1)] * (1.0 - theta);
 
 		// pressure jump = Liquid - Gas = -sigma * kappa - [\rho] * normal * gvector
@@ -2074,7 +1955,7 @@ int MACSolver3D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 		// - level set : H = 1, + level set : H = 0; 
 		// Bubble : (-ls)-kRhoL-Gas, (+ls)-kRhoH-Liquid
 		FB = -m_dt * (-kSigma * kappaEff) * (H[idx(i, j, k)] - H[idx(i, j, k - 1)]);
-		FB *= iRhoB[idx(i, j, k)] / (kDz * kDz);
+		FB *= pCoefB[idx(i, j, k)] / (kDz * kDz);
 
 		// thetaH = portion of kRhoH
 		// theta = portion of fluid adjacent to lsM, such as |lsW| / (|lsW| + |lsM|), |lsE| / (|lsWE| + |lsM|), and so on
@@ -2091,7 +1972,7 @@ int MACSolver3D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 		}
 
 		rhoEff = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
-		iRhoT[idx(i, j, k)] = 1.0 / rhoEff;
+		pCoefT[idx(i, j, k)] = 1.0 / rhoEff;
 		kappaEff = m_kappa[idx(i, j, k)] * theta + m_kappa[idx(i, j, k + 1)] * (1.0 - theta);
 
 		// pressure jump = Liquid - Gas = -sigma * kappa - [\rho] * normal * gvector
@@ -2099,10 +1980,10 @@ int MACSolver3D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 		// - level set : H = 1, + level set : H = 0; 
 		// Bubble : (-ls)-kRhoL-Gas, (+ls)-kRhoH-Liquid
 		FT = m_dt * (-kSigma * kappaEff) * (H[idx(i, j, k + 1)] - H[idx(i, j, k)]);
-		FT *= iRhoT[idx(i, j, k)] / (kDz * kDz);
+		FT *= pCoefT[idx(i, j, k)] / (kDz * kDz);
 		
 		// poisson equation form should be -\beta \nabla p = f
-		// iRhoEff has already negative value of rhoEff, then it is just a coefficient.
+		// pCoefEff has already negative value of rhoEff, then it is just a coefficient.
 		// For discretization of pressure gradient, additional term is negative and it goes to RHS
 		// Then it is a positive value and don't worrry about the sign
 		rhs[idx(i, j, k)] -= FW + FE + FS + FN + FB + FT;
@@ -2136,120 +2017,126 @@ int MACSolver3D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 		ARowIdx.push_back(rowIdx);
 		DiagRowIdx.push_back(MRowIdx);
 
-		iRhoB[idx(i, j, k)] *= -1.0;
-		iRhoS[idx(i, j, k)] *= -1.0;
-		iRhoW[idx(i, j, k)] *= -1.0;
-		iRhoE[idx(i, j, k)] *= -1.0;
-		iRhoN[idx(i, j, k)] *= -1.0;
-		iRhoT[idx(i, j, k)] *= -1.0;
+		pCoefB[idx(i, j, k)] *= -1.0;
+		pCoefS[idx(i, j, k)] *= -1.0;
+		pCoefW[idx(i, j, k)] *= -1.0;
+		pCoefE[idx(i, j, k)] *= -1.0;
+		pCoefN[idx(i, j, k)] *= -1.0;
+		pCoefT[idx(i, j, k)] *= -1.0;
 
 		// Set default values, if a current pointer is in interior, it will not be changed.
-		AValsDic["B"] = iRhoB[idx(i, j, k)] / (kDz * kDz);
+		AValsDic["B"] = pCoefB[idx(i, j, k)] / (kDz * kDz);
 		AColsDic["B"] = (i - kNumBCGrid) + kNx * (j - kNumBCGrid) + kNx * kNy * (k - 1 - kNumBCGrid);
-		AValsDic["S"] = iRhoS[idx(i, j, k)] / (kDy * kDy);
+		AValsDic["S"] = pCoefS[idx(i, j, k)] / (kDy * kDy);
 		AColsDic["S"] = (i - kNumBCGrid) + kNx * (j - 1 - kNumBCGrid) + kNx * kNy * (k - kNumBCGrid);
-		AValsDic["W"] = iRhoW[idx(i, j, k)] / (kDx * kDx);
+		AValsDic["W"] = pCoefW[idx(i, j, k)] / (kDx * kDx);
 		AColsDic["W"] = (i - 1 - kNumBCGrid) + kNx * (j - kNumBCGrid) + kNx * kNy * (k - kNumBCGrid);
-		AValsDic["C"] = -(iRhoW[idx(i, j, k)] + iRhoE[idx(i, j, k)]) / (kDx * kDx)
-			- (iRhoS[idx(i, j, k)] + iRhoN[idx(i, j, k)]) / (kDy * kDy)
-			- (iRhoB[idx(i, j, k)] + iRhoT[idx(i, j, k)]) / (kDz * kDz);
+		AValsDic["C"] = -(pCoefW[idx(i, j, k)] + pCoefE[idx(i, j, k)]) / (kDx * kDx)
+			- (pCoefS[idx(i, j, k)] + pCoefN[idx(i, j, k)]) / (kDy * kDy)
+			- (pCoefB[idx(i, j, k)] + pCoefT[idx(i, j, k)]) / (kDz * kDz);
 		AColsDic["C"] = (i - kNumBCGrid) + kNx * (j - kNumBCGrid) + kNx * kNy * (k - kNumBCGrid);
-		AValsDic["E"] = iRhoE[idx(i, j, k)] / (kDx * kDx);
+		AValsDic["E"] = pCoefE[idx(i, j, k)] / (kDx * kDx);
 		AColsDic["E"] = (i + 1 - kNumBCGrid) + kNx * (j - kNumBCGrid) + kNx * kNy * (k - kNumBCGrid);
-		AValsDic["N"] = iRhoN[idx(i, j, k)] / (kDy * kDy);
+		AValsDic["N"] = pCoefN[idx(i, j, k)] / (kDy * kDy);
 		AColsDic["N"] = (i - kNumBCGrid) + kNx * (j + 1 - kNumBCGrid) + kNx * kNy * (k - kNumBCGrid);
-		AValsDic["T"] = iRhoT[idx(i, j, k)] / (kDz * kDz);
+		AValsDic["T"] = pCoefT[idx(i, j, k)] / (kDz * kDz);
 		AColsDic["T"] = (i - kNumBCGrid) + kNx * (j - kNumBCGrid) + kNx * kNy * (k + 1 - kNumBCGrid);
 		
 		if (i == kNumBCGrid && m_BC->m_BC_PW == BC3D::NEUMANN) {
 			AColsDic["W"] = -1;
 			AValsDic["W"] = 0.0;
-			AValsDic["C"] += iRhoW[idx(i, j, k)] / (kDx * kDx);
+			AValsDic["C"] += pCoefW[idx(i, j, k)] / (kDx * kDx);
 		}
-		else if (i == kNumBCGrid && m_BC->m_BC_PW == BC3D::DIRICHLET) {
+		else if (i == kNumBCGrid && (m_BC->m_BC_PW == BC3D::DIRICHLET || m_BC->m_BC_PW == BC3D::INLET
+			|| m_BC->m_BC_PW == BC3D::OUTLET || m_BC->m_BC_PW == BC3D::PRESSURE)) {
 			AColsDic["W"] = -1;
 			AValsDic["W"] = 0.0;
-			AValsDic["C"] -= iRhoW[idx(i, j, k)] / (kDx * kDx);
-			rhs[idx(i, j, k)] -= iRhoW[idx(i, j, k)] / (kDx * kDx) * (m_BC->m_BC_DirichletConstantPW);
+			// AValsDic["C"] -= pCoefW[idx(i, j, k)] / (kDx * kDx);
+			rhs[idx(i, j, k)] -= pCoefW[idx(i, j, k)] / (kDx * kDx) * (m_BC->m_BC_DirichletConstantPW);
 		}
 		else if (i == kNumBCGrid && m_BC->m_BC_PW == BC3D::PERIODIC) {
-			AValsDic["W"] = iRhoW[idx(kNumBCGrid + kNx - 1, j, k)];
+			AValsDic["W"] = pCoefW[idx(kNumBCGrid + kNx - 1, j, k)];
 		}
 
 		// East boundary
 		if (i == kNumBCGrid + kNx - 1 && m_BC->m_BC_PE == BC3D::NEUMANN) {
 			AColsDic["E"] = -1;
 			AValsDic["E"] = 0.0;
-			AValsDic["C"] += iRhoE[idx(i, j, k)] / (kDx * kDx);
+			AValsDic["C"] += pCoefE[idx(i, j, k)] / (kDx * kDx);
 		}
-		else if (i == kNumBCGrid + kNx - 1 && m_BC->m_BC_PE == BC3D::DIRICHLET) {
+		else if (i == kNumBCGrid + kNx - 1 && (m_BC->m_BC_PE == BC3D::DIRICHLET || m_BC->m_BC_PE == BC3D::INLET
+			|| m_BC->m_BC_PE == BC3D::OUTLET || m_BC->m_BC_PE == BC3D::PRESSURE)) {
 			AColsDic["E"] = -1;
 			AValsDic["E"] = 0.0;
-			AValsDic["C"] -= iRhoE[idx(i, j, k)] / (kDx * kDx);
-			rhs[idx(i, j, k)] -= iRhoE[idx(i, j, k)] / (kDx * kDx) * (m_BC->m_BC_DirichletConstantPE);
+			// AValsDic["C"] -= pCoefE[idx(i, j, k)] / (kDx * kDx);
+			rhs[idx(i, j, k)] -= pCoefE[idx(i, j, k)] / (kDx * kDx) * (m_BC->m_BC_DirichletConstantPE);
 		}
 		else if (i == kNumBCGrid + kNx - 1 && m_BC->m_BC_PE == BC3D::PERIODIC) {
-			AValsDic["E"] = iRhoE[idx(kNumBCGrid, j, k)];
+			AValsDic["E"] = pCoefE[idx(kNumBCGrid, j, k)];
 		}
 
 		if (j == kNumBCGrid && m_BC->m_BC_PS == BC3D::NEUMANN) {
 			AColsDic["S"] = -1;
 			AValsDic["S"] = 0.0;
-			AValsDic["C"] += iRhoS[idx(i, j, k)] / (kDy * kDy);
+			AValsDic["C"] += pCoefS[idx(i, j, k)] / (kDy * kDy);
 		}
-		else if (j == kNumBCGrid && m_BC->m_BC_PS == BC3D::DIRICHLET) {
+		else if (j == kNumBCGrid && (m_BC->m_BC_PS == BC3D::DIRICHLET || m_BC->m_BC_PS == BC3D::INLET
+			|| m_BC->m_BC_PS == BC3D::OUTLET || m_BC->m_BC_PS == BC3D::PRESSURE)) {
 			AColsDic["S"] = -1;
 			AValsDic["S"] = 0.0;
-			AValsDic["C"] -= iRhoS[idx(i, j, k)] / (kDy * kDy);
-			rhs[idx(i, j, k)] -= iRhoS[idx(i, j, k)] / (kDy * kDy) * (m_BC->m_BC_DirichletConstantPS);
+			// AValsDic["C"] -= pCoefS[idx(i, j, k)] / (kDy * kDy);
+			rhs[idx(i, j, k)] -= pCoefS[idx(i, j, k)] / (kDy * kDy) * (m_BC->m_BC_DirichletConstantPS);
 		}
 		else if (j == kNumBCGrid && m_BC->m_BC_PS == BC3D::PERIODIC) {
-			AValsDic["S"] = iRhoS[idx(i, kNumBCGrid + kNy - 1, k)];
+			AValsDic["S"] = pCoefS[idx(i, kNumBCGrid + kNy - 1, k)];
 		}
 
 		if (j == kNumBCGrid + kNy - 1 && m_BC->m_BC_PN == BC3D::NEUMANN) {
 			AColsDic["N"] = -1;
 			AValsDic["N"] = 0.0;
-			AValsDic["C"] += iRhoN[idx(i, j, k)] / (kDy * kDy);
+			AValsDic["C"] += pCoefN[idx(i, j, k)] / (kDy * kDy);
 		}
-		else if (j == kNumBCGrid + kNy - 1 && m_BC->m_BC_PN == BC3D::DIRICHLET) {
+		else if (j == kNumBCGrid + kNy - 1 && (m_BC->m_BC_PN == BC3D::DIRICHLET || m_BC->m_BC_PN == BC3D::INLET
+			|| m_BC->m_BC_PN == BC3D::OUTLET || m_BC->m_BC_PN == BC3D::PRESSURE)) {
 			AColsDic["N"] = -1;
 			AValsDic["N"] = 0.0;
-			AValsDic["C"] -= iRhoN[idx(i, j, k)] / (kDy * kDy);
-			rhs[idx(i, j, k)] -= iRhoN[idx(i, j, k)] / (kDy * kDy) * (m_BC->m_BC_DirichletConstantPN);
+			// AValsDic["C"] -= pCoefN[idx(i, j, k)] / (kDy * kDy);
+			rhs[idx(i, j, k)] -= pCoefN[idx(i, j, k)] / (kDy * kDy) * (m_BC->m_BC_DirichletConstantPN);
 		}
 		else if (j == kNumBCGrid + kNy - 1 && m_BC->m_BC_PN == BC3D::PERIODIC) {
-			AValsDic["N"] = iRhoN[idx(i, kNumBCGrid + kNy + 1, k)];
+			AValsDic["N"] = pCoefN[idx(i, kNumBCGrid, k)];
 		}
 
 		if (k == kNumBCGrid && m_BC->m_BC_PB == BC3D::NEUMANN) {
 			AColsDic["B"] = -1;
 			AValsDic["B"] = 0.0;
-			AValsDic["C"] += iRhoB[idx(i, j, k)] / (kDz * kDz);
+			AValsDic["C"] += pCoefB[idx(i, j, k)] / (kDz * kDz);
 		}
-		else if (k == kNumBCGrid && m_BC->m_BC_PB == BC3D::DIRICHLET) {
+		else if (k == kNumBCGrid && (m_BC->m_BC_PB == BC3D::DIRICHLET || m_BC->m_BC_PB == BC3D::INLET
+			|| m_BC->m_BC_PB == BC3D::OUTLET || m_BC->m_BC_PB == BC3D::PRESSURE)) {
 			AColsDic["B"] = -1;
 			AValsDic["B"] = 0.0;
-			AValsDic["C"] -= iRhoB[idx(i, j, k)] / (kDz * kDz);
-			rhs[idx(i, j, k)] -= iRhoB[idx(i, j, k)] / (kDz * kDz) * (m_BC->m_BC_DirichletConstantPB);
+			// AValsDic["C"] -= pCoefB[idx(i, j, k)] / (kDz * kDz);
+			rhs[idx(i, j, k)] -= pCoefB[idx(i, j, k)] / (kDz * kDz) * (m_BC->m_BC_DirichletConstantPB);
 		}
 		else if (k == kNumBCGrid && m_BC->m_BC_PB == BC3D::PERIODIC) {
-			AValsDic["B"] = iRhoB[idx(i, j, kNumBCGrid + kNz - 1)];
+			AValsDic["B"] = pCoefB[idx(i, j, kNumBCGrid + kNz - 1)];
 		}
 
 		if (k == kNumBCGrid + kNz - 1 && m_BC->m_BC_PT == BC3D::NEUMANN) {
 			AColsDic["T"] = -1;
 			AValsDic["T"] = 0.0;
-			AValsDic["C"] += iRhoT[idx(i, j, k)] / (kDz * kDz);
+			AValsDic["C"] += pCoefT[idx(i, j, k)] / (kDz * kDz);
 		}
-		else if (k == kNumBCGrid + kNz - 1 && m_BC->m_BC_PT == BC3D::DIRICHLET) {
+		else if (k == kNumBCGrid + kNz - 1 && (m_BC->m_BC_PT == BC3D::DIRICHLET || m_BC->m_BC_PT == BC3D::INLET
+			|| m_BC->m_BC_PT == BC3D::OUTLET || m_BC->m_BC_PT == BC3D::PRESSURE)) {
 			AColsDic["T"] = -1;
 			AValsDic["T"] = 0.0;
-			AValsDic["C"] -= iRhoT[idx(i, j, k)] / (kDz * kDz);
-			rhs[idx(i, j, k)] -= iRhoT[idx(i, j, k)] / (kDz * kDz) * (m_BC->m_BC_DirichletConstantPT);
+			// AValsDic["C"] -= pCoefT[idx(i, j, k)] / (kDz * kDz);
+			rhs[idx(i, j, k)] -= pCoefT[idx(i, j, k)] / (kDz * kDz) * (m_BC->m_BC_DirichletConstantPT);
 		}
 		else if (k == kNumBCGrid + kNz - 1 && m_BC->m_BC_PT == BC3D::PERIODIC) {
-			AValsDic["T"] = iRhoT[idx(i, j, kNumBCGrid + kNz + 1)];
+			AValsDic["T"] = pCoefT[idx(i, j, kNumBCGrid)];
 		}
 
 		// add non zero values to AVals and ACols
@@ -2310,7 +2197,7 @@ int MACSolver3D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 	}
 	ARowIdx.push_back(rowIdx);
 	DiagRowIdx.push_back(MRowIdx);
-	
+
 	if (m_PoissonSolverType == POISSONTYPE::CG) {
 		// std::cout << "Poisson : CG" << std::endl;
 		m_Poisson->CG_2FUniform_3D(ps, rhs, AVals, ACols, ARowIdx,
@@ -2352,7 +2239,7 @@ std::vector<double> MACSolver3D::GetDivergence(const std::vector<double>& u, con
 		div[idx(i, j, k)] = (u[idx(i + 1, j, k)] - u[idx(i, j, k)]) / kDx
 		+ (v[idx(i, j + 1, k)] - v[idx(i, j, k)]) / kDy
 		+ (w[idx(i, j, k + 1)] - w[idx(i, j, k)]) / kDz;
-	
+
 	return div;
 }
 
@@ -2672,6 +2559,10 @@ void MACSolver3D::SetBCConstantPB(double BC_ConstantB) {
 
 void MACSolver3D::SetBCConstantPT(double BC_ConstantT) {
 	return m_BC->SetBCConstantPT(BC_ConstantT);
+}
+
+void MACSolver3D::SetAmbientPressure(double ambientPressure) {
+	return m_BC->SetAmbientPressure(ambientPressure);
 }
 
 // http://stackoverflow.com/questions/11990030/c-sign-function-from-matlab
