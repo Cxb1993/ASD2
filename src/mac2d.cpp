@@ -1525,47 +1525,7 @@ std::vector<double> MACSolver2D::AddViscosityFV(const std::vector<double>& u, co
 			exit(1);
 		}
 	}
-	/*
-	std::ofstream outF;
-	std::string fname("VisV_ASCII.plt");
-	if (m_iter == 1) {
-		outF.open(fname.c_str(), std::ios::out);
-
-		outF << "TITLE = VEL" << std::endl;
-		outF << "VARIABLES = \"X\", \"Y\", \"U\", \"V\", \"LS\", \"mu\", \"dV\",  \"muU_N - muU_S\",  \"muV_E -muV_W\",\"muV_N - muV_S\", \"iRhoEffWE\", \"iRhoEffSN\", \"visX\", \"visY\", \"visXNoRho\", \"visYNoRho\" " << std::endl;
-		outF.close();
-	}
-
-	outF.open(fname.c_str(), std::ios::app);
-
-	outF << std::string("ZONE T=\"") << m_iter
-		<< std::string("\", I=") << kNx << std::string(", J=") << kNy
-		<< std::string(", SOLUTIONTIME=") << m_iter * 0.1
-		<< std::string(", STRANDID=") << m_iter + 1
-		<< std::endl;
-
-	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
-			outF << kBaseX + static_cast<double>(i + 0.5 - kNumBCGrid) * kDx << std::string(",")
-			<< kBaseY + static_cast<double>(j + 0.5 - kNumBCGrid) * kDy << std::string(",")
-			<< static_cast<double>(u[idx(i, j)]) << std::string(",")
-			<< static_cast<double>(v[idx(i, j)]) << std::string(",")
-			<< static_cast<double>(ls[idx(i, j)]) << std::string(",")
-			<< static_cast<double>(mu[idx(i, j)]) << std::string(",")
-			<< static_cast<double>(dV[idx(i, j)]) << std::string(",")
-			<< static_cast<double>(muU_N[idx(i, j)] - muU_S[idx(i, j)]) << std::string(",")
-			<< static_cast<double>(muV_E[idx(i, j)] - muV_W[idx(i, j)]) << std::string(",")
-			<< static_cast<double>(muV_N[idx(i, j)] - muV_S[idx(i, j)]) << std::string(",")
-			<< static_cast<double>(iRhoHVec[idx(i, j)]) << std::string(",")
-			<< static_cast<double>(iRhoVVec[idx(i, j)]) << std::string(",")
-			<< static_cast<double>(visXVec[idx(i, j)]) << std::string(",")
-			<< static_cast<double>(visYVec[idx(i, j)]) << std::string(",")
-			<< static_cast<double>(visX2Vec[idx(i, j)]) << std::string(",")
-			<< static_cast<double>(visY2Vec[idx(i, j)])
-			<< std::endl;
-
-	outF.close();
-	*/
+	
 	return dV;	
 }
 
