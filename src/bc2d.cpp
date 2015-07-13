@@ -217,11 +217,11 @@ int BoundaryCondition2D::SetBC_P_2D(std::string BC_W, std::string BC_E,	std::str
 
 	if (BC_W == "periodic")
 		m_BC_PW = BC2D::PERIODIC;
-	else if (BC_W == "neumann")
+	else if (BC_W == "neumann" || BC_W == "wall")
 		m_BC_PW = BC2D::NEUMANN;
 	else if (BC_W == "axisym")
 		m_BC_PW = BC2D::AXISYM;
-	else if (BC_W == "wall" || BC_W == "dirichlet")
+	else if (BC_W == "dirichlet")
 		m_BC_PW = BC2D::DIRICHLET;
 	else if (BC_W == "inlet")
 		m_BC_PW = BC2D::INLET;
@@ -235,11 +235,11 @@ int BoundaryCondition2D::SetBC_P_2D(std::string BC_W, std::string BC_E,	std::str
 
 	if (BC_E == "periodic")
 		m_BC_PE = BC2D::PERIODIC;
-	else if (BC_E == "neumann")
+	else if (BC_E == "neumann" || BC_E == "wall")
 		m_BC_PE = BC2D::NEUMANN;
 	else if (BC_E == "axisym")
 		m_BC_PE = BC2D::AXISYM;
-	else if (BC_E == "wall" || BC_E == "dirichlet")
+	else if (BC_E == "dirichlet")
 		m_BC_PE = BC2D::DIRICHLET;
 	else if (BC_E == "inlet")
 		m_BC_PE = BC2D::INLET;
@@ -253,11 +253,11 @@ int BoundaryCondition2D::SetBC_P_2D(std::string BC_W, std::string BC_E,	std::str
 
 	if (BC_S == "periodic")
 		m_BC_PS = BC2D::PERIODIC;
-	else if (BC_S == "neumann")
+	else if (BC_S == "neumann" || BC_S == "wall")
 		m_BC_PS = BC2D::NEUMANN;
 	else if (BC_S == "axisym")
 		m_BC_PS = BC2D::AXISYM;
-	else if (BC_S == "wall" || BC_S == "dirichlet")
+	else if (BC_S == "dirichlet")
 		m_BC_PS = BC2D::DIRICHLET;
 	else if (BC_S == "inlet")
 		m_BC_PS = BC2D::INLET;
@@ -271,11 +271,11 @@ int BoundaryCondition2D::SetBC_P_2D(std::string BC_W, std::string BC_E,	std::str
 
 	if (BC_N == "periodic")
 		m_BC_PN = BC2D::PERIODIC;
-	else if (BC_N == "neumann")
+	else if (BC_N == "neumann" || BC_N == "wall")
 		m_BC_PN = BC2D::NEUMANN;
 	else if (BC_N == "axisym")
 		m_BC_PN = BC2D::AXISYM;
-	else if (BC_N == "wall" || BC_N == "dirichlet")
+	else if (BC_N == "dirichlet")
 		m_BC_PN = BC2D::DIRICHLET;
 	else if (BC_N == "inlet")
 		m_BC_PN = BC2D::INLET;
