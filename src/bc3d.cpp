@@ -340,9 +340,9 @@ int BoundaryCondition3D::SetBC_P_3D(std::string BC_W, std::string BC_E, std::str
 
 	if (BC_W == "periodic")
 		m_BC_PW = BC3D::PERIODIC;
-	else if (BC_W == "neumann")
+	else if (BC_W == "neumann" || BC_W == "wall")
 		m_BC_PW = BC3D::NEUMANN;
-	else if (BC_W == "wall" || BC_W == "dirichlet")
+	else if (BC_W == "dirichlet")
 		m_BC_PW = BC3D::DIRICHLET;
 	else if (BC_W == "inlet")
 		m_BC_PW = BC3D::INLET;
@@ -356,9 +356,9 @@ int BoundaryCondition3D::SetBC_P_3D(std::string BC_W, std::string BC_E, std::str
 
 	if (BC_E == "periodic")
 		m_BC_PE = BC3D::PERIODIC;
-	else if (BC_E == "neumann")
+	else if (BC_E == "neumann" || BC_E == "wall")
 		m_BC_PE = BC3D::NEUMANN;
-	else if (BC_E == "wall" || BC_E == "dirichlet")
+	else if (BC_E == "dirichlet")
 		m_BC_PE = BC3D::DIRICHLET;
 	else if (BC_E == "inlet")
 		m_BC_PE = BC3D::INLET;
@@ -372,9 +372,9 @@ int BoundaryCondition3D::SetBC_P_3D(std::string BC_W, std::string BC_E, std::str
 
 	if (BC_S == "periodic")
 		m_BC_PS = BC3D::PERIODIC;
-	else if (BC_S == "neumann")
+	else if (BC_S == "neumann" || BC_S == "wall")
 		m_BC_PS = BC3D::NEUMANN;
-	else if (BC_S == "wall" || BC_S == "dirichlet")
+	else if (BC_S == "dirichlet")
 		m_BC_PS = BC3D::DIRICHLET;
 	else if (BC_S == "inlet")
 		m_BC_PS = BC3D::INLET;
@@ -388,9 +388,9 @@ int BoundaryCondition3D::SetBC_P_3D(std::string BC_W, std::string BC_E, std::str
 
 	if (BC_N == "periodic")
 		m_BC_PN = BC3D::PERIODIC;
-	else if (BC_N == "neumann")
+	else if (BC_N == "neumann" || BC_N == "wall")
 		m_BC_PN = BC3D::NEUMANN;
-	else if (BC_N == "wall" || BC_N == "dirichlet")
+	else if (BC_N == "dirichlet")
 		m_BC_PN = BC3D::DIRICHLET;
 	else if (BC_N == "inlet")
 		m_BC_PN = BC3D::INLET;
@@ -404,9 +404,9 @@ int BoundaryCondition3D::SetBC_P_3D(std::string BC_W, std::string BC_E, std::str
 
 	if (BC_B == "periodic")
 		m_BC_PB = BC3D::PERIODIC;
-	else if (BC_S == "neumann")
+	else if (BC_B == "neumann" || BC_B == "wall")
 		m_BC_PB = BC3D::NEUMANN;
-	else if (BC_B == "wall" || BC_B == "dirichlet")
+	else if (BC_B == "dirichlet")
 		m_BC_PB = BC3D::DIRICHLET;
 	else if (BC_B == "inlet")
 		m_BC_PB = BC3D::INLET;
@@ -420,9 +420,9 @@ int BoundaryCondition3D::SetBC_P_3D(std::string BC_W, std::string BC_E, std::str
 
 	if (BC_T == "periodic")
 		m_BC_PT = BC3D::PERIODIC;
-	else if (BC_T == "neumann")
+	else if (BC_T == "neumann" || BC_T == "wall")
 		m_BC_PT = BC3D::NEUMANN;
-	else if (BC_T == "wall" || BC_T == "dirichlet")
+	else if (BC_T == "dirichlet")
 		m_BC_PT = BC3D::DIRICHLET;
 	else if (BC_T == "inlet")
 		m_BC_PT = BC3D::INLET;
@@ -1443,12 +1443,12 @@ void BoundaryCondition3D::BC_DirichletPB(std::vector<double>& arr) {
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
 	for (int k = 0; k < kNumBCGrid; k++)
-		arr[idx(i, j, k)] = -arr[idx(i, j, kNumBCGrid * 2 - k - 1)] + 2.0 * m_BC_DirichletConstantVB;
+		arr[idx(i, j, k)] = -arr[idx(i, j, kNumBCGrid * 2 - k - 1)] + 2.0 * m_BC_DirichletConstantPB;
 }
 
 void BoundaryCondition3D::BC_DirichletPT(std::vector<double>& arr) {
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
 	for (int k = 0; k < kNumBCGrid; k++)
-		arr[idx(i, j, kNz + kNumBCGrid * 2 - k - 1)] = -arr[idx(i, j, kNz + k)] + 2.0 * m_BC_DirichletConstantVT;
+		arr[idx(i, j, kNz + kNumBCGrid * 2 - k - 1)] = -arr[idx(i, j, kNz + k)] + 2.0 * m_BC_DirichletConstantPT;
 }

@@ -42,10 +42,12 @@ int PoissonSolver3D::CG_2FUniform_3D(std::vector<double>& ps, const std::vector<
 		r[i + j * kNx + k * kNx * kNy] = 0.0;
 		q[i + j * kNx + k * kNx * kNy] = 0.0;
 		z[i + j * kNx + k * kNx * kNy] = 0.0;
+		Ax[i + j * kNx + k * kNx * kNy] = 0.0;
 	}
 
 	// get Ax(=A*x), using upper triangular matrix (Sparse BLAS)
 	// https://software.intel.com/en-us/node/468560
+
 	char transa = 'n';
 	mkl_cspblas_dcsrgemv(&transa, &Anrows, AVals.data(), ARowIdx.data(), ACols.data(), x, Ax);
 	// r = b - Ax, initial residual
@@ -108,7 +110,7 @@ int PoissonSolver3D::CG_2FUniform_3D(std::vector<double>& ps, const std::vector<
 			exit(1);
 		}
 		assert(alpha == alpha);
-
+		
 		// Update r
 		// r_k+1 = -alpha * A * p_k + r_k = -alpha * q + r_k
 		cblas_daxpy(size, -alpha, q, 1, r, 1);
@@ -123,7 +125,7 @@ int PoissonSolver3D::CG_2FUniform_3D(std::vector<double>& ps, const std::vector<
 		iter++;
 	}
 
-	std::cout << "CG : " << iter << " " << maxIter << " Err : " << rnorm2 / bnorm2 << std::endl;
+	// std::cout << "CG : " << iter << " " << maxIter << " Err : " << rnorm2 / bnorm2 << std::endl;
 	for (int k = 0; k < kNz; k++)
 	for (int j = 0; j < kNy; j++)
 	for (int i = 0; i < kNx; i++) {
@@ -175,6 +177,11 @@ int PoissonSolver3D::BiCGStab_2FUniform_3D(std::vector<double>& ps, const std::v
 	if (Anrows != ARowIdx.size() - 1)
 		std::cout << "the # of rows is invalid!" << std::endl;
 
+	// declare coefficients
+	double alpha = 1.0, beta = 1.0, omega = 1.0, resid;
+	double rho1 = 1.0, rho2 = 1.0;
+	const double err_tol = 1.0e-6;
+
 	for (int k = 0; k < kNz; k++)
 	for (int j = 0; j < kNy; j++)
 	for (int i = 0; i < kNx; i++) {
@@ -189,11 +196,6 @@ int PoissonSolver3D::BiCGStab_2FUniform_3D(std::vector<double>& ps, const std::v
 		shat[i + j * kNx + k * kNx * kNy] = 0.0;
 		t[i + j * kNx + k * kNx * kNy] = 0.0;
 	}
-
-	// declare coefficients
-	double alpha = 1.0, beta = 1.0, omega = 1.0, resid;
-	double rho1 = 1.0, rho2 = 1.0;
-	const double err_tol = 1.0e-6;
 
 	int iter = 0;
 	bool isConverged = false;
@@ -299,7 +301,7 @@ int PoissonSolver3D::BiCGStab_2FUniform_3D(std::vector<double>& ps, const std::v
 		iter++;
 	}
 	
-	std::cout << "BiCG : " << iter << " " << maxIter << " Err : " << rnorm2 / bnorm2 << std::endl;
+	// std::cout << "BiCG : " << iter << " " << maxIter << " Err : " << rnorm2 / bnorm2 << std::endl;
 	for (int k = 0; k < kNz; k++)
 	for (int j = 0; j < kNy; j++)
 	for (int i = 0; i < kNx; i++) {

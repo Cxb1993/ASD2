@@ -1780,8 +1780,7 @@ int MACSolver3D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 	
 	// jump at grid node (if interface is at grid node, jump occurs and aW, aE, aS, aN, aM describe that condition)
 	// jump condition [u]_\Gamma = a, [\beta u_n]_\Gamma = b
-	double thetaH = 0.0, theta = 0.0, uEff = 0.0, vEff = 0.0, wEff = 0.0,
-		kappaEff = 0.0, rhoEff = 0.0, nXEff = 0.0, nYEff = 0.0, nZEff = 0.0;
+	double thetaH = 0.0, theta = 0.0, kappaEff = 0.0, rhoEff = 0.0;
 	
 	if (kWe != 0.0 && !isnan(kWe) && !isinf(kWe)) {
 		UpdateKappa(ls);
@@ -1794,8 +1793,6 @@ int MACSolver3D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 	MKL_INT Anrows = kNx * kNy * kNz, Ancols = kNx * kNy * kNz;
 	MKL_INT size = kNx * kNy * kNz;
 	
-	std::vector<double> dLSdX(kArrSize, 0.0), dLSdY(kArrSize, 0.0), dLSdZ(kArrSize, 0.0);
-	
 	// stored coef for A matrix, Dictionary but it is ordered
 	std::map<std::string, double> AValsDic;
 	std::map<std::string, MKL_INT> AColsDic;
@@ -1803,7 +1800,6 @@ int MACSolver3D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 	for (int i = 0; i < kNx + 2 * kNumBCGrid; i++)
 	for (int j = 0; j < kNy + 2 * kNumBCGrid; j++)
 	for (int k = 0; k < kNz + 2 * kNumBCGrid; k++) {
-		ps[idx(i, j, k)] = 0.0;
 		rhs[idx(i, j, k)] = 0.0;
 	}
 	
@@ -2188,6 +2184,7 @@ int MACSolver3D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 		
 		rowIdx += tmpRowIdx;
 		MRowIdx += tmpMRowIdx;
+
 		assert(rhs[idx(i, j, k)] == rhs[idx(i, j, k)]);
 		if (std::isnan(rhs[idx(i, j, k)]) || std::isinf(rhs[idx(i, j, k)])) {
 			std::cout << "right hand side of poisson equation nan/inf error : " 
@@ -2251,13 +2248,7 @@ int MACSolver3D::UpdateVel(std::vector<double>& u, std::vector<double>& v, std::
 	// velocity update after solving poisson equation
 	// ps = p * dt
 	double lsW = 0.0, lsM = 0.0, lsE = 0.0, lsS = 0.0, lsN = 0.0, lsB = 0.0, lsT = 0.0;
-	double uEff = 0.0, vEff = 0.0, rhoEff = 0.0, theta = 0.0, thetaH = 0.0, iRhoEff = 0.0;
-	double nXEff = 0.0, nYEff = 0.0, nZEff = 0.0, kappaEff = 0.0;
-	double nXW = 0.0, nYW = 0.0, nZW = 0.0,
-		nXS = 0.0, nYS = 0.0, nZS = 0.0,
-		nXB = 0.0, nYB = 0.0, nZB = 0.0,
-		nXM = 0.0, nYM = 0.0, nZM = 0.0;
-	double aW = 0.0, aS = 0.0, aM = 0.0, aEff = 0.0;
+	double uEff = 0.0, vEff = 0.0, rhoEff = 0.0, theta = 0.0, thetaH = 0.0, iRhoEff = 0.0, kappaEff = 0.0;
 	const double eps = 1.0e-100;
 	
 	std::vector<double> U_PGrid(kArrSize, 0.0),	V_PGrid(kArrSize, 0.0);
