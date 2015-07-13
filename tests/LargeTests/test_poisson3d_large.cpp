@@ -13,9 +13,9 @@ int test_poisson3D_CG() {
 	PBC->SetBCConstantPW(0.0);
 	PBC->SetBCConstantPE(0.0);
 	PBC->SetBCConstantPS(0.0);
-	PBC->SetBCConstantPN(1.0);
+	PBC->SetBCConstantPN(0.0);
 	PBC->SetBCConstantPB(0.0);
-	PBC->SetBCConstantPT(0.0);
+	PBC->SetBCConstantPT(1.0);
 	
 	double x = 0.0, y = 0.0, z = 0.0;
 
@@ -54,19 +54,19 @@ int test_poisson3D_CG() {
 
 		// Set default values, if a current pointer is in interior, it will not be changed.
 		AValsDic["B"] = -1.0 / (kDz * kDz);
-		AColsDic["B"] = (k - 1 - kNumBCGrid) + kNz * (j - kNumBCGrid) + kNz * kNy * (i - kNumBCGrid);
+		AColsDic["B"] = (i - kNumBCGrid) + kNx * (j - kNumBCGrid) + kNx * kNy * (k - 1 - kNumBCGrid);
 		AValsDic["S"] = -1.0 / (kDy * kDy);
-		AColsDic["S"] = (k - kNumBCGrid) + kNz * (j - 1 - kNumBCGrid) + kNz * kNy * (i - kNumBCGrid);
+		AColsDic["S"] = (i - kNumBCGrid) + kNx * (j - 1 - kNumBCGrid) + kNx * kNy * (k - kNumBCGrid);
 		AValsDic["W"] = -1.0 / (kDx * kDx);
-		AColsDic["W"] = (k - kNumBCGrid) + kNz * (j - kNumBCGrid) + kNz * kNy * (i - 1 - kNumBCGrid);
+		AColsDic["W"] = (i - 1 - kNumBCGrid) + kNx * (j - kNumBCGrid) + kNx * kNy * (k - kNumBCGrid);
 		AValsDic["C"] = (1.0 + 1.0) / (kDx * kDx) + (1.0 + 1.0) / (kDy * kDy) + (1.0 + 1.0) / (kDz * kDz);
-		AColsDic["C"] = (k - kNumBCGrid) + kNz * (j - kNumBCGrid) + kNz * kNy * (i - kNumBCGrid);
+		AColsDic["C"] = (i - kNumBCGrid) + kNx * (j - kNumBCGrid) + kNx * kNy * (k - kNumBCGrid);
 		AValsDic["E"] = -1.0 / (kDx * kDx);
-		AColsDic["E"] = (k - kNumBCGrid) + kNz * (j - kNumBCGrid) + kNz * kNy * (i + 1 - kNumBCGrid);
+		AColsDic["E"] = (i + 1 - kNumBCGrid) + kNx * (j - kNumBCGrid) + kNx * kNy * (k - kNumBCGrid);
 		AValsDic["N"] = -1.0 / (kDy * kDy);
-		AColsDic["N"] = (k - kNumBCGrid) + kNz * (j + 1 - kNumBCGrid) + kNz * kNy * (i - kNumBCGrid);
+		AColsDic["N"] = (i - kNumBCGrid) + kNx * (j + 1 - kNumBCGrid) + kNx * kNy * (k - kNumBCGrid);
 		AValsDic["T"] = -1.0 / (kDz * kDz);
-		AColsDic["T"] = (k + 1 - kNumBCGrid) + kNz * (j - kNumBCGrid) + kNz * kNy * (i - kNumBCGrid);
+		AColsDic["T"] = (i - kNumBCGrid) + kNx * (j - kNumBCGrid) + kNx * kNy * (k + 1 - kNumBCGrid);
 
 		if (i == kNumBCGrid && PBC->m_BC_PW == BC3D::NEUMANN) {
 			AColsDic["W"] = -1;
@@ -76,7 +76,6 @@ int test_poisson3D_CG() {
 		else if (i == kNumBCGrid && PBC->m_BC_PW == BC3D::DIRICHLET) {
 			AColsDic["W"] = -1;
 			AValsDic["W"] = 0.0;
-			AValsDic["C"] += 1.0 / (kDx * kDx);
 			b[idx3_3D(kNy, kNz, i, j, k)] -= -1.0 / (kDx * kDx) * (PBC->m_BC_DirichletConstantPW);
 		}
 
@@ -89,7 +88,6 @@ int test_poisson3D_CG() {
 		else if (i == kNumBCGrid + kNx - 1 && PBC->m_BC_PE == BC3D::DIRICHLET) {
 			AColsDic["E"] = -1;
 			AValsDic["E"] = 0.0;
-			AValsDic["C"] += 1.0 / (kDy * kDy);
 			b[idx3_3D(kNy, kNz, i, j, k)] -= -1.0 / (kDx * kDx) * (PBC->m_BC_DirichletConstantPE);
 		}
 
@@ -101,7 +99,6 @@ int test_poisson3D_CG() {
 		else if (j == kNumBCGrid && PBC->m_BC_PS == BC3D::DIRICHLET) {
 			AColsDic["S"] = -1;
 			AValsDic["S"] = 0.0;
-			AValsDic["C"] += 1.0 / (kDy * kDy);
 			b[idx3_3D(kNy, kNz, i, j, k)] -= -1.0 / (kDy * kDy) * (PBC->m_BC_DirichletConstantPS);
 		}
 
@@ -113,7 +110,6 @@ int test_poisson3D_CG() {
 		else if (j == kNumBCGrid + kNy - 1 && PBC->m_BC_PN == BC3D::DIRICHLET) {
 			AColsDic["N"] = -1;
 			AValsDic["N"] = 0.0;
-			AValsDic["C"] += 1.0 / (kDx * kDx);
 			b[idx3_3D(kNy, kNz, i, j, k)] -= -1.0 / (kDy * kDy) * (PBC->m_BC_DirichletConstantPN);
 		}
 
@@ -125,7 +121,6 @@ int test_poisson3D_CG() {
 		else if (k == kNumBCGrid && PBC->m_BC_PB == BC3D::DIRICHLET) {
 			AColsDic["B"] = -1;
 			AValsDic["B"] = 0.0;
-			AValsDic["C"] += 1.0 / (kDz * kDz);
 			b[idx3_3D(kNy, kNz, i, j, k)] -= -1.0 / (kDz * kDz) * (PBC->m_BC_DirichletConstantPB);
 		}
 
@@ -137,7 +132,6 @@ int test_poisson3D_CG() {
 		else if (k == kNumBCGrid + kNz - 1 && PBC->m_BC_PT == BC3D::DIRICHLET) {
 			AColsDic["T"] = -1;
 			AValsDic["T"] = 0.0;
-			AValsDic["C"] += 1.0 / (kDx * kDx);
 			b[idx3_3D(kNy, kNz, i, j, k)] -= -1.0 / (kDz * kDz) * (PBC->m_BC_DirichletConstantPT);
 		}
 

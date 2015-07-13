@@ -1184,7 +1184,7 @@ int MAC2DAxisymTest_NonSurfaceTension() {
 		cfl, maxtime, maxiter, niterskip, num_bc_grid, writeVTK);
 	MSolver->SetBC_U_2D("axisym", "wall", "inlet", "outlet");
 	MSolver->SetBC_V_2D("axisym", "wall", "inlet", "outlet");
-	MSolver->SetBC_P_2D("neumann", "pressure", "pressure", "pressure");
+	MSolver->SetBC_P_2D("neumann", "neumann", "pressure", "pressure");
 	MSolver->SetBCConstantUE(0.0);
 	MSolver->SetBCConstantUS(0.0);
 	MSolver->SetBCConstantUN(0.0);
@@ -1210,7 +1210,7 @@ int MAC2DAxisymTest_NonSurfaceTension() {
 	// init velocity and pseudo-pressure
 	MSolver->AllocateVariables();
 
-	LSolver->SetBC_P_2D("axisym", "wall", "inlet", "outlet");
+	LSolver->SetBC_P_2D("axisym", "neumann", "neumann", "neumann");
 	LSolver->SetBCConstantPW(0.0);
 	LSolver->SetBCConstantPE(0.0);
 	LSolver->SetBCConstantPS(0.0);
@@ -1619,7 +1619,7 @@ int MAC2DAxisymTest_SmallAirBubbleRising() {
 		cfl, maxtime, maxiter, niterskip, num_bc_grid, writeVTK);
 	MSolver->SetBC_U_2D("axisym", "dirichlet", "dirichlet", "dirichlet");
 	MSolver->SetBC_V_2D("axisym", "dirichlet", "dirichlet", "dirichlet");
-	MSolver->SetBC_P_2D("neumann", "neumann", "neumann", "neumann");
+	MSolver->SetBC_P_2D("axisym", "neumann", "neumann", "neumann");
 	MSolver->SetBCConstantUW(0.0);
 	MSolver->SetBCConstantUE(0.0);
 	MSolver->SetBCConstantUS(0.0);

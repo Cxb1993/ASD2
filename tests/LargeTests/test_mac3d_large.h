@@ -17,5 +17,6 @@
 #include "../include/levelset3d.h"
 
 int MAC3DTest_StationaryBubble();
+int MAC3DTest_NonSurfaceTension();
 
 #endif __TEST_MAC3DLARGE_H__

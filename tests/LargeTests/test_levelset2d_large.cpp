@@ -469,7 +469,6 @@ int LevelSetTest_2DAxisym_ReinitOnly_Sussman() {
 	LSolver->ApplyBC_P_2D(ls);
 
 	double rhoH = 1.0, rhoL = 1.0, muH = 1.0, muL = 1.0, gConstant = 0.0, sigma = 0.0, L = 1.0, U = 1.0;
-	TIMEORDERENUM timeOrder = TIMEORDERENUM::EULER;
 	GAXISENUM2DAXISYM GAxis = GAXISENUM2DAXISYM::Z;
 	double maxtime = 2.0;
 	int maxiter = 20, niterskip = 1, num_bc_grid = NBC3;
@@ -478,7 +477,7 @@ int LevelSetTest_2DAxisym_ReinitOnly_Sussman() {
 	std::unique_ptr<MACSolver2DAxisym> MSolver;
 	MSolver = std::make_unique<MACSolver2DAxisym>(rhoH, rhoL, muH, muL, gConstant, GAxis,
 		L, U, sigma, nx, ny, baseX, baseY, lenX, lenY,
-		timeOrder, cfl, maxtime, maxiter, niterskip, num_bc_grid, writeVTK);
+		cfl, maxtime, maxiter, niterskip, num_bc_grid, writeVTK);
 	MSolver->SetBC_U_2D("dirichlet", "dirichlet", "dirichlet", "dirichlet");
 	MSolver->SetBC_V_2D("dirichlet", "dirichlet", "dirichlet", "dirichlet");
 	MSolver->SetBC_P_2D("neumann", "neumann", "neumann", "neumann");
@@ -774,7 +773,6 @@ int LevelSetTest_2DAxisym_ReinitOnly_MinRK2() {
 	LSolver->ApplyBC_P_2D(ls);
 
 	double rhoH = 1.0, rhoL = 1.0, muH = 1.0, muL = 1.0, gConstant = 0.0, sigma = 0.0, L = 1.0, U = 1.0;
-	TIMEORDERENUM timeOrder = TIMEORDERENUM::EULER;
 	GAXISENUM2DAXISYM GAxis = GAXISENUM2DAXISYM::Z;
 	double maxtime = 2.0;
 	int maxiter = 20, niterskip = 1, num_bc_grid = NBC3;
@@ -783,7 +781,7 @@ int LevelSetTest_2DAxisym_ReinitOnly_MinRK2() {
 	std::unique_ptr<MACSolver2DAxisym> MSolver;
 	MSolver = std::make_unique<MACSolver2DAxisym>(rhoH, rhoL, muH, muL, gConstant, GAxis,
 		L, U, sigma, nx, ny, baseX, baseY, lenX, lenY,
-		timeOrder, cfl, maxtime, maxiter, niterskip, num_bc_grid, writeVTK);
+		cfl, maxtime, maxiter, niterskip, num_bc_grid, writeVTK);
 	MSolver->SetBC_U_2D("dirichlet", "dirichlet", "dirichlet", "dirichlet");
 	MSolver->SetBC_V_2D("dirichlet", "dirichlet", "dirichlet", "dirichlet");
 	MSolver->SetBC_P_2D("neumann", "neumann", "neumann", "neumann");
