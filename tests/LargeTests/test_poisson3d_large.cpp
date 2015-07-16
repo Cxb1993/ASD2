@@ -188,10 +188,8 @@ int test_poisson3D_CG() {
 	ARowIdx.push_back(rowIdx);
 	DiagRowIdx.push_back(MRowIdx);
 
-	std::cout << "Setting Finished" << std::endl;
-	PSolver->CG_2FUniform_3D(u, b, AVals, ACols, ARowIdx, DiagVals, DiagCols, DiagRowIdx, kLenX, kLenY, kLenZ, kDx, kDy, kDz, PBC, 10000);
-	std::cout << "Solved poisson equation" << std::endl;
-
+	PSolver->CG_2FUniformP_3D(u, b, AVals, ACols, ARowIdx, DiagVals, DiagCols, DiagRowIdx, PBC, 10000);
+	
 	std::string fname_p_base("TestPoisson3D_CG");
 	std::ofstream outF;
 	std::string fname_p(fname_p_base + "_ASCII.plt");

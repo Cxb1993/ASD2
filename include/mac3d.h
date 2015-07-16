@@ -43,10 +43,9 @@ public:
 	const double kMuH, kMuL, kMuRatio;
 	
 	const int kMaxIter, kNIterSkip;
-	const TIMEORDERENUM kTimeOrder;
 	const double kCFL, kMaxTime;
 	const bool kWriteVTK;
-	POISSONTYPE m_PoissonSolverType;
+	POISSONTYPE m_PoissonSolverType, m_ImplicitSolverType;
 	PLTTYPE m_PLTType;
 	GAXISENUM3D kGAxis;
 
@@ -74,13 +73,13 @@ public:
 	MACSolver3D(double Re, double We, double Fr, GAXISENUM3D GAxis,
 		double L, double U, double sigma, double densityRatio, double viscosityRatio, double rhoI, double mu1,
 		int nx, int ny, int nz, double baseX, double baseY, double baseZ, double lenX, double lenY, double lenZ,
-		TIMEORDERENUM RKOrder, double cfl, double maxtime, int maxiter, int niterskip,
+		double cfl, double maxtime, int maxiter, int niterskip,
 		int num_bc_grid, bool writeVTK);
 	MACSolver3D(double rhoI, double rhoO, double muI, double muO,
 		double gConstant, GAXISENUM3D GAxis, 
 		double L, double U, double sigma,
 		int nx, int ny, int nz, double baseX, double baseY, double baseZ, double lenX, double lenY, double lenZ,
-		TIMEORDERENUM RKOrder, double cfl, double maxtime, int maxiter, int niterskip,
+		double cfl, double maxtime, int maxiter, int niterskip,
 		int num_bc_grid, bool writeVTK);
 	~MACSolver3D();
 
@@ -96,15 +95,15 @@ public:
 		std::vector<double>& kappa);
 	int UpdateKappa(const std::vector<double>& ls);
 
-	std::vector<double> UpdateFU(const std::shared_ptr<LevelSetSolver3D>& LSolver,
+	std::vector<double> GetRHSU(const std::shared_ptr<LevelSetSolver3D>& LSolver,
 		const std::vector<double>& ls,
 		const std::vector<double>& u, const std::vector<double>& v, const std::vector<double>& w,
 		const std::vector<double>& H);
-	std::vector<double> UpdateFV(const std::shared_ptr<LevelSetSolver3D>& LSolver,
+	std::vector<double> GetRHSV(const std::shared_ptr<LevelSetSolver3D>& LSolver,
 		const std::vector<double>& ls,
 		const std::vector<double>& u, const std::vector<double>& v, const std::vector<double>& w,
 		const std::vector<double>& H);
-	std::vector<double> UpdateFW(const std::shared_ptr<LevelSetSolver3D>& LSolver,
+	std::vector<double> GetRHSW(const std::shared_ptr<LevelSetSolver3D>& LSolver,
 		const std::vector<double>& ls,
 		const std::vector<double>& u, const std::vector<double>& v, const std::vector<double>& w,
 		const std::vector<double>& H);
@@ -117,13 +116,13 @@ public:
 		const std::vector<double> &F, std::vector<double> &FP, std::vector<double> &FM, const double d, const int n);
 
 	// Viscosity Term
-	std::vector<double> AddViscosityFU(
+	std::vector<double> AddExternalViscosityFU(
 		const std::vector<double>& u, const std::vector<double>& v, const std::vector<double>& w,
 			const std::vector<double>& ls, const std::vector<double>& H);
-	std::vector<double> AddViscosityFV(
+	std::vector<double> AddExternalViscosityFV(
 		const std::vector<double>& u, const std::vector<double>& v, const std::vector<double>& w,
 			const std::vector<double>& ls, const std::vector<double>& H);
-	std::vector<double> AddViscosityFW(
+	std::vector<double> AddExternalViscosityFW(
 		const std::vector<double>& u, const std::vector<double>& v, const std::vector<double>& w,
 			const std::vector<double>& ls, const std::vector<double>& H);
 	
@@ -133,13 +132,13 @@ public:
 	std::vector<double> AddGravityFW();
 	
 	// Intermediate Velocity
-	int GetIntermediateVel(const std::shared_ptr<LevelSetSolver3D>& LSolver, const std::vector<double>& ls,
-		const std::vector<double>& u, const std::vector<double>& v, const std::vector<double>& w,
-		std::vector<double>& uhat, std::vector<double>& vhat, std::vector<double>& what,
-		const std::vector<double>& H);
-	
+	std::vector<double> GetUHat(const std::vector<double>& ls, const std::vector<double>& rhsExternal, const std::vector<double>& H, const int maxIter);
+	std::vector<double> GetVHat(const std::vector<double>& ls, const std::vector<double>& rhsExternal, const std::vector<double>& H, const int maxIter);
+	std::vector<double> GetWHat(const std::vector<double>& ls, const std::vector<double>& rhsExternal, const std::vector<double>& H, const int maxIter);
+
 	// Poisson 
 	int SetPoissonSolver(POISSONTYPE type);
+	int SetImplicitSolver(POISSONTYPE type);
 	int SolvePoisson(std::vector<double>& ps, const std::vector<double>& div,
 		const std::vector<double>& ls, const std::vector<double>& lsB,
 		const std::vector<double>& u, const std::vector<double>& v, const std::vector<double>& w, const std::vector<double>& H, const int maxiter);

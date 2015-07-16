@@ -4,18 +4,179 @@ PoissonSolver3D::PoissonSolver3D(int nx, int ny, int nz, int num_bc_grid) :
 	kNx(nx), kNy(ny), kNz(nz), kNumBCGrid(num_bc_grid) {
 }
 
-int PoissonSolver3D::CG_2FUniform_3D(std::vector<double>& ps, const std::vector<double>& rhs,
+int PoissonSolver3D::CG_2FUniformU_3D(std::vector<double>& uhat, const std::vector<double>& rhs,
 	std::vector<double>& AVals, std::vector<MKL_INT>& ACols, std::vector<MKL_INT>& ARowIdx,
 	std::vector<double>& MVals, std::vector<MKL_INT>& MCols, std::vector<MKL_INT>& MRowIdx,
-	const double lenX, const double lenY, const double lenZ,
-	const double dx, const double dy, const double dz,
-	const std::shared_ptr<BoundaryCondition3D>& PBC, const int maxIter) {
-	
-	MKL_INT Anrows = kNx * kNy * kNz, Ancols = kNx * kNy * kNz;
-	MKL_INT size = kNx * kNy * kNz;
+	const std::shared_ptr<BoundaryCondition3D>& UBC, const int maxIter) {
+
+	MKL_INT Anrows = (kNx - 1) * kNy * kNz, Ancols = (kNx - 1) * kNy * kNz;
+	MKL_INT size = (kNx - 1) * kNy * kNz;
+
 	double *b = Data::Allocate1Dd(size);
 	double *x = Data::Allocate1Dd(size);
-	double *Ax = Data::Allocate1Dd(size); 
+	
+	// check values
+	if (Anrows != ARowIdx.size() - 1)
+		std::cout << "Uhat(Poisson equation) Error : the # of rows is invalid!" << std::endl;
+
+	for (int k = 0; k < kNz; k++)
+	for (int j = 0; j < kNy; j++)
+	for (int i = 0; i < kNx - 1; i++) {
+		b[i + j * (kNx - 1) + k * (kNx - 1) * kNy] = rhs[idx(i + kNumBCGrid + 1, j + kNumBCGrid, k + kNumBCGrid)];
+		x[i + j * (kNx - 1) + k * (kNx - 1) * kNy] = 0.0;
+	}
+
+	CG_2FUniform_3D(x, b, AVals, ACols, ARowIdx, MVals, MCols, MRowIdx, Anrows, size, maxIter);
+
+	for (int k = 0; k < kNz; k++)
+	for (int j = 0; j < kNy; j++)
+	for (int i = 0; i < kNx - 1; i++) {
+		uhat[idx(i + kNumBCGrid + 1, j + kNumBCGrid, k + kNumBCGrid)] = x[i + j * (kNx - 1) + k * (kNx - 1) * kNy];
+		assert(uhat[idx(i + kNumBCGrid + 1, j + kNumBCGrid, k + kNumBCGrid)] == uhat[idx(i + kNumBCGrid + 1, j + kNumBCGrid, k + kNumBCGrid)]);
+		if (std::isnan(uhat[idx(i + kNumBCGrid + 1, j + kNumBCGrid, k + kNumBCGrid)]) || std::isinf(uhat[idx(i + kNumBCGrid + 1, j + kNumBCGrid, k + kNumBCGrid)])) {
+			std::cout << "Uhat(Poisson equation) Error : nan/inf occurred : "
+				<< i + kNumBCGrid + 1 << " " << j + kNumBCGrid << " " << k + kNumBCGrid << " "
+				<< " " << uhat [idx(i + kNumBCGrid + 1, j + kNumBCGrid, k + kNumBCGrid)] << std::endl;
+			exit(1);
+		}
+	}
+
+	UBC->ApplyBC_U_3D(uhat);
+
+	return 0;
+}
+
+int PoissonSolver3D::CG_2FUniformV_3D(std::vector<double>& vhat, const std::vector<double>& rhs,
+	std::vector<double>& AVals, std::vector<MKL_INT>& ACols, std::vector<MKL_INT>& ARowIdx,
+	std::vector<double>& MVals, std::vector<MKL_INT>& MCols, std::vector<MKL_INT>& MRowIdx,
+	const std::shared_ptr<BoundaryCondition3D>& VBC, const int maxIter) {
+
+	MKL_INT Anrows = kNx * (kNy - 1) * kNz, Ancols = kNx * (kNy - 1) * kNz;
+	MKL_INT size = kNx * (kNy - 1) * kNz;
+
+	double *b = Data::Allocate1Dd(size);
+	double *x = Data::Allocate1Dd(size);
+
+	// check values
+	if (Anrows != ARowIdx.size() - 1)
+		std::cout << "Vhat(Poisson equation) Error : the # of rows is invalid!" << std::endl;
+
+	for (int k = 0; k < kNz; k++)
+	for (int j = 0; j < kNy - 1; j++)
+	for (int i = 0; i < kNx; i++) {
+		b[i + j * kNx + k * kNx * (kNy - 1)] = rhs[idx(i + kNumBCGrid, j + kNumBCGrid + 1, k + kNumBCGrid)];
+		x[i + j * kNx + k * kNx * (kNy - 1)] = 0.0;
+	}
+
+	CG_2FUniform_3D(x, b, AVals, ACols, ARowIdx, MVals, MCols, MRowIdx, Anrows, size, maxIter);
+
+	for (int k = 0; k < kNz; k++)
+	for (int j = 0; j < kNy - 1; j++)
+	for (int i = 0; i < kNx; i++) {
+		vhat[idx(i + kNumBCGrid, j + kNumBCGrid + 1, k + kNumBCGrid)] = x[i + j * kNx + k * kNx * (kNy - 1)];
+		assert(vhat[idx(i + kNumBCGrid, j + kNumBCGrid + 1, k + kNumBCGrid)] == vhat[idx(i + kNumBCGrid, j + kNumBCGrid + 1, k + kNumBCGrid)]);
+		if (std::isnan(vhat[idx(i + kNumBCGrid, j + kNumBCGrid + 1, k + kNumBCGrid)]) || std::isinf(vhat[idx(i + kNumBCGrid, j + kNumBCGrid + 1, k + kNumBCGrid)])) {
+			std::cout << "Vhat(Poisson equation) Error : nan/inf occurred : "
+				<< i + kNumBCGrid << " " << j + kNumBCGrid + 1 << " " << k + kNumBCGrid << " "
+				<< " " << vhat[idx(i + kNumBCGrid, j + kNumBCGrid + 1, k + kNumBCGrid)] << std::endl;
+			exit(1);
+		}
+	}
+
+	VBC->ApplyBC_V_3D(vhat);
+
+	return 0;
+}
+
+int PoissonSolver3D::CG_2FUniformW_3D(std::vector<double>& what, const std::vector<double>& rhs,
+	std::vector<double>& AVals, std::vector<MKL_INT>& ACols, std::vector<MKL_INT>& ARowIdx,
+	std::vector<double>& MVals, std::vector<MKL_INT>& MCols, std::vector<MKL_INT>& MRowIdx,
+	const std::shared_ptr<BoundaryCondition3D>& WBC, const int maxIter) {
+
+	MKL_INT Anrows = kNx * kNy * (kNz - 1), Ancols = kNx * kNy * (kNz - 1);
+	MKL_INT size = kNx * kNy * (kNz - 1);
+
+	double *b = Data::Allocate1Dd(size);
+	double *x = Data::Allocate1Dd(size);
+
+	// check values
+	if (Anrows != ARowIdx.size() - 1)
+		std::cout << "What(Poisson equation) Error : the # of rows is invalid!" << std::endl;
+
+	for (int k = 0; k < kNz - 1; k++)
+	for (int j = 0; j < kNy; j++)
+	for (int i = 0; i < kNx; i++) {
+		b[i + j * kNx + k * kNx * kNy] = rhs[idx(i + kNumBCGrid, j + kNumBCGrid, k + kNumBCGrid + 1)];
+		x[i + j * kNx + k * kNx * kNy] = 0.0;
+	}
+
+	CG_2FUniform_3D(x, b, AVals, ACols, ARowIdx, MVals, MCols, MRowIdx, Anrows, size, maxIter);
+
+	for (int k = 0; k < kNz - 1; k++)
+	for (int j = 0; j < kNy; j++)
+	for (int i = 0; i < kNx; i++) {
+		what[idx(i + kNumBCGrid, j + kNumBCGrid, k + kNumBCGrid + 1)] = x[i + j * kNx + k * kNx * kNy];
+		assert(what[idx(i + kNumBCGrid, j + kNumBCGrid, k + kNumBCGrid + 1)] == what[idx(i + kNumBCGrid, j + kNumBCGrid, k + kNumBCGrid + 1)]);
+		if (std::isnan(what[idx(i + kNumBCGrid, j + kNumBCGrid, k + kNumBCGrid + 1)]) || std::isinf(what[idx(i + kNumBCGrid, j + kNumBCGrid, k + kNumBCGrid + 1)])) {
+			std::cout << "What(Poisson equation) Error : nan/inf occurred : "
+				<< i + kNumBCGrid << " " << j + kNumBCGrid << " " << k + kNumBCGrid + 1 << " "
+				<< " " << what[idx(i + kNumBCGrid, j + kNumBCGrid, k + kNumBCGrid + 1)] << std::endl;
+			exit(1);
+		}
+	}
+
+	WBC->ApplyBC_U_3D(what);
+
+	return 0;
+}
+
+int PoissonSolver3D::CG_2FUniformP_3D(std::vector<double>& ps, const std::vector<double>& rhs,
+	std::vector<double>& AVals, std::vector<MKL_INT>& ACols, std::vector<MKL_INT>& ARowIdx,
+	std::vector<double>& MVals, std::vector<MKL_INT>& MCols, std::vector<MKL_INT>& MRowIdx,
+	const std::shared_ptr<BoundaryCondition3D>& PBC, const int maxIter) {
+
+	MKL_INT Anrows = kNx * kNy * kNz, Ancols = kNx * kNy * kNz;
+	MKL_INT size = kNx * kNy * kNz;
+
+	double *b = Data::Allocate1Dd(size);
+	double *x = Data::Allocate1Dd(size);
+
+	// check values
+	if (Anrows != ARowIdx.size() - 1)
+		std::cout << "Pressure(Poisson equation) Error : the # of rows is invalid!" << std::endl;
+
+	for (int k = 0; k < kNz; k++)
+	for (int j = 0; j < kNy; j++)
+	for (int i = 0; i < kNx; i++) {
+		b[i + j * kNx + k * kNx * kNy] = rhs[idx(i + kNumBCGrid, j + kNumBCGrid, k + kNumBCGrid)];
+		x[i + j * kNx + k * kNx * kNy] = 0.0;
+	}
+
+	CG_2FUniform_3D(x, b, AVals, ACols, ARowIdx, MVals, MCols, MRowIdx, Anrows, size, maxIter);
+
+	for (int k = 0; k < kNz; k++)
+	for (int j = 0; j < kNy; j++)
+	for (int i = 0; i < kNx; i++) {
+		ps[idx(i + kNumBCGrid, j + kNumBCGrid, k + kNumBCGrid)] = x[i + j * kNx + k * kNx * kNy];
+		assert(ps[idx(i + kNumBCGrid, j + kNumBCGrid, k + kNumBCGrid)] == ps[idx(i + kNumBCGrid, j + kNumBCGrid, k + kNumBCGrid)]);
+		if (std::isnan(ps[idx(i + kNumBCGrid, j + kNumBCGrid, k + kNumBCGrid)]) || std::isinf(ps[idx(i + kNumBCGrid, j + kNumBCGrid, k + kNumBCGrid)])) {
+			std::cout << "Pressure(Poisson equation) Error : nan/inf occurred : "
+				<< i + kNumBCGrid << " " << j + kNumBCGrid << " " << k + kNumBCGrid << " "
+				<< " " << ps[idx(i + kNumBCGrid, j + kNumBCGrid, k + kNumBCGrid)] << std::endl;
+			exit(1);
+		}
+	}
+
+	PBC->ApplyBC_U_3D(ps);
+
+	return 0;
+}
+
+int PoissonSolver3D::CG_2FUniform_3D(double *x, double *b,
+	std::vector<double>& AVals, std::vector<MKL_INT>& ACols, std::vector<MKL_INT>& ARowIdx,
+	std::vector<double>& MVals, std::vector<MKL_INT>& MCols, std::vector<MKL_INT>& MRowIdx, int64_t Anrows, int64_t size, const int maxIter) {
+
+	double *Ax = Data::Allocate1Dd(size);
 	double *p = Data::Allocate1Dd(size);
 	double *q = Data::Allocate1Dd(size);
 	double *r = Data::Allocate1Dd(size);
@@ -28,22 +189,6 @@ int PoissonSolver3D::CG_2FUniform_3D(std::vector<double>& ps, const std::vector<
 	const double err_tol = 1.0e-6;
 	int iter = 0;
 	bool isConverged = false;
-
-	// check values
-	if (Anrows != ARowIdx.size() - 1)
-		std::cout << "the # of rows is invalid!" << std::endl;
-
-	for (int k = 0; k < kNz; k++)
-	for (int j = 0; j < kNy; j++)
-	for (int i = 0; i < kNx; i++) {
-		b[i + j * kNx + k * kNx * kNy] = rhs[idx(i + kNumBCGrid, j + kNumBCGrid, k + kNumBCGrid)];
-		x[i + j * kNx + k * kNx * kNy] = 0.0;
-		p[i + j * kNx + k * kNx * kNy] = 0.0;
-		r[i + j * kNx + k * kNx * kNy] = 0.0;
-		q[i + j * kNx + k * kNx * kNy] = 0.0;
-		z[i + j * kNx + k * kNx * kNy] = 0.0;
-		Ax[i + j * kNx + k * kNx * kNy] = 0.0;
-	}
 
 	// get Ax(=A*x), using upper triangular matrix (Sparse BLAS)
 	// https://software.intel.com/en-us/node/468560
@@ -126,21 +271,6 @@ int PoissonSolver3D::CG_2FUniform_3D(std::vector<double>& ps, const std::vector<
 	}
 
 	// std::cout << "CG : " << iter << " " << maxIter << " Err : " << rnorm2 / bnorm2 << std::endl;
-	for (int k = 0; k < kNz; k++)
-	for (int j = 0; j < kNy; j++)
-	for (int i = 0; i < kNx; i++) {
-		ps[idx(i + kNumBCGrid, j + kNumBCGrid, k + kNumBCGrid)] = x[i + j * kNx + k * kNx * kNy];
-		assert(ps[idx(i + kNumBCGrid, j + kNumBCGrid, k + kNumBCGrid)] == ps[idx(i + kNumBCGrid, j + kNumBCGrid, k + kNumBCGrid)]);
-		if (std::isnan(ps[idx(i + kNumBCGrid, j + kNumBCGrid, k + kNumBCGrid)]) || std::isinf(ps[idx(i + kNumBCGrid, j + kNumBCGrid, k + kNumBCGrid)])) {
-			std::cout << "poisson equation nan/inf error : " 
-				<< i + kNumBCGrid << " " << j + kNumBCGrid << " " << k + kNumBCGrid << " "
-				<< " " << ps[idx(i + kNumBCGrid, j + kNumBCGrid, k + kNumBCGrid)] << std::endl;
-			exit(1);
-		}
-	}
-
-	Data::Deallocate1Dd(b);
-	Data::Deallocate1Dd(x);
 	Data::Deallocate1Dd(Ax);
 	Data::Deallocate1Dd(p);
 	Data::Deallocate1Dd(q);
@@ -150,18 +280,181 @@ int PoissonSolver3D::CG_2FUniform_3D(std::vector<double>& ps, const std::vector<
 	return 0;
 }
 
-int PoissonSolver3D::BiCGStab_2FUniform_3D(std::vector<double>& ps, const std::vector<double>& rhs,
+int PoissonSolver3D::BiCGStab_2FUniformU_3D(std::vector<double>& uhat, const std::vector<double>& rhs,
 	std::vector<double>& AVals, std::vector<MKL_INT>& ACols, std::vector<MKL_INT>& ARowIdx,
 	std::vector<double>& MVals, std::vector<MKL_INT>& MCols, std::vector<MKL_INT>& MRowIdx,
-	const double lenX, const double lenY, const double lenZ,
-	const double dx, const double dy, const double dz,
-	const std::shared_ptr<BoundaryCondition3D>& PBC, const int maxIter) {
-	
-	// http://math.nist.gov/iml++/bicgstab.h.txt
-	MKL_INT Anrows = kNx * kNy * kNz, Ancols = kNx * kNy * kNz;
-	MKL_INT size = kNx * kNy * kNz;
+	const std::shared_ptr<BoundaryCondition3D>& UBC, const int maxIter) {
+
+	MKL_INT Anrows = (kNx - 1) * kNy * kNz, Ancols = (kNx - 1) * kNy * kNz;
+	MKL_INT size = (kNx - 1) * kNy * kNz;
+
 	double *b = Data::Allocate1Dd(size);
 	double *x = Data::Allocate1Dd(size);
+
+	// check values
+	if (Anrows != ARowIdx.size() - 1)
+		std::cout << "uhat(Poisson equation) Error : the # of rows is invalid!" << std::endl;
+
+	for (int k = 0; k < kNz; k++)
+	for (int j = 0; j < kNy; j++)
+	for (int i = 0; i < kNx - 1; i++) {
+		b[i + j * (kNx - 1) + k * (kNx - 1) * kNy] = rhs[idx(i + kNumBCGrid + 1, j + kNumBCGrid, k + kNumBCGrid)];
+		x[i + j * (kNx - 1) + k * (kNx - 1) * kNy] = 0.0;
+	}
+
+	BiCGStab_2FUniform_3D(x, b, AVals, ACols, ARowIdx, MVals, MCols, MRowIdx, Anrows, size, maxIter);
+
+	for (int k = 0; k < kNz; k++)
+	for (int j = 0; j < kNy; j++)
+	for (int i = 0; i < kNx - 1; i++) {
+		uhat[idx(i + kNumBCGrid + 1, j + kNumBCGrid, k + kNumBCGrid)] = x[i + j * (kNx - 1) + k * (kNx - 1) * kNy];
+		assert(uhat[idx(i + kNumBCGrid + 1, j + kNumBCGrid, k + kNumBCGrid)] == uhat[idx(i + kNumBCGrid + 1, j + kNumBCGrid, k + kNumBCGrid)]);
+		if (std::isnan(uhat[idx(i + kNumBCGrid + 1, j + kNumBCGrid, k + kNumBCGrid)]) || std::isinf(uhat[idx(i + kNumBCGrid + 1, j + kNumBCGrid, k + kNumBCGrid)])) {
+			std::cout << "uhat(Poisson equation) Error : nan/inf occurred : "
+				<< i + kNumBCGrid + 1 << " " << j + kNumBCGrid << " " << k + kNumBCGrid << " "
+				<< " " << uhat[idx(i + kNumBCGrid + 1, j + kNumBCGrid, k + kNumBCGrid)] << std::endl;
+			exit(1);
+		}
+	}
+
+	UBC->ApplyBC_U_3D(uhat);
+
+	return 0;
+}
+
+int PoissonSolver3D::BiCGStab_2FUniformV_3D(std::vector<double>& vhat, const std::vector<double>& rhs,
+	std::vector<double>& AVals, std::vector<MKL_INT>& ACols, std::vector<MKL_INT>& ARowIdx,
+	std::vector<double>& MVals, std::vector<MKL_INT>& MCols, std::vector<MKL_INT>& MRowIdx,
+	const std::shared_ptr<BoundaryCondition3D>& VBC, const int maxIter) {
+
+	MKL_INT Anrows = kNx * (kNy - 1) * kNz, Ancols = kNx * (kNy - 1) * kNz;
+	MKL_INT size = kNx * (kNy - 1) * kNz;
+
+	double *b = Data::Allocate1Dd(size);
+	double *x = Data::Allocate1Dd(size);
+
+	// check values
+	if (Anrows != ARowIdx.size() - 1)
+		std::cout << "vhat(Poisson equation) Error : the # of rows is invalid!" << std::endl;
+
+	for (int k = 0; k < kNz; k++)
+	for (int j = 0; j < kNy - 1; j++)
+	for (int i = 0; i < kNx; i++) {
+		b[i + j * kNx + k * kNx * (kNy - 1)] = rhs[idx(i + kNumBCGrid, j + kNumBCGrid + 1, k + kNumBCGrid)];
+		x[i + j * kNx + k * kNx * (kNy - 1)] = 0.0;
+	}
+
+	BiCGStab_2FUniform_3D(x, b, AVals, ACols, ARowIdx, MVals, MCols, MRowIdx, Anrows, size, maxIter);
+
+	for (int k = 0; k < kNz; k++)
+	for (int j = 0; j < kNy - 1; j++)
+	for (int i = 0; i < kNx; i++) {
+		vhat[idx(i + kNumBCGrid, j + kNumBCGrid + 1, k + kNumBCGrid)] = x[i + j * kNx + k * kNx * (kNy - 1)];
+		assert(vhat[idx(i + kNumBCGrid, j + kNumBCGrid + 1, k + kNumBCGrid)] == vhat[idx(i + kNumBCGrid, j + kNumBCGrid + 1, k + kNumBCGrid)]);
+		if (std::isnan(vhat[idx(i + kNumBCGrid, j + kNumBCGrid + 1, k + kNumBCGrid)]) || std::isinf(vhat[idx(i + kNumBCGrid, j + kNumBCGrid + 1, k + kNumBCGrid)])) {
+			std::cout << "vhat(Poisson equation) Error : nan/inf occurred : "
+				<< i + kNumBCGrid << " " << j + kNumBCGrid + 1 << " " << k + kNumBCGrid << " "
+				<< " " << vhat[idx(i + kNumBCGrid, j + kNumBCGrid, k + kNumBCGrid)] << std::endl;
+			exit(1);
+		}
+	}
+
+	VBC->ApplyBC_V_3D(vhat);
+
+	return 0;
+}
+
+int PoissonSolver3D::BiCGStab_2FUniformW_3D(std::vector<double>& what, const std::vector<double>& rhs,
+	std::vector<double>& AVals, std::vector<MKL_INT>& ACols, std::vector<MKL_INT>& ARowIdx,
+	std::vector<double>& MVals, std::vector<MKL_INT>& MCols, std::vector<MKL_INT>& MRowIdx,
+	const std::shared_ptr<BoundaryCondition3D>& WBC, const int maxIter) {
+
+	MKL_INT Anrows = kNx * kNy * (kNz - 1), Ancols = kNx * kNy * (kNz - 1);
+	MKL_INT size = kNx * kNy * (kNz - 1);
+
+	double *b = Data::Allocate1Dd(size);
+	double *x = Data::Allocate1Dd(size);
+
+	// check values
+	if (Anrows != ARowIdx.size() - 1)
+		std::cout << "what(Poisson equation) Error : the # of rows is invalid!" << std::endl;
+
+	for (int k = 0; k < kNz - 1; k++)
+	for (int j = 0; j < kNy; j++)
+	for (int i = 0; i < kNx; i++) {
+		b[i + j * kNx + k * kNx * kNy] = rhs[idx(i + kNumBCGrid, j + kNumBCGrid, k + kNumBCGrid + 1)];
+		x[i + j * kNx + k * kNx * kNy] = 0.0;
+	}
+
+	BiCGStab_2FUniform_3D(x, b, AVals, ACols, ARowIdx, MVals, MCols, MRowIdx, Anrows, size, maxIter);
+
+	for (int k = 0; k < kNz - 1; k++)
+	for (int j = 0; j < kNy; j++)
+	for (int i = 0; i < kNx; i++) {
+		what[idx(i + kNumBCGrid, j + kNumBCGrid, k + kNumBCGrid + 1)] = x[i + j * kNx + k * kNx * kNy];
+		assert(what[idx(i + kNumBCGrid, j + kNumBCGrid, k + kNumBCGrid + 1)] == what[idx(i + kNumBCGrid + 1, j + kNumBCGrid, k + kNumBCGrid + 1)]);
+		if (std::isnan(what[idx(i + kNumBCGrid, j + kNumBCGrid, k + kNumBCGrid + 1)]) || std::isinf(what[idx(i + kNumBCGrid, j + kNumBCGrid, k + kNumBCGrid + 1)])) {
+			std::cout << "what(Poisson equation) Error : nan/inf occurred : "
+				<< i + kNumBCGrid << " " << j + kNumBCGrid << " " << k + kNumBCGrid + 1 << " "
+				<< " " << what[idx(i + kNumBCGrid, j + kNumBCGrid, k + kNumBCGrid + 1)] << std::endl;
+			exit(1);
+		}
+	}
+
+	WBC->ApplyBC_W_3D(what);
+
+	return 0;
+}
+
+
+int PoissonSolver3D::BiCGStab_2FUniformP_3D(std::vector<double>& ps, const std::vector<double>& rhs,
+	std::vector<double>& AVals, std::vector<MKL_INT>& ACols, std::vector<MKL_INT>& ARowIdx,
+	std::vector<double>& MVals, std::vector<MKL_INT>& MCols, std::vector<MKL_INT>& MRowIdx,
+	const std::shared_ptr<BoundaryCondition3D>& PBC, const int maxIter) {
+
+	MKL_INT Anrows = kNx * kNy * kNz, Ancols = kNx * kNy * kNz;
+	MKL_INT size = kNx * kNy * kNz;
+
+	double *b = Data::Allocate1Dd(size);
+	double *x = Data::Allocate1Dd(size);
+
+	// check values
+	if (Anrows != ARowIdx.size() - 1)
+		std::cout << "Pressure(Poisson equation) Error : the # of rows is invalid!" << std::endl;
+
+	for (int k = 0; k < kNz; k++)
+	for (int j = 0; j < kNy; j++)
+	for (int i = 0; i < kNx; i++) {
+		b[i + j * kNx + k * kNx * kNy] = rhs[idx(i + kNumBCGrid, j + kNumBCGrid, k + kNumBCGrid)];
+		x[i + j * kNx + k * kNx * kNy] = 0.0;
+	}
+
+	BiCGStab_2FUniform_3D(x, b, AVals, ACols, ARowIdx, MVals, MCols, MRowIdx, Anrows, size, maxIter);
+
+	for (int k = 0; k < kNz; k++)
+	for (int j = 0; j < kNy; j++)
+	for (int i = 0; i < kNx; i++) {
+		ps[idx(i + kNumBCGrid, j + kNumBCGrid, k + kNumBCGrid)] = x[i + j * kNx + k * kNx * kNy];
+		assert(ps[idx(i + kNumBCGrid, j + kNumBCGrid, k + kNumBCGrid)] == ps[idx(i + kNumBCGrid, j + kNumBCGrid, k + kNumBCGrid)]);
+		if (std::isnan(ps[idx(i + kNumBCGrid, j + kNumBCGrid, k + kNumBCGrid)]) || std::isinf(ps[idx(i + kNumBCGrid, j + kNumBCGrid, k + kNumBCGrid)])) {
+			std::cout << "Pressure(Poisson equation) Error : nan/inf occurred : "
+				<< i + kNumBCGrid << " " << j + kNumBCGrid << " " << k + kNumBCGrid << " "
+				<< " " << ps[idx(i + kNumBCGrid, j + kNumBCGrid, k + kNumBCGrid)] << std::endl;
+			exit(1);
+		}
+	}
+
+	PBC->ApplyBC_U_3D(ps);
+
+	return 0;
+}
+
+int PoissonSolver3D::BiCGStab_2FUniform_3D(double *x, double *b,
+	std::vector<double>& AVals, std::vector<MKL_INT>& ACols, std::vector<MKL_INT>& ARowIdx,
+	std::vector<double>& MVals, std::vector<MKL_INT>& MCols, std::vector<MKL_INT>& MRowIdx, int64_t Anrows, int64_t size, const int maxIter) { 
+
+	// http://math.nist.gov/iml++/bicgstab.h.txt
+	
 	double *Ax = Data::Allocate1Dd(size);
 	double *r = Data::Allocate1Dd(size);
 	double *rtilde = Data::Allocate1Dd(size);
@@ -185,7 +478,6 @@ int PoissonSolver3D::BiCGStab_2FUniform_3D(std::vector<double>& ps, const std::v
 	for (int k = 0; k < kNz; k++)
 	for (int j = 0; j < kNy; j++)
 	for (int i = 0; i < kNx; i++) {
-		b[i + j * kNx + k * kNx * kNy] = rhs[idx(i + kNumBCGrid, j + kNumBCGrid, k + kNumBCGrid)];
 		Ax[i + j * kNx + k * kNx * kNy] = 0.0;
 		x[i + j * kNx + k * kNx * kNy] = 0.0;
 		r[i + j * kNx + k * kNx * kNy] = 0.0;
@@ -302,21 +594,7 @@ int PoissonSolver3D::BiCGStab_2FUniform_3D(std::vector<double>& ps, const std::v
 	}
 	
 	// std::cout << "BiCG : " << iter << " " << maxIter << " Err : " << rnorm2 / bnorm2 << std::endl;
-	for (int k = 0; k < kNz; k++)
-	for (int j = 0; j < kNy; j++)
-	for (int i = 0; i < kNx; i++) {
-		ps[idx(i + kNumBCGrid, j + kNumBCGrid, k + kNumBCGrid)] = x[i + j * kNx + k * kNx * kNy];
-		assert(ps[idx(i + kNumBCGrid, j + kNumBCGrid, k + kNumBCGrid)] == ps[idx(i + kNumBCGrid, j + kNumBCGrid, k + kNumBCGrid)]);
-		if (std::isnan(ps[idx(i + kNumBCGrid, j + kNumBCGrid, k + kNumBCGrid)]) || std::isinf(ps[idx(i + kNumBCGrid, j + kNumBCGrid, k + kNumBCGrid)])) {
-			std::cout << "poisson equation nan/inf error : "
-				<< i + kNumBCGrid << " " << j + kNumBCGrid << " " << k + kNumBCGrid << " "
-				<< " " << ps[idx(i + kNumBCGrid, j + kNumBCGrid, k + kNumBCGrid)] << std::endl;
-			exit(1);
-		}
-	}
-
-	Data::Deallocate1Dd(b);
-	Data::Deallocate1Dd(x);
+	
 	Data::Deallocate1Dd(Ax);
 	Data::Deallocate1Dd(r);
 	Data::Deallocate1Dd(rtilde);

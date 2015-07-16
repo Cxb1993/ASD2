@@ -3,7 +3,7 @@
 MACSolver3D::MACSolver3D(double Re, double We, double Fr, GAXISENUM3D GAxis,
 	double L, double U, double sigma, double densityRatio, double viscosityRatio, double rhoH, double muH,
 	int nx, int ny, int nz, double baseX, double baseY, double baseZ, double lenX, double lenY, double lenZ,
-	TIMEORDERENUM timeOrder, double cfl, double maxtime, int maxIter, int niterskip, int num_bc_grid,
+	double cfl, double maxtime, int maxIter, int niterskip, int num_bc_grid,
 	bool writeVTK) :
 	kRe(Re), kWe(We), kFr(Fr),
 	kLScale(L), kUScale(U), kSigma(sigma),
@@ -12,7 +12,7 @@ MACSolver3D::MACSolver3D(double Re, double We, double Fr, GAXISENUM3D GAxis,
 	kMuH(muH), kMuL(muH * viscosityRatio), kMuRatio(viscosityRatio),
 	kNx(nx), kNy(ny), kNz(nz), kBaseX(baseX), kBaseY(baseY), kBaseZ(baseZ), kLenX(lenX), kLenY(lenY), kLenZ(lenZ),
 	kDx(lenX / static_cast<double>(nx)), kDy(lenY / static_cast<double>(ny)), kDz(lenZ / static_cast<double>(nz)),
-	kTimeOrder(timeOrder), kCFL(cfl), kMaxTime(maxtime), kMaxIter(maxIter), kNIterSkip(niterskip),
+	kCFL(cfl), kMaxTime(maxtime), kMaxIter(maxIter), kNIterSkip(niterskip),
 	kNumBCGrid(num_bc_grid), kWriteVTK(writeVTK),
 	kArrSize(
 	static_cast<int64_t>(kNx + 2 * kNumBCGrid) *
@@ -30,7 +30,7 @@ MACSolver3D::MACSolver3D(double Re, double We, double Fr, GAXISENUM3D GAxis,
 
 MACSolver3D::MACSolver3D(double rhoH, double rhoL, double muH, double muL, double gConstant, GAXISENUM3D GAxis,
 	double L, double U, double sigma, int nx, int ny, int nz, double baseX, double baseY, double baseZ, double lenX, double lenY, double lenZ,
-	TIMEORDERENUM timeOrder, double cfl, double maxtime, int maxIter, int niterskip, int num_bc_grid,
+	double cfl, double maxtime, int maxIter, int niterskip, int num_bc_grid,
 	bool writeVTK) :
 	kRhoScale(rhoH), kMuScale(muH), kG(gConstant), kLScale(L), kUScale(U), kSigma(sigma),
 	kRhoH(rhoH), kRhoL(rhoL), kRhoRatio(rhoL / rhoH), 
@@ -38,7 +38,7 @@ MACSolver3D::MACSolver3D(double rhoH, double rhoL, double muH, double muL, doubl
 	kRe(rhoH * L * U / muH), kWe(rhoH * L * U * U / sigma), kFr(U * U / (gConstant * L)), kGAxis(GAxis),
 	kNx(nx), kNy(ny), kNz(nz), kBaseX(baseX), kBaseY(baseY), kBaseZ(baseZ), kLenX(lenX), kLenY(lenY), kLenZ(lenZ),
 	kDx(lenX / static_cast<double>(nx)), kDy(lenY / static_cast<double>(ny)), kDz(lenZ / static_cast<double>(nz)),
-	kTimeOrder(timeOrder), kCFL(cfl), kMaxTime(maxtime), kMaxIter(maxIter), kNIterSkip(niterskip),
+	kCFL(cfl), kMaxTime(maxtime), kMaxIter(maxIter), kNIterSkip(niterskip),
 	kNumBCGrid(num_bc_grid), kWriteVTK(writeVTK),
 	kArrSize(
 	static_cast<int64_t>(kNx + 2 * kNumBCGrid) *
@@ -311,7 +311,7 @@ int MACSolver3D::UpdateKappa(const std::vector<double>& ls) {
 	return 0;
 }
 
-std::vector<double> MACSolver3D::UpdateFU(const std::shared_ptr<LevelSetSolver3D>& LSolver,
+std::vector<double> MACSolver3D::GetRHSU(const std::shared_ptr<LevelSetSolver3D>& LSolver,
 	const std::vector<double>& ls,
 	const std::vector<double>& u, const std::vector<double>& v, const std::vector<double>& w,
 	const std::vector<double>& H) {
@@ -325,7 +325,7 @@ std::vector<double> MACSolver3D::UpdateFU(const std::shared_ptr<LevelSetSolver3D
 	cU = this->AddConvectionFU(u, v, w);
 
 	// Viscous term
-	vU = this->AddViscosityFU(u, v, w, ls, H);
+	vU = this->AddExternalViscosityFU(u, v, w, ls, H);
 
 	gU = this->AddGravityFU();
 
@@ -336,13 +336,13 @@ std::vector<double> MACSolver3D::UpdateFU(const std::shared_ptr<LevelSetSolver3D
 	for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
 	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
 	for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
-		rhsU[idx(i, j, k)] = -cU[idx(i, j, k)] + vU[idx(i, j, k)] + gU[idx(i, j, k)];
+		rhsU[idx(i, j, k)] = u[idx(i, j, k)] + m_dt * (-cU[idx(i, j, k)] + vU[idx(i, j, k)] + gU[idx(i, j, k)]);
 	}
 	
 	return rhsU;
 }
 
-std::vector<double> MACSolver3D::UpdateFV(const std::shared_ptr<LevelSetSolver3D>& LSolver,
+std::vector<double> MACSolver3D::GetRHSV(const std::shared_ptr<LevelSetSolver3D>& LSolver,
 	const std::vector<double>& ls,
 	const std::vector<double>& u, const std::vector<double>& v, const std::vector<double>& w,
 	const std::vector<double>& H) {
@@ -356,7 +356,7 @@ std::vector<double> MACSolver3D::UpdateFV(const std::shared_ptr<LevelSetSolver3D
 	cV = this->AddConvectionFV(u, v, w);
 
 	// Viscous term
-	vV = this->AddViscosityFV(u, v, w, ls, H);
+	vV = this->AddExternalViscosityFV(u, v, w, ls, H);
 
 	gV = this->AddGravityFU();
 
@@ -367,13 +367,13 @@ std::vector<double> MACSolver3D::UpdateFV(const std::shared_ptr<LevelSetSolver3D
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 	for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++)
 	for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
-		rhsV[idx(i, j, k)] = -cV[idx(i, j, k)] + vV[idx(i, j, k)] + gV[idx(i, j, k)];
+		rhsV[idx(i, j, k)] = v[idx(i, j, k)] + m_dt * (-cV[idx(i, j, k)] + vV[idx(i, j, k)] + gV[idx(i, j, k)]);
 	}
 	
 	return rhsV;
 }
 
-std::vector<double> MACSolver3D::UpdateFW(const std::shared_ptr<LevelSetSolver3D>& LSolver,
+std::vector<double> MACSolver3D::GetRHSW(const std::shared_ptr<LevelSetSolver3D>& LSolver,
 	const std::vector<double>& ls,
 	const std::vector<double>& u, const std::vector<double>& v, const std::vector<double>& w,
 	const std::vector<double>& H) {
@@ -387,7 +387,7 @@ std::vector<double> MACSolver3D::UpdateFW(const std::shared_ptr<LevelSetSolver3D
 	cW = this->AddConvectionFW(u, v, w);
 
 	// Viscous term
-	vW = this->AddViscosityFW(u, v, w, ls, H);
+	vW = this->AddExternalViscosityFW(u, v, w, ls, H);
 
 	gW = this->AddGravityFW();
 
@@ -396,9 +396,9 @@ std::vector<double> MACSolver3D::UpdateFW(const std::shared_ptr<LevelSetSolver3D
 	double lsW = 0.0, lsE = 0.0, lsS = 0.0, lsN = 0.0, lsM = 0.0;
 	double theta = 0.0, iRhoEff = 0.0;
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
-	for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++)
-	for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
-		rhsW[idx(i, j, k)] = -cW[idx(i, j, k)] + vW[idx(i, j, k)] + gW[idx(i, j, k)];
+	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
+	for (int k = kNumBCGrid + 1; k < kNz + kNumBCGrid; k++) {
+		rhsW[idx(i, j, k)] = w[idx(i, j, k)] + m_dt * (-cW[idx(i, j, k)] + vW[idx(i, j, k)] + gW[idx(i, j, k)]);
 	}
 
 	return rhsW;
@@ -835,7 +835,7 @@ int MACSolver3D::UnitHJWENO5(
 	return 0;
 }
 
-std::vector<double> MACSolver3D::AddViscosityFU(const std::vector<double>& u, const std::vector<double>& v, const std::vector<double>& w,
+std::vector<double> MACSolver3D::AddExternalViscosityFU(const std::vector<double>& u, const std::vector<double>& v, const std::vector<double>& w,
 	const std::vector<double>& ls, const std::vector<double>& H) {
 	// This is incompressible viscous flow, which means velocity is CONTINUOUS!
 	std::vector<double> dU(kArrSize, 0.0), mu(kArrSize, 0.0);
@@ -988,7 +988,7 @@ std::vector<double> MACSolver3D::AddViscosityFU(const std::vector<double>& u, co
 			iRhoEffSN = 1.0 / (kRhoH * kRhoL) / (1.0 / kRhoH * theta + 1.0 / kRhoL * (1.0 - theta));
 		}
 
-		if (lsUBHalf >= 0 && lsUBHalf >= 0) {
+		if (lsUBHalf >= 0 && lsUTHalf >= 0) {
 			rhoEffBT = kRhoH;
 			iRhoEffBT = 1.0 / kRhoH;
 		}
@@ -1013,13 +1013,16 @@ std::vector<double> MACSolver3D::AddViscosityFU(const std::vector<double>& u, co
 			iRhoEffBT = 1.0 / (kRhoH * kRhoL) / (1.0 / kRhoH * theta + 1.0 / kRhoL * (1.0 - theta));
 		}
 		
-		visX = 2.0 * (muM * (uE - uM) / kDx - muW * (uM - uW) / kDx) / kDx;
-		visY = ((muUNHalf * (uN - uM) / kDy - muUSHalf * (uM - uS) / kDy) 
-			+ (muUNHalf * (vN - vW_N) / kDx - muUSHalf * (vM - vW) / kDx)) / kDy;
-		visZ = ((muUTHalf * (uT - uM) / kDz - muUBHalf * (uM - uB) / kDz)
-			+ (muUTHalf * (wT - wW_T) / kDx - muUBHalf * (wM - wW) / kDx)) / kDz;
+		// visX = 2.0 * (muM * (uE - uM) / kDx - muW * (uM - uW) / kDx) / kDx;
+		// visY = ((muUNHalf * (uN - uM) / kDy - muUSHalf * (uM - uS) / kDy) 
+		// 	+ (muUNHalf * (vN - vW_N) / kDx - muUSHalf * (vM - vW) / kDx)) / kDy;
+		// visZ = ((muUTHalf * (uT - uM) / kDz - muUBHalf * (uM - uB) / kDz)
+		// 	+ (muUTHalf * (wT - wW_T) / kDx - muUBHalf * (wM - wW) / kDx)) / kDz;
+
+		visY = (muUNHalf * (vN - vW_N) / kDx - muUSHalf * (vM - vW) / kDx) / kDy;
+		visZ = (muUTHalf * (wT - wW_T) / kDx - muUBHalf * (wM - wW) / kDx) / kDz;
 		
-		dU[idx(i, j, k)] = visX / rhoEffWE + visY / rhoEffSN + visZ / rhoEffBT;
+		dU[idx(i, j, k)] = visY / rhoEffSN + visZ / rhoEffBT;
 
 		if (std::isnan(dU[idx(i, j, k)]) || std::isinf(dU[idx(i, j, k)])) {
 			std::cout << "U-viscosity term nan/inf error : " << i << " " << j << " " << k << " " << dU[idx(i, j, k)] << std::endl;
@@ -1031,7 +1034,7 @@ std::vector<double> MACSolver3D::AddViscosityFU(const std::vector<double>& u, co
 	return dU;
 }
 
-std::vector<double> MACSolver3D::AddViscosityFV(const std::vector<double>& u, const std::vector<double>& v, const std::vector<double>& w,
+std::vector<double> MACSolver3D::AddExternalViscosityFV(const std::vector<double>& u, const std::vector<double>& v, const std::vector<double>& w,
 	const std::vector<double>& ls, const std::vector<double>& H) {
 	// This is incompressible viscous flow, which means velocity is CONTINUOUS!
 	std::vector<double> dV(kArrSize, 0.0), mu(kArrSize, 0.0);
@@ -1213,13 +1216,16 @@ std::vector<double> MACSolver3D::AddViscosityFV(const std::vector<double>& u, co
 			iRhoEffBT = 1.0 / (kRhoH * kRhoL) / (1.0 / kRhoH * theta + 1.0 / kRhoL * (1.0 - theta));
 		}
 
-		visX = ((muVEHalf * (uE - uS_E) / kDy - muVWHalf * (uM - uS) / kDy)
-			+ (muVEHalf * (vE - vM) / kDx - muVWHalf * (vM - vS) / kDx)) / kDx;
-		visY = 2.0 * (muM * (vN - vM) / kDy - muS * (vM - vS) / kDy) / kDy;
-		visZ = ((muVTHalf * (vT - vM) / kDz - muVBHalf * (vM - vB) / kDz)
-			+ (muVTHalf * (wT - wS_T) / kDy - muVBHalf * (wM - wS) / kDy)) / kDz;
+		// visX = ((muVEHalf * (uE - uS_E) / kDy - muVWHalf * (uM - uS) / kDy)
+		// 	+ (muVEHalf * (vE - vM) / kDx - muVWHalf * (vM - vS) / kDx)) / kDx;
+		// visY = 2.0 * (muM * (vN - vM) / kDy - muS * (vM - vS) / kDy) / kDy;
+		// visZ = ((muVTHalf * (vT - vM) / kDz - muVBHalf * (vM - vB) / kDz)
+		// 	+ (muVTHalf * (wT - wS_T) / kDy - muVBHalf * (wM - wS) / kDy)) / kDz;
 
-		dV[idx(i, j, k)] = visX / rhoEffWE + visY / rhoEffSN + visZ / rhoEffBT;
+		visX = (muVEHalf * (uE - uS_E) / kDy - muVWHalf * (uM - uS) / kDy) / kDx;
+		visZ = (muVTHalf * (wT - wS_T) / kDy - muVBHalf * (wM - wS) / kDy) / kDz;
+
+		dV[idx(i, j, k)] = visX / rhoEffWE + visZ / rhoEffBT;
 		
 		assert(dV[idx(i, j, k)] == dV[idx(i, j, k)]);
 		if (std::isnan(dV[idx(i, j, k)]) || std::isinf(dV[idx(i, j, k)])) {
@@ -1231,7 +1237,7 @@ std::vector<double> MACSolver3D::AddViscosityFV(const std::vector<double>& u, co
 	return dV;	
 }
 
-std::vector<double> MACSolver3D::AddViscosityFW(const std::vector<double>& u, const std::vector<double>& v, const std::vector<double>& w,
+std::vector<double> MACSolver3D::AddExternalViscosityFW(const std::vector<double>& u, const std::vector<double>& v, const std::vector<double>& w,
 	const std::vector<double>& ls, const std::vector<double>& H) {
 	// This is incompressible viscous flow, which means velocity is CONTINUOUS!
 	std::vector<double> dW(kArrSize, 0.0), mu(kArrSize, 0.0);
@@ -1406,17 +1412,20 @@ std::vector<double> MACSolver3D::AddViscosityFW(const std::vector<double>& u, co
 			iRhoEffBT = 1.0 / (kRhoH * kRhoL) / (1.0 / kRhoH * theta + 1.0 / kRhoL * (1.0 - theta));
 		}
 		
-		visX = ((muWEHalf * (uE - uB_E) / kDz - muWWHalf * (uM - uB) / kDz)
-			+ (muWEHalf * (wT - wM) / kDz - muWWHalf * (wM - wB) / kDz)) / kDx;
-		visY = ((muWNHalf * (vN - vB_N) / kDz - muWSHalf * (vM - vB) / kDz)
-			+ (muWNHalf * (wN - wM) / kDy - muWSHalf * (wM - wS) / kDy)) / kDy;
-		visZ = 2.0 * (muM * (wT - wM) / kDz - muB * (wM - wB) / kDz) / kDz;
+		// visX = ((muWEHalf * (uE - uB_E) / kDz - muWWHalf * (uM - uB) / kDz)
+		// 	+ (muWEHalf * (wT - wM) / kDz - muWWHalf * (wM - wB) / kDz)) / kDx;
+		// visY = ((muWNHalf * (vN - vB_N) / kDz - muWSHalf * (vM - vB) / kDz)
+		// 	+ (muWNHalf * (wN - wM) / kDy - muWSHalf * (wM - wS) / kDy)) / kDy;
+		// visZ = 2.0 * (muM * (wT - wM) / kDz - muB * (wM - wB) / kDz) / kDz;
 
-		dW[idx(i, j, k)] = visX / rhoEffWE + visY / rhoEffSN + visZ / rhoEffBT;
+		visX = (muWEHalf * (uE - uB_E) / kDz - muWWHalf * (uM - uB) / kDz) / kDx;
+		visY = (muWNHalf * (vN - vB_N) / kDz - muWSHalf * (vM - vB) / kDz) / kDy;
+
+		dW[idx(i, j, k)] = visX / rhoEffWE + visY / rhoEffSN;
 
 		assert(dW[idx(i, j, k)] == dW[idx(i, j, k)]);
 		if (std::isnan(dW[idx(i, j, k)]) || std::isinf(dW[idx(i, j, k)])) {
-			std::cout << "V-viscosity term nan/inf error : " << i << " " << j << " " << k << " " << dW[idx(i, j, k)] << std::endl;
+			std::cout << "W-viscosity term nan/inf error : " << i << " " << j << " " << k << " " << dW[idx(i, j, k)] << std::endl;
 			exit(1);
 		}
 	}
@@ -1487,254 +1496,1119 @@ std::vector<double> MACSolver3D::AddGravityFW() {
 	return gW;
 }
 
-int MACSolver3D::GetIntermediateVel(const std::shared_ptr<LevelSetSolver3D>& LSolver, const std::vector<double>& ls,
-	const std::vector<double>& u, const std::vector<double>& v, const std::vector<double>& w,
-	std::vector<double>& uhat, std::vector<double>& vhat, std::vector<double>& what,
-	const std::vector<double>& H) {
-		
-	// Update rhs
-	if (kTimeOrder == TIMEORDERENUM::EULER) {
-		std::vector<double> FU1(kArrSize, 0.0);
-		std::vector<double> FV1(kArrSize, 0.0);
-		std::vector<double> FW1(kArrSize, 0.0);
+// Intermediate Velocity
+int MACSolver3D::SetImplicitSolver(POISSONTYPE type) {
+	m_ImplicitSolverType = type;
 
-		FU1 = UpdateFU(LSolver, ls, u, v, w, H);
-		FV1 = UpdateFV(LSolver, ls, u, v, w, H);
-		FW1 = UpdateFW(LSolver, ls, u, v, w, H);
-		
-		for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
-		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-		for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
-			uhat[idx(i, j, k)] = u[idx(i, j, k)] + m_dt * FU1[idx(i, j, k)];
-		}
-		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
-		for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++)
-		for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
-			vhat[idx(i, j, k)] = v[idx(i, j, k)] + m_dt * FV1[idx(i, j, k)];
-		}
-		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
-		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-		for (int k = kNumBCGrid + 1; k < kNz + kNumBCGrid; k++) {
-			what[idx(i, j, k)] = w[idx(i, j, k)] + m_dt * FW1[idx(i, j, k)];
-		}
-	}
-	else if (kTimeOrder == TIMEORDERENUM::RK2) {
-		std::vector<double> FU1(kArrSize, 0.0), FV1(kArrSize, 0.0), FW1(kArrSize, 0.0),
-			FU2(kArrSize, 0.0), FV2(kArrSize, 0.0), FW2(kArrSize, 0.0);
+	if (!m_Poisson)
+		m_Poisson = std::make_shared<PoissonSolver3D>(kNx, kNy, kNz, kNumBCGrid);
 
-		// FU1 & FV1 & FW1: L(u^(0))
-		// FU2 & FV2 & FW2: u^(1)
-		FU1 = UpdateFU(LSolver, ls, u, v, w, H);
-		FV1 = UpdateFV(LSolver, ls, u, v, w, H);
-		FW1 = UpdateFW(LSolver, ls, u, v, w, H);
-		for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
-		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-		for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
-			FU2[idx(i, j, k)] = u[idx(i, j, k)] + m_dt * FU1[idx(i, j, k)];
-		}
-		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
-		for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++)
-		for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
-			FV2[idx(i, j, k)] = v[idx(i, j, k)] + m_dt * FV1[idx(i, j, k)];
-		}
-		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
-		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-		for (int k = kNumBCGrid + 1; k < kNz + kNumBCGrid; k++) {
-			FW2[idx(i, j, k)] = w[idx(i, j, k)] + m_dt * FW1[idx(i, j, k)];
-		}
-		std::fill(FU1.begin(), FU1.end(), 0.0);
-		std::fill(FV1.begin(), FV1.end(), 0.0);
-		std::fill(FW1.begin(), FW1.end(), 0.0);
-		
-		// FU1 & FV1 : L(u^(1))
-		// FU2 & FV2 : u^(2)
-		ApplyBC_U_3D(FU2);
-		ApplyBC_V_3D(FV2);
-		ApplyBC_V_3D(FW2);
-		FU1 = UpdateFU(LSolver, ls, FU2, FV2, FW2, H);
-		FV1 = UpdateFV(LSolver, ls, FU2, FV2, FW2, H);
-		FW1 = UpdateFW(LSolver, ls, FU2, FV2, FW2, H);
-		for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
-		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-		for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
-			FU2[idx(i, j, k)] = FU2[idx(i, j, k)] + m_dt * FU1[idx(i, j, k)];
-		}
-		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
-		for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++)
-		for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
-			FV2[idx(i, j, k)] = FV2[idx(i, j, k)] + m_dt * FV1[idx(i, j, k)];
-		}
-		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
-		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-		for (int k = kNumBCGrid + 1; k < kNz + kNumBCGrid; k++) {
-			FW2[idx(i, j, k)] = FW2[idx(i, j, k)] + m_dt * FW1[idx(i, j, k)];
-		}
-		
-		for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
-		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-		for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
-			uhat[idx(i, j, k)] = 0.5 * u[idx(i, j, k)] + 0.5 * FU2[idx(i, j, k)];
-		}
-		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
-		for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++)
-		for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
-			vhat[idx(i, j, k)] = 0.5 * v[idx(i, j, k)] + 0.5 * FV2[idx(i, j, k)];
-		}
-		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
-		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-		for (int k = kNumBCGrid + 1; k < kNz + kNumBCGrid; k++) {
-			what[idx(i, j, k)] = 0.5 * w[idx(i, j, k)] + 0.5 * FW2[idx(i, j, k)];
-		}
-	}
-	else if (kTimeOrder == TIMEORDERENUM::RK3) {
-		std::vector<double> FU1(kArrSize, 0.0), FV1(kArrSize, 0.0), FW1(kArrSize, 0.0),
-			FU2(kArrSize, 0.0), FV2(kArrSize, 0.0), FW2(kArrSize, 0.0);
+	return 0;
+}
 
-		// FU1 & FV1 : L(u^(0))
-		// FU2 & FV2 : u^(1)
-		FU1 = UpdateFU(LSolver, ls, u, v, w, H);
-		FV1 = UpdateFV(LSolver, ls, u, v, w, H);
-		FW1 = UpdateFW(LSolver, ls, u, v, w, H);
-		for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
-		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-		for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
-			FU2[idx(i, j, k)] = u[idx(i, j, k)] + m_dt * FU1[idx(i, j, k)];
-		}
-		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
-		for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++)
-		for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
-			FV2[idx(i, j, k)] = v[idx(i, j, k)] + m_dt * FV1[idx(i, j, k)];
-		}
-		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
-		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-		for (int k = kNumBCGrid + 1; k < kNz + kNumBCGrid; k++) {
-			FW2[idx(i, j, k)] = w[idx(i, j, k)] + m_dt * FW1[idx(i, j, k)];
-		}
-		std::fill(FU1.begin(), FU1.end(), 0.0);
-		std::fill(FV1.begin(), FV1.end(), 0.0);
-		std::fill(FW1.begin(), FW1.end(), 0.0);
-		
-		// FU1 & FV1 & FW1: L(u^(1))
-		// FU2 & FV2 & FW2: u^(1) + \delta t L (u^(1))
-		ApplyBC_U_3D(FU2);
-		ApplyBC_V_3D(FV2);
-		ApplyBC_W_3D(FW2);
-		FU1 = UpdateFU(LSolver, ls, FU2, FV2, FW2, H);
-		FV1 = UpdateFV(LSolver, ls, FU2, FV2, FW2, H);
-		FW1 = UpdateFV(LSolver, ls, FU2, FV2, FW2, H);
-		for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
-		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-		for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
-			FU2[idx(i, j, k)] = FU2[idx(i, j, k)] + m_dt * FU1[idx(i, j, k)];
-		}
-		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
-		for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++) 
-		for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
-			FV2[idx(i, j, k)] = FV2[idx(i, j, k)] + m_dt * FV1[idx(i, j, k)];
-		}
-		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
-		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-		for (int k = kNumBCGrid + 1; k < kNz + kNumBCGrid; k++) {
-			FW2[idx(i, j, k)] = FW2[idx(i, j, k)] + m_dt * FW1[idx(i, j, k)];
-		}
-		std::fill(FU1.begin(), FU1.end(), 0.0);
-		std::fill(FV1.begin(), FV1.end(), 0.0);
-		std::fill(FW1.begin(), FW1.end(), 0.0);
-		
-		// FU1 & FV1 & FW1 : u^(2)
-		for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
-		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-		for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
-			FU1[idx(i, j, k)] = 0.75 * u[idx(i, j, k)] + 0.25 * FU2[idx(i, j, k)];
-		}
-		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
-		for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++)
-		for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
-			FV1[idx(i, j, k)] = 0.75 * v[idx(i, j, k)] + 0.25 * FV2[idx(i, j, k)];
-		}
-		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
-		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-		for (int k = kNumBCGrid + 1; k < kNz + kNumBCGrid; k++) {
-			FW1[idx(i, j, k)] = 0.75 * w[idx(i, j, k)] + 0.25 * FW2[idx(i, j, k)];
-		}
-		std::fill(FU2.begin(), FU2.end(), 0.0);
-		std::fill(FV2.begin(), FV2.end(), 0.0);
-		std::fill(FW2.begin(), FW2.end(), 0.0);
+std::vector<double> MACSolver3D::GetUHat(const std::vector<double>& ls, const std::vector<double>& rhsExternal, const std::vector<double>& H, const int maxIter) {
 
-		// FU2 & FV2 & FW2: L(u^(2))
-		// FU1 & FV1 & FW1: u^(2) + \delta t L (u^(2))
-		ApplyBC_U_3D(FU1);
-		ApplyBC_V_3D(FV1);
-		ApplyBC_W_3D(FW1);
-		FU2 = UpdateFU(LSolver, ls, FU1, FV1, FW1, H);
-		FV2 = UpdateFV(LSolver, ls, FU1, FV1, FW1, H);
-		FW2 = UpdateFW(LSolver, ls, FU1, FV1, FW1, H);
-		for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
-		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-		for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
-			FU1[idx(i, j, k)] = FU1[idx(i, j, k)] + m_dt * FU2[idx(i, j, k)];
-		}
-		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
-		for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++)
-		for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
-			FV1[idx(i, j, k)] = FV1[idx(i, j, k)] + m_dt * FV2[idx(i, j, k)];
-		}
-		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
-		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-		for (int k = kNumBCGrid + 1; k < kNz + kNumBCGrid; k++) {
-			FW1[idx(i, j, k)] = FW1[idx(i, j, k)] + m_dt * FW2[idx(i, j, k)];
-		}
-		std::fill(FU2.begin(), FU2.end(), 0.0);
-		std::fill(FV2.begin(), FV2.end(), 0.0);
-		std::fill(FW2.begin(), FW2.end(), 0.0);
+	std::vector<double> uhat(kArrSize, 0.0);
+	std::vector<double> mu(kArrSize, 0.0), rhs(kArrSize, 0.0);
+	std::vector<double> uHatCoefW(kArrSize, 0.0), uHatCoefE(kArrSize, 0.0),
+		uHatCoefS(kArrSize, 0.0), uHatCoefN(kArrSize, 0.0), uHatCoefB(kArrSize, 0.0), uHatCoefT(kArrSize, 0.0);
+	
+	// A Matrix is ((nx - 1) * ny * nz) X ((nx - 1) * ny * nz) matrix, which is very very huge. hence use sparse blas
+	std::vector<double> AVals, DiagVals;
+	std::vector<MKL_INT> ACols, ARowIdx, DiagCols, DiagRowIdx;
+	MKL_INT rowIdx = 0, MRowIdx = 0, tmpRowIdx = 0, tmpMRowIdx = 0, colIdx = 0;
+	MKL_INT Anrows = (kNx - 1) * kNy * kNz, Ancols = (kNx - 1) * kNy * kNz;
+	MKL_INT size = (kNx - 1) * kNy * kNz;
 
-		// FU1 & FV1 : u^(2) + \delta t L (u^(2))
-		// FU2 & FV2 : doesn't need. set to zero.
-		for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
-		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-		for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
-			uhat[idx(i, j, k)] = 1.0 / 3.0 * u[idx(i, j, k)] + 2.0 / 3.0 * FU1[idx(i, j, k)];
-		}
-		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
-		for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++)
-		for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++)for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
-			vhat[idx(i, j, k)] = 1.0 / 3.0 * v[idx(i, j, k)] + 2.0 / 3.0 * FV1[idx(i, j, k)];
-		}
-		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
-		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
-		for (int k = kNumBCGrid + 1; k < kNz + kNumBCGrid; k++)for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
-			what[idx(i, j, k)] = 1.0 / 3.0 * w[idx(i, j, k)] + 2.0 / 3.0 * FW1[idx(i, j, k)];
-		}
+	// stored coef for A matrix, Dictionary but it is ordered
+	std::map<std::string, double> AValsDic;
+	std::map<std::string, MKL_INT> AColsDic;
+
+	/*
+	xy plane (k fixed)					xz plane (j fixed)
+	-------------------------			-------------------------
+	|			|			|			|			|			|
+	|			|			|			|			|			|
+	|			|			|			|			|			|
+	---------lsUNHalf--------			---------lsUTHalf--------
+	|			|			|			|			|			|
+	|	lsW   lsUM(*)  lsM  |			|	lsW   lsUM(*)  lsM  |
+	|			|			|			|			|			|
+	---------lsUSHalf--------			---------lsUBHalf--------
+	|			|			|			|			|			|
+	|			|			|			|			|			|
+	|			|			|			|			|			|
+	-------------------------			-------------------------
+	xy plane (k fixed)					xz plane (j fixed)
+	-------------------------			-------------------------
+	|			|			|			|			|			|
+	|		  lsUN			|			|		  lsUT			|
+	|			|			|			|			|			|
+	----lsVW_N-------lsVN----			----lsWW_T-------lsWT----
+	|			|			|			|			|			|
+	lsUW		  lsUM  (i,j) lsUE			|		  lsUM	(i,k)	|
+	|			|			|			|			|			|
+	----lsVW---------lsVM----			-----lsWW--------lsWM----
+	|			|			|			|			|			|
+	|		  lsUS			|			|		  lsUB			|
+	|			|			|			|			|			|
+	-------------------------			-------------------------
+	*/
+	double lsW = 0.0, lsM = 0.0, lsUSHalf = 0.0, lsUNHalf = 0.0, lsUBHalf = 0.0, lsUTHalf = 0.0;
+	double muW = 0.0, muM = 0.0, muUSHalf = 0.0, muUNHalf = 0.0, muUBHalf = 0.0, muUTHalf = 0.0;
+
+	double rhoEffWE = 0.0, rhoEffSN = 0.0, rhoEffBT = 0.0;
+	double theta = 0.0, thetaH = 0.0;
+	
+	for (int i = 0; i < kNx + 2 * kNumBCGrid; i++)
+	for (int j = 0; j < kNy + 2 * kNumBCGrid; j++)
+	for (int k = 0; k < kNz + 2 * kNumBCGrid; k++) {
+		// add boundary value due to interpolation
+		mu[idx(i, j, k)] = kMuL + (kMuH - kMuL) * H[idx(i, j, k)];
+		rhs[idx(i, j, k)] = rhsExternal[idx(i, j, k)];
 	}
 
 	for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
 	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
 	for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
-		if (std::isnan(uhat[idx(i, j, k)]) || std::isinf(uhat[idx(i, j, k)])) {
-			std::cout << "Uhat term nan/inf error : " << i << " " << j << " " << k << " " << uhat[idx(i, j, k)] << std::endl;
+
+		lsW = ls[idx(i - 1, j, k)];
+		lsM = ls[idx(i, j, k)];
+		lsUSHalf = 0.25 * (ls[idx(i, j, k)] + ls[idx(i - 1, j, k)] + ls[idx(i - 1, j - 1, k)] + ls[idx(i, j - 1, k)]);
+		lsUNHalf = 0.25 * (ls[idx(i, j, k)] + ls[idx(i - 1, j, k)] + ls[idx(i - 1, j + 1, k)] + ls[idx(i, j + 1, k)]);
+		lsUBHalf = 0.25 * (ls[idx(i, j, k)] + ls[idx(i - 1, j, k)] + ls[idx(i - 1, j, k - 1)] + ls[idx(i, j, k - 1)]);
+		lsUTHalf = 0.25 * (ls[idx(i, j, k)] + ls[idx(i - 1, j, k)] + ls[idx(i - 1, j, k + 1)] + ls[idx(i, j, k + 1)]);
+
+		muW = mu[idx(i - 1, j, k)];
+		muM = mu[idx(i, j, k)];
+		muUSHalf = 0.25 * (mu[idx(i, j, k)] + mu[idx(i - 1, j, k)] + mu[idx(i - 1, j - 1, k)] + mu[idx(i, j - 1, k)]);
+		muUNHalf = 0.25 * (mu[idx(i, j, k)] + mu[idx(i - 1, j, k)] + mu[idx(i - 1, j + 1, k)] + mu[idx(i, j + 1, k)]);
+		muUBHalf = 0.25 * (mu[idx(i, j, k)] + mu[idx(i - 1, j, k)] + mu[idx(i - 1, j, k - 1)] + mu[idx(i, j, k - 1)]);
+		muUTHalf = 0.25 * (mu[idx(i, j, k)] + mu[idx(i - 1, j, k)] + mu[idx(i - 1, j, k + 1)] + mu[idx(i, j, k + 1)]);
+
+		if (lsW >= 0 && lsM >= 0) {
+			rhoEffWE = kRhoH;
+		}
+		else if (lsW <= 0 && lsM <= 0) {
+			rhoEffWE = kRhoL;
+		}
+		else if (lsW >= 0 && lsM < 0) {
+			// interface lies between u[i - 1, j, k] and u[i, j, k]
+			theta = std::fabs(lsW) / (std::fabs(lsW) + std::fabs(lsM));
+			thetaH = std::fabs(lsW) / (std::fabs(lsW) + std::fabs(lsM));
+			// |(lsW)| ===   high(+)  === |(interface)| ===      low(-)     === |(lsM)|
+			// |(lsW)| === theta * d  === |(interface)| === (1 - theta) * d === |(lsM)|
+			rhoEffWE = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
+		}
+		else if (lsW < 0 && lsM >= 0) {
+			// interface lies between u[i - 1, j, k] and u[i, j, k]
+			theta = std::fabs(lsW) / (std::fabs(lsW) + std::fabs(lsM));
+			thetaH = std::fabs(lsM) / (std::fabs(lsW) + std::fabs(lsM));
+			// |(lsW)| ===    low(-)   === |(interface)| ===     high(+)     === |(lsM)|
+			// |(lsW)| ===  theta * d  === |(interface)| === (1 - theta) * d === |(lsM)|
+			rhoEffWE = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
+		}
+
+		if (lsUSHalf >= 0 && lsUNHalf >= 0) {
+			rhoEffSN = kRhoH;
+		}
+		else if (lsUSHalf <= 0 && lsUNHalf <= 0) {
+			rhoEffSN = kRhoL;
+		}
+		else if (lsUSHalf >= 0 && lsUNHalf < 0) {
+			// interface lies between lsUSHalf and lsUNHalf
+			theta = std::fabs(lsUSHalf) / (std::fabs(lsUSHalf) + std::fabs(lsUNHalf));
+			thetaH = std::fabs(lsUSHalf) / (std::fabs(lsUSHalf) + std::fabs(lsUNHalf));
+			// |(lsUSHalf)| ===   high(+)  === |(interface)| ===      low(-)     === |(lsUNHalf)|
+			// |(lsUSHalf)| === theta * d  === |(interface)| === (1 - theta) * d === |(lsUNHalf)|
+			rhoEffSN = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
+		}
+		else if (lsUSHalf < 0 && lsUNHalf >= 0) {
+			// interface lies between lsUSHalf and lsUNHalf
+			theta = std::fabs(lsUSHalf) / (std::fabs(lsUSHalf) + std::fabs(lsUNHalf));
+			thetaH = std::fabs(lsUNHalf) / (std::fabs(lsUSHalf) + std::fabs(lsUNHalf));
+			// |(lsUSHalf)| ===    low(-)   === |(interface)| ===     high(+)     === |(lsUNHalf)|
+			// |(lsUSHalf)| ===  theta * d  === |(interface)| === (1 - theta) * d === |(lsUNHalf)|
+			rhoEffSN = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
+		}
+
+		if (lsUBHalf >= 0 && lsUTHalf >= 0) {
+			rhoEffBT = kRhoH;
+		}
+		else if (lsUBHalf <= 0 && lsUTHalf <= 0) {
+			rhoEffBT = kRhoL;
+		}
+		else if (lsUBHalf >= 0 && lsUTHalf < 0) {
+			// interface lies between lsUBHalf and lsUTHalf
+			theta = std::fabs(lsUBHalf) / (std::fabs(lsUTHalf) + std::fabs(lsUTHalf));
+			// |(lsUBHalf)| ===   high(+)  === |(interface)| ===      low(-)     === |(lsUTHalf)|
+			// |(lsUBHalf)| === theta * d  === |(interface)| === (1 - theta) * d === |(lsUTHalf)|
+			rhoEffBT = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
+		}
+		else if (lsUBHalf < 0 && lsUTHalf >= 0) {
+			// interface lies between lsUBHalf and lsUTHalf
+			theta = std::fabs(lsUBHalf) / (std::fabs(lsUBHalf) + std::fabs(lsUTHalf));
+			// |(lsUBHalf)| ===    low(-)   === |(interface)| ===     high(+)     === |(lsUTHalf)|
+			// |(lsUBHalf)| ===  theta * d  === |(interface)| === (1 - theta) * d === |(lsUTHalf)|
+			rhoEffBT = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
+		}
+
+		uHatCoefW[idx(i, j, k)] = m_dt * 2.0 * muW / rhoEffWE;
+		uHatCoefE[idx(i, j, k)] = m_dt * 2.0 * muM / rhoEffWE;
+		uHatCoefS[idx(i, j, k)] = m_dt * muUSHalf / rhoEffSN;
+		uHatCoefN[idx(i, j, k)] = m_dt * muUNHalf / rhoEffSN;
+		uHatCoefB[idx(i, j, k)] = m_dt * muUBHalf / rhoEffBT;
+		uHatCoefT[idx(i, j, k)] = m_dt * muUTHalf / rhoEffBT;
+	}
+
+	// An order of A matrix coef. is very important, hence reverse j order
+	for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++)
+	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
+	for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++) {
+		// AValsDic and AColsDic contain coef.s of A matrix of each row (a row of A matrix = a each point of 3D grid)
+		// Based on boundary condition, a coef.s of A matrix change and are saved in AvalsDic and AColsDic
+		// At last, traverse AValsDic and AColsDic, add nonzero value of A matrix
+		AValsDic.clear();
+		AColsDic.clear();
+		tmpRowIdx = 0;
+		tmpMRowIdx = 0;
+		// Add starting rowIdx
+		ARowIdx.push_back(rowIdx);
+		DiagRowIdx.push_back(MRowIdx);
+
+		// Set default values, if a current point is in interior region, it will not be changed.
+		// i (without boundary array) = i' + kNumBCGrid + 1 (with boundary array)
+		// j (without boundary array) = j' + kNumBCGrid (with boundary array)
+		// k (without boundary array) = k' + kNumBCGrid (with boundary array)
+		AValsDic["B"] = uHatCoefB[idx(i, j, k)] / (kDz * kDz);
+		AColsDic["B"] = (i - kNumBCGrid - 1) + (kNx - 1) * (j - kNumBCGrid) + (kNx - 1) * kNy * (k - 1 - kNumBCGrid);
+		AValsDic["S"] = uHatCoefS[idx(i, j, k)] / (kDy * kDy);
+		AColsDic["S"] = (i - kNumBCGrid - 1) + (kNx - 1) * (j - 1 - kNumBCGrid) + (kNx - 1) * kNy * (k - kNumBCGrid);
+		AValsDic["W"] = uHatCoefW[idx(i, j, k)] / (kDx * kDx);
+		AColsDic["W"] = (i - 2 - kNumBCGrid) + (kNx - 1) * (j - kNumBCGrid) + (kNx - 1) * kNy * (k - kNumBCGrid);
+		AValsDic["C"] = 1.0 - 2.0 * m_dt * 
+			((uHatCoefW[idx(i, j, k)] + uHatCoefE[idx(i, j, k)]) / (kDx * kDx)
+			+ (uHatCoefS[idx(i, j, k)] + uHatCoefN[idx(i, j, k)]) / (kDy * kDy)
+			+ (uHatCoefB[idx(i, j, k)] + uHatCoefT[idx(i, j, k)]) / (kDz * kDz));
+		AColsDic["C"] = (i - kNumBCGrid - 1) + (kNx - 1) * (j - kNumBCGrid) + (kNx - 1) * kNy * (k - kNumBCGrid);
+		AValsDic["E"] = uHatCoefE[idx(i, j, k)] / (kDx * kDx);
+		AColsDic["E"] = (i - kNumBCGrid) + (kNx - 1) * (j - kNumBCGrid) + (kNx - 1) * kNy * (k - kNumBCGrid);
+		AValsDic["N"] = uHatCoefN[idx(i, j, k)] / (kDy * kDy);
+		AColsDic["N"] = (i - kNumBCGrid - 1) + (kNx - 1) * (j + 1 - kNumBCGrid) + (kNx - 1) * kNy * (k - kNumBCGrid);
+		AValsDic["T"] = uHatCoefT[idx(i, j, k)] / (kDz * kDz);
+		AColsDic["T"] = (i - kNumBCGrid - 1) + (kNx - 1) * (j - kNumBCGrid) + (kNx - 1) * kNy * (k + 1 - kNumBCGrid);
+
+		if (i == kNumBCGrid && (m_BC->m_BC_UW == BC3D::NEUMANN || m_BC->m_BC_UW == BC3D::OUTLET)) {
+			AColsDic["W"] = -1;
+			AValsDic["W"] = 0.0;
+			AValsDic["C"] += uHatCoefW[idx(i, j, k)] / (kDx * kDx);
+		}
+		else if (i == kNumBCGrid && (m_BC->m_BC_UW == BC3D::DIRICHLET || m_BC->m_BC_UW == BC3D::INLET)) {
+			AColsDic["W"] = -1;
+			AValsDic["W"] = 0.0;
+			rhs[idx(i, j, k)] -= uHatCoefW[idx(i, j, k)] / (kDx * kDx) * (m_BC->m_BC_DirichletConstantUW);
+		}
+		else if (i == kNumBCGrid && m_BC->m_BC_UW == BC3D::PERIODIC) {
+			AValsDic["W"] = uHatCoefW[idx(kNumBCGrid + kNx - 1, j, k)];
+		}
+
+		// East boundary
+		if (i == kNumBCGrid + kNx - 1 && (m_BC->m_BC_UE == BC3D::NEUMANN || m_BC->m_BC_UE == BC3D::OUTLET)) {
+			AColsDic["E"] = -1;
+			AValsDic["E"] = 0.0;
+			AValsDic["C"] += uHatCoefE[idx(i, j, k)] / (kDx * kDx);
+		}
+		else if (i == kNumBCGrid + kNx - 1 && (m_BC->m_BC_UE == BC3D::DIRICHLET || m_BC->m_BC_UE == BC3D::INLET)) {
+			AColsDic["E"] = -1;
+			AValsDic["E"] = 0.0;
+			rhs[idx(i, j, k)] -= uHatCoefE[idx(i, j, k)] / (kDx * kDx) * (m_BC->m_BC_DirichletConstantUE);
+		}
+		else if (i == kNumBCGrid + kNx - 1 && m_BC->m_BC_UE == BC3D::PERIODIC) {
+			AValsDic["E"] = uHatCoefE[idx(kNumBCGrid, j, k)];
+		}
+
+		if (j == kNumBCGrid && (m_BC->m_BC_US == BC3D::NEUMANN || m_BC->m_BC_US == BC3D::OUTLET)) {
+			AColsDic["S"] = -1;
+			AValsDic["S"] = 0.0;
+			AValsDic["C"] += uHatCoefS[idx(i, j, k)] / (kDy * kDy);
+		}
+		else if (j == kNumBCGrid && (m_BC->m_BC_US == BC3D::DIRICHLET || m_BC->m_BC_US == BC3D::INLET)) {
+			AColsDic["S"] = -1;
+			AValsDic["S"] = 0.0;
+			rhs[idx(i, j, k)] -= uHatCoefS[idx(i, j, k)] / (kDy * kDy) * (2.0 * m_BC->m_BC_DirichletConstantUS);
+		}
+		else if (j == kNumBCGrid && m_BC->m_BC_US == BC3D::PERIODIC) {
+			AValsDic["S"] = uHatCoefS[idx(i, kNumBCGrid + kNy - 1, k)];
+		}
+
+		if (j == kNumBCGrid + kNy - 1 && (m_BC->m_BC_UN == BC3D::NEUMANN || m_BC->m_BC_UN == BC3D::OUTLET)) {
+			AColsDic["N"] = -1;
+			AValsDic["N"] = 0.0;
+			AValsDic["C"] += uHatCoefN[idx(i, j, k)] / (kDy * kDy);
+		}
+		else if (j == kNumBCGrid + kNy - 1 && (m_BC->m_BC_UN == BC3D::DIRICHLET || m_BC->m_BC_UN == BC3D::INLET)) {
+			AColsDic["N"] = -1;
+			AValsDic["N"] = 0.0;
+			rhs[idx(i, j, k)] -= uHatCoefN[idx(i, j, k)] / (kDy * kDy) * (2.0 * m_BC->m_BC_DirichletConstantUN);
+		}
+		else if (j == kNumBCGrid + kNy - 1 && m_BC->m_BC_UN == BC3D::PERIODIC) {
+			AValsDic["N"] = uHatCoefN[idx(i, kNumBCGrid, k)];
+		}
+
+		if (k == kNumBCGrid && (m_BC->m_BC_UB == BC3D::NEUMANN || m_BC->m_BC_UB == BC3D::OUTLET)) {
+			AColsDic["B"] = -1;
+			AValsDic["B"] = 0.0;
+			AValsDic["C"] += uHatCoefB[idx(i, j, k)] / (kDz * kDz);
+		}
+		else if (k == kNumBCGrid && (m_BC->m_BC_UB == BC3D::DIRICHLET || m_BC->m_BC_UB == BC3D::INLET)) {
+			AColsDic["B"] = -1;
+			AValsDic["B"] = 0.0;
+			rhs[idx(i, j, k)] -= uHatCoefB[idx(i, j, k)] / (kDz * kDz) * (2.0 * m_BC->m_BC_DirichletConstantUB);
+		}
+		else if (k == kNumBCGrid && m_BC->m_BC_UB == BC3D::PERIODIC) {
+			AValsDic["B"] = uHatCoefB[idx(i, j, kNumBCGrid + kNz - 1)];
+		}
+
+		if (k == kNumBCGrid + kNz - 1 && (m_BC->m_BC_UT == BC3D::NEUMANN || m_BC->m_BC_UT == BC3D::OUTLET)) {
+			AColsDic["T"] = -1;
+			AValsDic["T"] = 0.0;
+			AValsDic["C"] += uHatCoefT[idx(i, j, k)] / (kDz * kDz);
+		}
+		else if (k == kNumBCGrid + kNz - 1 && (m_BC->m_BC_UT == BC3D::DIRICHLET || m_BC->m_BC_UT == BC3D::INLET)) {
+			AColsDic["T"] = -1;
+			AValsDic["T"] = 0.0;
+			rhs[idx(i, j, k)] -= uHatCoefT[idx(i, j, k)] / (kDz * kDz) * (2.0 * m_BC->m_BC_DirichletConstantUT);
+		}
+		else if (k == kNumBCGrid + kNz - 1 && m_BC->m_BC_UT == BC3D::PERIODIC) {
+			AValsDic["T"] = uHatCoefT[idx(i, j, kNumBCGrid)];
+		}
+
+		// add non zero values to AVals and ACols
+		// KEEP ORDER OF PUSH_BACK!!
+		if (AColsDic["B"] >= 0) {
+			tmpRowIdx++;
+			AVals.push_back(AValsDic["B"]);
+			ACols.push_back(AColsDic["B"]);
+		}
+
+		if (AColsDic["S"] >= 0) {
+			tmpRowIdx++;
+			AVals.push_back(AValsDic["S"]);
+			ACols.push_back(AColsDic["S"]);
+		}
+
+		if (AColsDic["W"] >= 0) {
+			tmpRowIdx++;
+			AVals.push_back(AValsDic["W"]);
+			ACols.push_back(AColsDic["W"]);
+		}
+
+		// Center, it doens't neeed to check
+		tmpRowIdx++;
+		AVals.push_back(AValsDic["C"]);
+		ACols.push_back(AColsDic["C"]);
+
+		if (AColsDic["E"] >= 0) {
+			tmpRowIdx++;
+			AVals.push_back(AValsDic["E"]);
+			ACols.push_back(AColsDic["E"]);
+		}
+
+		if (AColsDic["N"] >= 0) {
+			tmpRowIdx++;
+			AVals.push_back(AValsDic["N"]);
+			ACols.push_back(AColsDic["N"]);
+		}
+
+		if (AColsDic["T"] >= 0) {
+			tmpRowIdx++;
+			AVals.push_back(AValsDic["T"]);
+			ACols.push_back(AColsDic["T"]);
+		}
+
+		tmpMRowIdx++;
+		DiagVals.push_back(AValsDic["C"]);
+		DiagCols.push_back(AColsDic["C"]);
+
+		rowIdx += tmpRowIdx;
+		MRowIdx += tmpMRowIdx;
+
+		assert(rhs[idx(i, j, k)] == rhs[idx(i, j, k)]);
+		if (std::isnan(rhs[idx(i, j, k)]) || std::isinf(rhs[idx(i, j, k)])) {
+			std::cout << "right hand side of poisson equation nan/inf error : "
+				<< i << " " << j << " " << rhs[idx(i, j, k)] << std::endl;
 			exit(1);
 		}
+	}
+	ARowIdx.push_back(rowIdx);
+	DiagRowIdx.push_back(MRowIdx);
+
+	if (m_ImplicitSolverType == POISSONTYPE::CG) {
+		// std::cout << "Poisson : CG" << std::endl;
+		m_Poisson->CG_2FUniformU_3D(uhat, rhs, AVals, ACols, ARowIdx,
+			DiagVals, DiagCols, DiagRowIdx, m_BC, maxIter);
+
+		for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
+		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
+		for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++)
+			if (std::isnan(uhat[idx(i, j, k)]) || std::isinf(uhat[idx(i, j, k)]))
+				std::cout << "uhat nan/inf error : " << i << " " << j << " " << k << " " << uhat[idx(i, j, k)] << std::endl;
+	}
+	else if (m_ImplicitSolverType == POISSONTYPE::BICGSTAB) {
+		// std::cout << "Poisson : BiCG" << std::endl;
+		m_Poisson->BiCGStab_2FUniformU_3D(uhat, rhs, AVals, ACols, ARowIdx,
+			DiagVals, DiagCols, DiagRowIdx, m_BC, maxIter);
+
+		for (int i = kNumBCGrid + 1; i < kNx + kNumBCGrid; i++)
+		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
+		for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++)
+			if (std::isnan(uhat[idx(i, j, k)]) || std::isinf(uhat[idx(i, j, k)]))
+				std::cout << "uhat nan/inf error : " << i << " " << j << " " << k << " " << uhat[idx(i, j, k)] << std::endl;
+	}
+	else {
+		std::cout << "Implicit Solver (Poisson equation for uhat) not set!" << std::endl;
+		exit(1);
+	}
+
+	ApplyBC_P_3D(uhat);
+
+	return uhat;
+}
+
+std::vector<double> MACSolver3D::GetVHat(const std::vector<double>& ls, const std::vector<double>& rhsExternal, const std::vector<double>& H, const int maxIter) {
+	
+	std::vector<double> vhat(kArrSize, 0.0), rhs(kArrSize, 0.0);
+	std::vector<double> mu(kArrSize, 0.0);
+	std::vector<double> vHatCoefW(kArrSize, 0.0), vHatCoefE(kArrSize, 0.0),
+		vHatCoefS(kArrSize, 0.0), vHatCoefN(kArrSize, 0.0), vHatCoefB(kArrSize, 0.0), vHatCoefT(kArrSize, 0.0);
+
+	// A Matrix is (nx * (ny - 1) * nz) X (nx * (ny - 1) * nz) matrix, which is very very huge. hence use sparse blas
+	std::vector<double> AVals, DiagVals;
+	std::vector<MKL_INT> ACols, ARowIdx, DiagCols, DiagRowIdx;
+	MKL_INT rowIdx = 0, MRowIdx = 0, tmpRowIdx = 0, tmpMRowIdx = 0, colIdx = 0;
+	MKL_INT Anrows = kNx * (kNy - 1) * kNz, Ancols = kNx * (kNy - 1) * kNz;
+	MKL_INT size = kNx * (kNy - 1) * kNz;
+
+	// stored coef for A matrix, Dictionary but it is ordered
+	std::map<std::string, double> AValsDic;
+	std::map<std::string, MKL_INT> AColsDic;
+
+	/*
+	* = lsVM(v[idx(i, j, k)])
+	xy plane (k fixed)							yz plane (i fixed)
+	-------------------------------------		-------------------------
+	|			|			|			|		|			|			|
+	|			|    lsM	|			|		|			|			|
+	|			|			|			|		|			|			|
+	---------lsVWHalf-*--lsVEHalf--------		--------lsVTHalf---------
+	|			|			|			|		|			|			|
+	|			|	 lsS	|			|		|	lsS		*	 lsM	|
+	|			|			|			|		|			|			|
+	-------------------------------------		--------lsVBHalf---------
+	|			|			|
+	|			|			|
+	|			|			|
+	-------------------------
+	xy plane (k fixed)							yz plane (i fixed)
+	----------------lsVN-----------------		-------------------------
+	|			|			|			|		|			|			|
+	|		  lsUM  (i,j)  lsUE			|		|		  lsVT			|
+	|			|			|			|		|			|			|
+	-----lsVW-------lsVM--------lsVE-----		---lsWS_T-------lsWT-----
+	|			|			|			|		|			|			|
+	|		  lsUS		  lsUS_E		|	  lsVS	  	  lsVM	(j,k) lsVN
+	|			|			|			|		|			|			|
+	----------------lsVS-----------------		----lsWS--------lsWM-----
+	|			|			|
+	|		  lsVB			|
+	|			|			|
+	-------------------------
+	*/
+	double lsVWHalf = 0.0, lsVEHalf = 0.0, lsM = 0.0, lsS = 0.0, lsVBHalf = 0.0, lsVTHalf = 0.0;
+	double muVWHalf = 0.0, muVEHalf = 0.0, muM = 0.0, muS = 0.0, muVBHalf = 0.0, muVTHalf = 0.0;
+
+	double rhoEffWE = 0.0, rhoEffSN = 0.0, rhoEffBT = 0.0, iRhoEffWE = 0.0, iRhoEffSN = 0.0, iRhoEffBT = 0.0;
+	double theta = 0.0, thetaH = 0.0;
+
+	for (int i = 0; i < kNx + 2 * kNumBCGrid; i++)
+	for (int j = 0; j < kNy + 2 * kNumBCGrid; j++)
+	for (int k = 0; k < kNz + 2 * kNumBCGrid; k++) {
+		// add boundary value due to interpolation
+		mu[idx(i, j, k)] = kMuL + (kMuH - kMuL) * H[idx(i, j, k)];
+		rhs[idx(i, j, k)] = rhsExternal[idx(i, j, k)];
 	}
 
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 	for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++)
 	for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++) {
-		if (std::isnan(vhat[idx(i, j, k)]) || std::isinf(vhat[idx(i, j, k)])) {
-			std::cout << "Vhat term nan/inf error : " << i << " " << j << " " << k << " " << vhat[idx(i, j, k)] << std::endl;
+		lsVWHalf = 0.25 * (ls[idx(i, j, k)] + ls[idx(i - 1, j, k)] + ls[idx(i - 1, j - 1, k)] + ls[idx(i, j - 1, k)]);
+		lsVEHalf = 0.25 * (ls[idx(i, j, k)] + ls[idx(i + 1, j, k)] + ls[idx(i + 1, j - 1, k)] + ls[idx(i, j - 1, k)]);
+		lsS = ls[idx(i, j - 1, k)];
+		lsM = ls[idx(i, j, k)];
+		lsVBHalf = 0.25 * (ls[idx(i, j, k)] + ls[idx(i, j, k - 1)] + ls[idx(i, j - 1, k - 1)] + ls[idx(i, j - 1, k)]);
+		lsVTHalf = 0.25 * (ls[idx(i, j, k)] + ls[idx(i, j, k + 1)] + ls[idx(i, j - 1, k + 1)] + ls[idx(i, j - 1, k)]);
+
+		muVWHalf = 0.25 * (mu[idx(i, j, k)] + mu[idx(i - 1, j, k)] + mu[idx(i - 1, j - 1, k)] + mu[idx(i, j - 1, k)]);
+		muVEHalf = 0.25 * (mu[idx(i, j, k)] + mu[idx(i + 1, j, k)] + mu[idx(i + 1, j - 1, k)] + mu[idx(i, j - 1, k)]);
+		muS = mu[idx(i, j - 1, k)];
+		muM = mu[idx(i, j, k)];
+		muVBHalf = 0.25 * (mu[idx(i, j, k)] + mu[idx(i, j, k - 1)] + mu[idx(i, j - 1, k - 1)] + mu[idx(i, j - 1, k)]);
+		muVTHalf = 0.25 * (mu[idx(i, j, k)] + mu[idx(i, j, k + 1)] + mu[idx(i, j - 1, k + 1)] + mu[idx(i, j - 1, k)]);
+
+		if (lsVWHalf >= 0 && lsVEHalf >= 0) {
+			rhoEffWE = kRhoH;
+		}
+		else if (lsVWHalf <= 0 && lsVEHalf <= 0) {
+			rhoEffWE = kRhoL;
+		}
+		else if (lsVWHalf >= 0 && lsVEHalf < 0) {
+			// interface lies between lsVWHalf and lsVEHalf
+			theta = std::fabs(lsVWHalf) / (std::fabs(lsVWHalf) + std::fabs(lsVEHalf));
+			thetaH = std::fabs(lsVWHalf) / (std::fabs(lsVWHalf) + std::fabs(lsVEHalf));
+			// |(lsVWHalf)| ===   high(+)  === |(interface)| ===      low(-)     === |(lsVEHalf)|
+			// |(lsVWHalf)| === theta * d  === |(interface)| === (1 - theta) * d === |(lsVEHalf)|
+			rhoEffWE = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
+		}
+		else if (lsVWHalf < 0 && lsVEHalf >= 0) {
+			// interface lies between lsVWHalf and lsVEHalf
+			theta = std::fabs(lsVWHalf) / (std::fabs(lsVWHalf) + std::fabs(lsVEHalf));
+			thetaH = std::fabs(lsVEHalf) / (std::fabs(lsVWHalf) + std::fabs(lsVEHalf));
+			// |(lsVWHalf)| ===    low(-)   === |(interface)| ===     high(+)     === |(lsVEHalf)|
+			// |(lsVWHalf)| ===  theta * d  === |(interface)| === (1 - theta) * d === |(lsVEHalf)|
+			rhoEffWE = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
+		}
+
+		if (lsS >= 0 && lsM >= 0) {
+			rhoEffSN = kRhoH;
+		}
+		else if (lsS <= 0 && lsM <= 0) {
+			rhoEffSN = kRhoL;
+		}
+		else if (lsS >= 0 && lsM < 0) {
+			// interface lies between v[i, j - 1, k] and v[i, j, k]
+			theta = std::fabs(lsS) / (std::fabs(lsS) + std::fabs(lsM));
+			thetaH = std::fabs(lsS) / (std::fabs(lsS) + std::fabs(lsM));
+			// |(lsS)| ===   high(+)  === |(interface)| ===      low(-)     === |(lsM)|
+			// |(lsS)| === theta * d  === |(interface)| === (1 - theta) * d === |(lsM)|
+			rhoEffSN = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
+		}
+		else if (lsS < 0 && lsM >= 0) {
+			// interface lies between v[i, j - 1, k] and v[i, j, k]
+			theta = std::fabs(lsS) / (std::fabs(lsS) + std::fabs(lsM));
+			thetaH = std::fabs(lsM) / (std::fabs(lsS) + std::fabs(lsM));
+			// |(lsS)| ===    low(-)   === |(interface)| ===     high(+)     === |(lsM)|
+			// |(lsS)| ===  theta * d  === |(interface)| === (1 - theta) * d === |(lsM)|
+			rhoEffSN = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
+		}
+
+		if (lsVBHalf >= 0 && lsVTHalf >= 0) {
+			rhoEffBT = kRhoH;
+		}
+		else if (lsVBHalf <= 0 && lsVTHalf <= 0) {
+			rhoEffBT = kRhoL;
+		}
+		else if (lsVBHalf >= 0 && lsVTHalf < 0) {
+			// interface lies between lsVBHalf and lsVTHalf
+			theta = std::fabs(lsVBHalf) / (std::fabs(lsVBHalf) + std::fabs(lsVTHalf));
+			thetaH = std::fabs(lsVBHalf) / (std::fabs(lsVBHalf) + std::fabs(lsVTHalf));
+			// |(lsVBHalf)| ===   high(+)  === |(interface)| ===      low(-)     === |(lsVTHalf)|
+			// |(lsVBHalf)| === theta * d  === |(interface)| === (1 - theta) * d === |(lsVTHalf)|
+			rhoEffBT = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
+		}
+		else if (lsVBHalf < 0 && lsVTHalf >= 0) {
+			// interface lies between lsVBHalf and lsVTHalf
+			theta = std::fabs(lsVBHalf) / (std::fabs(lsVBHalf) + std::fabs(lsVTHalf));
+			thetaH = std::fabs(lsVTHalf) / (std::fabs(lsVBHalf) + std::fabs(lsVTHalf));
+			// |(lsVBHalf)| ===    low(-)   === |(interface)| ===     high(+)     === |(lsVTHalf)|
+			// |(lsVBHalf)| ===  theta * d  === |(interface)| === (1 - theta) * d === |(lsVTHalf)|
+			rhoEffBT = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
+		}
+
+		vHatCoefW[idx(i, j, k)] = m_dt * muVWHalf / rhoEffWE;
+		vHatCoefE[idx(i, j, k)] = m_dt * muVEHalf / rhoEffWE;
+		vHatCoefS[idx(i, j, k)] = m_dt * 2.0 * muS / rhoEffSN;
+		vHatCoefN[idx(i, j, k)] = m_dt * 2.0 * muM / rhoEffSN;
+		vHatCoefB[idx(i, j, k)] = m_dt * muVBHalf / rhoEffBT;
+		vHatCoefT[idx(i, j, k)] = m_dt * muVTHalf / rhoEffBT;
+	}
+
+	// An order of A matrix coef. is very important, hence reverse j order
+	for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++)
+	for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++)
+	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++) {
+		// AValsDic and AColsDic contain coef.s of A matrix of each row (a row of A matrix = a each point of 3D grid)
+		// Based on boundary condition, a coef.s of A matrix change and are saved in AvalsDic and AColsDic
+		// At last, traverse AValsDic and AColsDic, add nonzero value of A matrix
+		AValsDic.clear();
+		AColsDic.clear();
+		tmpRowIdx = 0;
+		tmpMRowIdx = 0;
+		// Add starting rowIdx
+		ARowIdx.push_back(rowIdx);
+		DiagRowIdx.push_back(MRowIdx);
+
+		// Set default values, if a current point is in interior region, it will not be changed.
+		// i (without boundary array) = i' + kNumBCGrid (with boundary array)
+		// j (without boundary array) = j' + kNumBCGrid + 1 (with boundary array)
+		// k (without boundary array) = k' + kNumBCGrid (with boundary array)
+		AValsDic["B"] = vHatCoefB[idx(i, j, k)] / (kDz * kDz);
+		AColsDic["B"] = (i - kNumBCGrid) + kNx * (j - kNumBCGrid - 1) + kNx * (kNy - 1) * (k - 1 - kNumBCGrid);
+		AValsDic["S"] = vHatCoefS[idx(i, j, k)] / (kDy * kDy);
+		AColsDic["S"] = (i - kNumBCGrid) + kNx * (j - kNumBCGrid - 2) + kNx * (kNy - 1) * (k - kNumBCGrid);
+		AValsDic["W"] = vHatCoefW[idx(i, j, k)] / (kDx * kDx);
+		AColsDic["W"] = (i - 1 - kNumBCGrid) + kNx * (j - kNumBCGrid - 1) + kNx * (kNy - 1) * (k - kNumBCGrid);
+		AValsDic["C"] = 1.0 - 2.0 * m_dt *
+			((vHatCoefW[idx(i, j, k)] + vHatCoefE[idx(i, j, k)]) / (kDx * kDx)
+			+ (vHatCoefS[idx(i, j, k)] + vHatCoefN[idx(i, j, k)]) / (kDy * kDy)
+			+ (vHatCoefB[idx(i, j, k)] + vHatCoefT[idx(i, j, k)]) / (kDz * kDz));
+		AColsDic["C"] = (i - kNumBCGrid) + kNx * (j - kNumBCGrid - 1) + kNx * (kNy - 1) * (k - kNumBCGrid);
+		AValsDic["E"] = vHatCoefE[idx(i, j, k)] / (kDx * kDx);
+		AColsDic["E"] = (i + 1 - kNumBCGrid) + kNx * (j - kNumBCGrid - 1) + kNx * (kNy - 1) * (k - kNumBCGrid);
+		AValsDic["N"] = vHatCoefN[idx(i, j, k)] / (kDy * kDy);
+		AColsDic["N"] = (i - kNumBCGrid) + kNx * (j - kNumBCGrid) + kNx * (kNy - 1) * (k - kNumBCGrid);
+		AValsDic["T"] = vHatCoefT[idx(i, j, k)] / (kDz * kDz);
+		AColsDic["T"] = (i - kNumBCGrid) + kNx * (j - kNumBCGrid - 1) + kNx * (kNy - 1) * (k + 1 - kNumBCGrid);
+
+		if (i == kNumBCGrid && (m_BC->m_BC_VW == BC3D::NEUMANN || m_BC->m_BC_VW == BC3D::OUTLET)) {
+			AColsDic["W"] = -1;
+			AValsDic["W"] = 0.0;
+			AValsDic["C"] += vHatCoefW[idx(i, j, k)] / (kDx * kDx);
+		}
+		else if (i == kNumBCGrid && (m_BC->m_BC_VW == BC3D::DIRICHLET || m_BC->m_BC_VW == BC3D::INLET)) {
+			AColsDic["W"] = -1;
+			AValsDic["W"] = 0.0;
+			rhs[idx(i, j, k)] -= vHatCoefW[idx(i, j, k)] / (kDx * kDx) * (2.0 * m_BC->m_BC_DirichletConstantVW);
+		}
+		else if (i == kNumBCGrid && m_BC->m_BC_VW == BC3D::PERIODIC) {
+			AValsDic["W"] = vHatCoefW[idx(kNumBCGrid + kNx - 1, j, k)];
+		}
+
+		// East boundary
+		if (i == kNumBCGrid + kNx - 1 && (m_BC->m_BC_VE == BC3D::NEUMANN || m_BC->m_BC_VE == BC3D::OUTLET)) {
+			AColsDic["E"] = -1;
+			AValsDic["E"] = 0.0;
+			AValsDic["C"] += vHatCoefE[idx(i, j, k)] / (kDx * kDx);
+		}
+		else if (i == kNumBCGrid + kNx - 1 && (m_BC->m_BC_VE == BC3D::DIRICHLET || m_BC->m_BC_VE == BC3D::INLET)) {
+			AColsDic["E"] = -1;
+			AValsDic["E"] = 0.0;
+			rhs[idx(i, j, k)] -= vHatCoefE[idx(i, j, k)] / (kDx * kDx) * (2.0 * m_BC->m_BC_DirichletConstantVE);
+		}
+		else if (i == kNumBCGrid + kNx - 1 && m_BC->m_BC_VE == BC3D::PERIODIC) {
+			AValsDic["E"] = vHatCoefE[idx(kNumBCGrid, j, k)];
+		}
+
+		if (j == kNumBCGrid && (m_BC->m_BC_VS == BC3D::NEUMANN || m_BC->m_BC_VS == BC3D::OUTLET)) {
+			AColsDic["S"] = -1;
+			AValsDic["S"] = 0.0;
+			AValsDic["C"] += vHatCoefS[idx(i, j, k)] / (kDy * kDy);
+		}
+		else if (j == kNumBCGrid && (m_BC->m_BC_VS == BC3D::DIRICHLET || m_BC->m_BC_VS == BC3D::INLET)) {
+			AColsDic["S"] = -1;
+			AValsDic["S"] = 0.0;
+			rhs[idx(i, j, k)] -= vHatCoefS[idx(i, j, k)] / (kDy * kDy) * (m_BC->m_BC_DirichletConstantVS);
+		}
+		else if (j == kNumBCGrid && m_BC->m_BC_VS == BC3D::PERIODIC) {
+			AValsDic["S"] = vHatCoefS[idx(i, kNumBCGrid + kNy - 1, k)];
+		}
+
+		if (j == kNumBCGrid + kNy - 1 && (m_BC->m_BC_VN == BC3D::NEUMANN || m_BC->m_BC_VN == BC3D::OUTLET)) {
+			AColsDic["N"] = -1;
+			AValsDic["N"] = 0.0;
+			AValsDic["C"] += vHatCoefN[idx(i, j, k)] / (kDy * kDy);
+		}
+		else if (j == kNumBCGrid + kNy - 1 && (m_BC->m_BC_VN == BC3D::DIRICHLET || m_BC->m_BC_VN == BC3D::INLET)) {
+			AColsDic["N"] = -1;
+			AValsDic["N"] = 0.0;
+			rhs[idx(i, j, k)] -= vHatCoefN[idx(i, j, k)] / (kDy * kDy) * (m_BC->m_BC_DirichletConstantVN);
+		}
+		else if (j == kNumBCGrid + kNy - 1 && m_BC->m_BC_VN == BC3D::PERIODIC) {
+			AValsDic["N"] = vHatCoefN[idx(i, kNumBCGrid, k)];
+		}
+
+		if (k == kNumBCGrid && (m_BC->m_BC_VB == BC3D::NEUMANN || m_BC->m_BC_VB == BC3D::OUTLET)) {
+			AColsDic["B"] = -1;
+			AValsDic["B"] = 0.0;
+			AValsDic["C"] += vHatCoefB[idx(i, j, k)] / (kDz * kDz);
+		}
+		else if (k == kNumBCGrid && (m_BC->m_BC_VB == BC3D::DIRICHLET || m_BC->m_BC_VB == BC3D::INLET)) {
+			AColsDic["B"] = -1;
+			AValsDic["B"] = 0.0;
+			rhs[idx(i, j, k)] -= vHatCoefB[idx(i, j, k)] / (kDz * kDz) * (2.0 * m_BC->m_BC_DirichletConstantVB);
+		}
+		else if (k == kNumBCGrid && m_BC->m_BC_VB == BC3D::PERIODIC) {
+			AValsDic["B"] = vHatCoefB[idx(i, j, kNumBCGrid + kNz - 1)];
+		}
+
+		if (k == kNumBCGrid + kNz - 1 && (m_BC->m_BC_VT == BC3D::NEUMANN || m_BC->m_BC_VT == BC3D::OUTLET)) {
+			AColsDic["T"] = -1;
+			AValsDic["T"] = 0.0;
+			AValsDic["C"] += vHatCoefT[idx(i, j, k)] / (kDz * kDz);
+		}
+		else if (k == kNumBCGrid + kNz - 1 && (m_BC->m_BC_VT == BC3D::DIRICHLET || m_BC->m_BC_VT == BC3D::INLET)) {
+			AColsDic["T"] = -1;
+			AValsDic["T"] = 0.0;
+			rhs[idx(i, j, k)] -= vHatCoefT[idx(i, j, k)] / (kDz * kDz) * (2.0 * m_BC->m_BC_DirichletConstantVT);
+		}
+		else if (k == kNumBCGrid + kNz - 1 && m_BC->m_BC_VT == BC3D::PERIODIC) {
+			AValsDic["T"] = vHatCoefT[idx(i, j, kNumBCGrid)];
+		}
+
+		// add non zero values to AVals and ACols
+		// KEEP ORDER OF PUSH_BACK!!
+		if (AColsDic["B"] >= 0) {
+			tmpRowIdx++;
+			AVals.push_back(AValsDic["B"]);
+			ACols.push_back(AColsDic["B"]);
+		}
+
+		if (AColsDic["S"] >= 0) {
+			tmpRowIdx++;
+			AVals.push_back(AValsDic["S"]);
+			ACols.push_back(AColsDic["S"]);
+		}
+
+		if (AColsDic["W"] >= 0) {
+			tmpRowIdx++;
+			AVals.push_back(AValsDic["W"]);
+			ACols.push_back(AColsDic["W"]);
+		}
+
+		// Center, it doens't neeed to check
+		tmpRowIdx++;
+		AVals.push_back(AValsDic["C"]);
+		ACols.push_back(AColsDic["C"]);
+
+		if (AColsDic["E"] >= 0) {
+			tmpRowIdx++;
+			AVals.push_back(AValsDic["E"]);
+			ACols.push_back(AColsDic["E"]);
+		}
+
+		if (AColsDic["N"] >= 0) {
+			tmpRowIdx++;
+			AVals.push_back(AValsDic["N"]);
+			ACols.push_back(AColsDic["N"]);
+		}
+
+		if (AColsDic["T"] >= 0) {
+			tmpRowIdx++;
+			AVals.push_back(AValsDic["T"]);
+			ACols.push_back(AColsDic["T"]);
+		}
+
+		tmpMRowIdx++;
+		DiagVals.push_back(AValsDic["C"]);
+		DiagCols.push_back(AColsDic["C"]);
+
+		rowIdx += tmpRowIdx;
+		MRowIdx += tmpMRowIdx;
+
+		assert(rhs[idx(i, j, k)] == rhs[idx(i, j, k)]);
+		if (std::isnan(rhs[idx(i, j, k)]) || std::isinf(rhs[idx(i, j, k)])) {
+			std::cout << "right hand side of poisson equation nan/inf error : "
+				<< i << " " << j << " " << rhs[idx(i, j, k)] << std::endl;
 			exit(1);
 		}
+	}
+	ARowIdx.push_back(rowIdx);
+	DiagRowIdx.push_back(MRowIdx);
+
+	if (m_ImplicitSolverType == POISSONTYPE::CG) {
+		// std::cout << "Poisson : CG" << std::endl;
+		m_Poisson->CG_2FUniformV_3D(vhat, rhs, AVals, ACols, ARowIdx,
+			DiagVals, DiagCols, DiagRowIdx, m_BC, maxIter);
+
+		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+		for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++)
+		for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++)
+			if (std::isnan(vhat[idx(i, j, k)]) || std::isinf(vhat[idx(i, j, k)]))
+				std::cout << "vhat nan/inf error : " << i << " " << j << " " << k << " " << vhat[idx(i, j, k)] << std::endl;
+	}
+	else if (m_ImplicitSolverType == POISSONTYPE::BICGSTAB) {
+		// std::cout << "Poisson : BiCG" << std::endl;
+		m_Poisson->BiCGStab_2FUniformV_3D(vhat, rhs, AVals, ACols, ARowIdx,
+			DiagVals, DiagCols, DiagRowIdx, m_BC, maxIter);
+
+		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+		for (int j = kNumBCGrid + 1; j < kNy + kNumBCGrid; j++)
+		for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++)
+			if (std::isnan(vhat[idx(i, j, k)]) || std::isinf(vhat[idx(i, j, k)]))
+				std::cout << "vhat nan/inf error : " << i << " " << j << " " << k << " " << vhat[idx(i, j, k)] << std::endl;
+	}
+	else {
+		std::cout << "Implicit Solver (Poisson equation for uhat) not set!" << std::endl;
+		exit(1);
+	}
+
+	ApplyBC_P_3D(vhat);
+
+	return vhat;
+}
+
+std::vector<double> MACSolver3D::GetWHat(const std::vector<double>& ls, const std::vector<double>& rhsExternal, const std::vector<double>& H, const int maxIter) {
+
+	std::vector<double> what(kArrSize, 0.0), rhs(kArrSize, 0.0);
+	std::vector<double> mu(kArrSize, 0.0);
+	std::vector<double> wHatCoefW(kArrSize, 0.0), wHatCoefE(kArrSize, 0.0),
+		wHatCoefS(kArrSize, 0.0), wHatCoefN(kArrSize, 0.0), wHatCoefB(kArrSize, 0.0), wHatCoefT(kArrSize, 0.0);
+
+	// A Matrix is (nx * ny * (nz - 1)) X (nx * ny * (nz - 1)) matrix, which is very very huge. hence use sparse blas
+	std::vector<double> AVals, DiagVals;
+	std::vector<MKL_INT> ACols, ARowIdx, DiagCols, DiagRowIdx;
+	MKL_INT rowIdx = 0, MRowIdx = 0, tmpRowIdx = 0, tmpMRowIdx = 0, colIdx = 0;
+	MKL_INT Anrows = kNx * kNy * (kNz - 1), Ancols = kNx * kNy * (kNz - 1);
+	MKL_INT size = kNx * kNy * (kNz - 1);
+
+	// stored coef for A matrix, Dictionary but it is ordered
+	std::map<std::string, double> AValsDic;
+	std::map<std::string, MKL_INT> AColsDic;
+
+	/*
+	* = lsWM(w[idx(i, j, k)])
+	xz plane (k fixed)							yz plane (i fixed)
+	-------------------------------------		-------------------------------------
+	|			|			|			|		|			|			|			|
+	|			|    lsM	|			|		|			|	 lsM	|			|
+	|			|			|			|		|			|			|			|
+	---------lsWWHalf-*--lsWEHalf--------		---------lsWSHalf--*-lsWNHalf--------
+	|			|			|			|		|			|			|			|
+	|			|	 lsB	|			|		|	  		|	 lsB	|			|
+	|			|			|			|		|			|			|			|
+	-------------------------------------		------------------------------------
+
+	xz plane (j fixed)							yz plane (i fixed)
+	----------------lsWT-----------------		-----------------lsWT-----------------
+	|			|			|			|		|			|			|			|
+	|		  lsUM  (i,k)  lsUE			|		|		  lsVM	(j,k) lsVN			|
+	|			|			|			|		|			|			|			|
+	-----lsWW-------lsWM--------lsWE-----		-----lsWS--------lsWM-------lsWN-----
+	|			|			|			|		|			|			|			|
+	|		  lsUB		  lsUB_E		|		|	  	  lsVB		  lsVB_N		|
+	|			|			|			|		|			|			|			|
+	----------------lsWB-----------------		-----------------lsWB----------------
+	*/
+	double lsM = 0.0, lsB = 0.0, lsWWHalf = 0.0, lsWEHalf = 0.0, lsWSHalf = 0.0, lsWNHalf = 0.0;
+	double muM = 0.0, muB = 0.0, muWWHalf = 0.0, muWEHalf = 0.0, muWSHalf = 0.0, muWNHalf = 0.0;
+
+	double rhoEffWE = 0.0, rhoEffSN = 0.0, rhoEffBT = 0.0, iRhoEffWE = 0.0, iRhoEffSN = 0.0, iRhoEffBT = 0.0;
+	double theta = 0.0, thetaH = 0.0;
+
+	for (int i = 0; i < kNx + 2 * kNumBCGrid; i++)
+	for (int j = 0; j < kNy + 2 * kNumBCGrid; j++)
+	for (int k = 0; k < kNz + 2 * kNumBCGrid; k++) {
+		// add boundary value due to interpolation
+		mu[idx(i, j, k)] = kMuL + (kMuH - kMuL) * H[idx(i, j, k)];
+		rhs[idx(i, j, k)] = rhsExternal[idx(i, j, k)];
 	}
 
 	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
 	for (int k = kNumBCGrid + 1; k < kNz + kNumBCGrid; k++) {
-		if (std::isnan(what[idx(i, j, k)]) || std::isinf(what[idx(i, j, k)])) {
-			std::cout << "What term nan/inf error : " << i << " " << j << " " << k << " " << what[idx(i, j, k)] << std::endl;
+		lsWWHalf = 0.25 * (ls[idx(i, j, k)] + ls[idx(i - 1, j, k)] + ls[idx(i - 1, j, k - 1)] + ls[idx(i, j, k - 1)]);
+		lsWEHalf = 0.25 * (ls[idx(i, j, k)] + ls[idx(i + 1, j, k)] + ls[idx(i + 1, j, k - 1)] + ls[idx(i, j, k - 1)]);
+		lsWSHalf = 0.25 * (ls[idx(i, j, k)] + ls[idx(i, j - 1, k)] + ls[idx(i, j - 1, k - 1)] + ls[idx(i, j, k - 1)]);
+		lsWNHalf = 0.25 * (ls[idx(i, j, k)] + ls[idx(i, j + 1, k)] + ls[idx(i, j + 1, k - 1)] + ls[idx(i, j, k - 1)]);
+		lsB = ls[idx(i, j, k - 1)];
+		lsM = ls[idx(i, j, k)];
+
+		muWWHalf = 0.25 * (mu[idx(i, j, k)] + mu[idx(i - 1, j, k)] + mu[idx(i - 1, j, k - 1)] + mu[idx(i, j, k - 1)]);
+		muWEHalf = 0.25 * (mu[idx(i, j, k)] + mu[idx(i + 1, j, k)] + mu[idx(i + 1, j, k - 1)] + mu[idx(i, j, k - 1)]);
+		muWSHalf = 0.25 * (mu[idx(i, j, k)] + mu[idx(i, j - 1, k)] + mu[idx(i, j - 1, k - 1)] + mu[idx(i, j, k - 1)]);
+		muWNHalf = 0.25 * (mu[idx(i, j, k)] + mu[idx(i, j + 1, k)] + mu[idx(i, j + 1, k - 1)] + mu[idx(i, j, k - 1)]);
+		muB = mu[idx(i, j, k - 1)];
+		muM = mu[idx(i, j, k)];
+
+		if (lsWWHalf >= 0 && lsWEHalf >= 0) {
+			rhoEffWE = kRhoH;
+		}
+		else if (lsWWHalf <= 0 && lsWEHalf <= 0) {
+			rhoEffWE = kRhoL;
+		}
+		else if (lsWWHalf >= 0 && lsWEHalf < 0) {
+			// interface lies between lsWWHalf and lsWEHalf
+			theta = std::fabs(lsWWHalf) / (std::fabs(lsWWHalf) + std::fabs(lsWEHalf));
+			thetaH = std::fabs(lsWWHalf) / (std::fabs(lsWWHalf) + std::fabs(lsWEHalf));
+			// |(lsWWHalf)| ===   high(+)  === |(interface)| ===      low(-)     === |(lsWEHalf)|
+			// |(lsWWHalf)| === theta * d  === |(interface)| === (1 - theta) * d === |(lsWEHalf)|
+			rhoEffWE = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
+		}
+		else if (lsWWHalf < 0 && lsWEHalf >= 0) {
+			// interface lies between lsWWHalf and lsWEHalf
+			theta = std::fabs(lsWWHalf) / (std::fabs(lsWWHalf) + std::fabs(lsWEHalf));
+			thetaH = std::fabs(lsWEHalf) / (std::fabs(lsWWHalf) + std::fabs(lsWEHalf));
+			// |(lsWWHalf)| ===    low(-)   === |(interface)| ===     high(+)     === |(lsWEHalf)|
+			// |(lsWWHalf)| ===  theta * d  === |(interface)| === (1 - theta) * d === |(lsWEHalf)|
+			rhoEffWE = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
+		}
+
+		if (lsWSHalf >= 0 && lsWNHalf >= 0) {
+			rhoEffSN = kRhoH;
+		}
+		else if (lsWSHalf <= 0 && lsWNHalf <= 0) {
+			rhoEffSN = kRhoL;
+		}
+		else if (lsWSHalf >= 0 && lsWNHalf < 0) {
+			// interface lies between lsWSHalf and lsWNHalf
+			theta = std::fabs(lsWSHalf) / (std::fabs(lsWSHalf) + std::fabs(lsWNHalf));
+			thetaH = std::fabs(lsWSHalf) / (std::fabs(lsWSHalf) + std::fabs(lsWNHalf));
+			// |(lsWSHalf)| ===   high(+)  === |(interface)| ===      low(-)     === |(lsWNHalf)|
+			// |(lsWSHalf)| === theta * d  === |(interface)| === (1 - theta) * d === |(lsWNHalf)|
+			rhoEffSN = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
+		}
+		else if (lsWSHalf < 0 && lsWNHalf >= 0) {
+			// interface lies between lsWSHalf and lsWNHalf
+			theta = std::fabs(lsWSHalf) / (std::fabs(lsWSHalf) + std::fabs(lsWNHalf));
+			thetaH = std::fabs(lsWNHalf) / (std::fabs(lsWSHalf) + std::fabs(lsWNHalf));
+			// |(lsWSHalf)| ===    low(-)   === |(interface)| ===     high(+)     === |(lsWNHalf)|
+			// |(lsWSHalf)| ===  theta * d  === |(interface)| === (1 - theta) * d === |(lsWNHalf)|
+			rhoEffSN = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
+		}
+
+		if (lsB >= 0 && lsM >= 0) {
+			rhoEffBT = kRhoH;
+		}
+		else if (lsB <= 0 && lsM <= 0) {
+			rhoEffBT = kRhoL;
+		}
+		else if (lsB >= 0 && lsM <= 0) {
+			// interface lies between w[i, j, k - 1] and w[i, j, k]
+			theta = std::fabs(lsB) / (std::fabs(lsB) + std::fabs(lsM));
+			thetaH = std::fabs(lsB) / (std::fabs(lsB) + std::fabs(lsM));
+			// |(lsB)| ===   high(+)  === |(interface)| ===      low(-)     === |(lsM)|
+			// |(lsB)| === theta * d  === |(interface)| === (1 - theta) * d === |(lsM)|
+			rhoEffBT = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
+		}
+		else if (lsB <= 0 && lsM > 0) {
+			// interface lies between w[i, j, k - 1] and w[i, j, k]
+			theta = std::fabs(lsB) / (std::fabs(lsB) + std::fabs(lsM));
+			thetaH = std::fabs(lsM) / (std::fabs(lsB) + std::fabs(lsM));
+			// |(lsB)| ===    low(-)   === |(interface)| ===     high(+)     === |(lsM)|
+			// |(lsB)| ===  theta * d  === |(interface)| === (1 - theta) * d === |(lsM)|
+			rhoEffBT = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
+		}
+
+		wHatCoefW[idx(i, j, k)] = m_dt * muWWHalf / rhoEffWE;
+		wHatCoefE[idx(i, j, k)] = m_dt * muWEHalf / rhoEffWE;
+		wHatCoefS[idx(i, j, k)] = m_dt * muWSHalf / rhoEffSN;
+		wHatCoefN[idx(i, j, k)] = m_dt * muWNHalf / rhoEffSN;
+		wHatCoefB[idx(i, j, k)] = m_dt * 2.0 * muB / rhoEffBT;
+		wHatCoefT[idx(i, j, k)] = m_dt * 2.0 * muM / rhoEffBT;
+	}
+
+	// An order of A matrix coef. is very important, hence reverse j order
+	for (int k = kNumBCGrid + 1; k < kNz + kNumBCGrid; k++)
+	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
+	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++) {
+		// AValsDic and AColsDic contain coef.s of A matrix of each row (a row of A matrix = a each point of 3D grid)
+		// Based on boundary condition, a coef.s of A matrix change and are saved in AvalsDic and AColsDic
+		// At last, traverse AValsDic and AColsDic, add nonzero value of A matrix
+		AValsDic.clear();
+		AColsDic.clear();
+		tmpRowIdx = 0;
+		tmpMRowIdx = 0;
+		// Add starting rowIdx
+		ARowIdx.push_back(rowIdx);
+		DiagRowIdx.push_back(MRowIdx);
+
+		// Set default values, if a current point is in interior region, it will not be changed.
+		// i (without boundary array) = i' + kNumBCGrid (with boundary array)
+		// j (without boundary array) = j' + kNumBCGrid (with boundary array)
+		// k (without boundary array) = k' + kNumBCGrid + 1 (with boundary array)
+		AValsDic["B"] = wHatCoefB[idx(i, j, k)] / (kDz * kDz);
+		AColsDic["B"] = (i - kNumBCGrid) + kNx * (j - kNumBCGrid) + kNx * kNy * (k - 2 - kNumBCGrid);
+		AValsDic["S"] = wHatCoefS[idx(i, j, k)] / (kDy * kDy);
+		AColsDic["S"] = (i - kNumBCGrid) + kNx * (j - 1 - kNumBCGrid) + kNx * kNy * (k - kNumBCGrid - 1);
+		AValsDic["W"] = wHatCoefW[idx(i, j, k)] / (kDx * kDx);
+		AColsDic["W"] = (i - 1 - kNumBCGrid) + kNx * (j - kNumBCGrid) + kNx * kNy * (k - kNumBCGrid - 1);
+		AValsDic["C"] = 1.0 - 2.0 * m_dt *
+			((wHatCoefW[idx(i, j, k)] + wHatCoefE[idx(i, j, k)]) / (kDx * kDx)
+			+ (wHatCoefS[idx(i, j, k)] + wHatCoefN[idx(i, j, k)]) / (kDy * kDy)
+			+ (wHatCoefB[idx(i, j, k)] + wHatCoefT[idx(i, j, k)]) / (kDz * kDz));
+		AColsDic["C"] = (i - kNumBCGrid) + kNx * (j - kNumBCGrid) + kNx * kNy * (k - kNumBCGrid - 1);
+		AValsDic["E"] = wHatCoefE[idx(i, j, k)] / (kDx * kDx);
+		AColsDic["E"] = (i + 1 - kNumBCGrid) + kNx * (j - kNumBCGrid) + kNx * kNy * (k - kNumBCGrid - 1);
+		AValsDic["N"] = wHatCoefN[idx(i, j, k)] / (kDy * kDy);
+		AColsDic["N"] = (i - kNumBCGrid) + kNx * (j + 1 - kNumBCGrid) + kNx * kNy * (k - kNumBCGrid - 1);
+		AValsDic["T"] = wHatCoefT[idx(i, j, k)] / (kDz * kDz);
+		AColsDic["T"] = (i - kNumBCGrid) + kNx * (j - kNumBCGrid) + kNx * kNy * (k - kNumBCGrid);
+
+		if (i == kNumBCGrid && (m_BC->m_BC_WW == BC3D::NEUMANN || m_BC->m_BC_WW == BC3D::OUTLET)) {
+			AColsDic["W"] = -1;
+			AValsDic["W"] = 0.0;
+			AValsDic["C"] += wHatCoefW[idx(i, j, k)] / (kDx * kDx);
+		}
+		else if (i == kNumBCGrid && (m_BC->m_BC_WW == BC3D::DIRICHLET || m_BC->m_BC_WW == BC3D::INLET)) {
+			AColsDic["W"] = -1;
+			AValsDic["W"] = 0.0;
+			rhs[idx(i, j, k)] -= wHatCoefW[idx(i, j, k)] / (kDx * kDx) * (2.0 * m_BC->m_BC_DirichletConstantWW);
+		}
+		else if (i == kNumBCGrid && m_BC->m_BC_WW == BC3D::PERIODIC) {
+			AValsDic["W"] = wHatCoefW[idx(kNumBCGrid + kNx - 1, j, k)];
+		}
+
+		// East boundary
+		if (i == kNumBCGrid + kNx - 1 && (m_BC->m_BC_WE == BC3D::NEUMANN || m_BC->m_BC_WE == BC3D::OUTLET)) {
+			AColsDic["E"] = -1;
+			AValsDic["E"] = 0.0;
+			AValsDic["C"] += wHatCoefE[idx(i, j, k)] / (kDx * kDx);
+		}
+		else if (i == kNumBCGrid + kNx - 1 && (m_BC->m_BC_WE == BC3D::DIRICHLET || m_BC->m_BC_WE == BC3D::INLET)) {
+			AColsDic["E"] = -1;
+			AValsDic["E"] = 0.0;
+			rhs[idx(i, j, k)] -= wHatCoefE[idx(i, j, k)] / (kDx * kDx) * (2.0 * m_BC->m_BC_DirichletConstantWE);
+		}
+		else if (i == kNumBCGrid + kNx - 1 && m_BC->m_BC_WE == BC3D::PERIODIC) {
+			AValsDic["E"] = wHatCoefE[idx(kNumBCGrid, j, k)];
+		}
+
+		if (j == kNumBCGrid && (m_BC->m_BC_WS == BC3D::NEUMANN || m_BC->m_BC_WS == BC3D::OUTLET)) {
+			AColsDic["S"] = -1;
+			AValsDic["S"] = 0.0;
+			AValsDic["C"] += wHatCoefS[idx(i, j, k)] / (kDy * kDy);
+		}
+		else if (j == kNumBCGrid && (m_BC->m_BC_WS == BC3D::DIRICHLET || m_BC->m_BC_WS == BC3D::INLET)) {
+			AColsDic["S"] = -1;
+			AValsDic["S"] = 0.0;
+			rhs[idx(i, j, k)] -= wHatCoefS[idx(i, j, k)] / (kDy * kDy) * (2.0 * m_BC->m_BC_DirichletConstantWS);
+		}
+		else if (j == kNumBCGrid && m_BC->m_BC_WS == BC3D::PERIODIC) {
+			AValsDic["S"] = wHatCoefS[idx(i, kNumBCGrid + kNy - 1, k)];
+		}
+
+		if (j == kNumBCGrid + kNy - 1 && (m_BC->m_BC_WN == BC3D::NEUMANN || m_BC->m_BC_WN == BC3D::OUTLET)) {
+			AColsDic["N"] = -1;
+			AValsDic["N"] = 0.0;
+			AValsDic["C"] += wHatCoefN[idx(i, j, k)] / (kDy * kDy);
+		}
+		else if (j == kNumBCGrid + kNy - 1 && (m_BC->m_BC_WN == BC3D::DIRICHLET || m_BC->m_BC_WN == BC3D::INLET)) {
+			AColsDic["N"] = -1;
+			AValsDic["N"] = 0.0;
+			rhs[idx(i, j, k)] -= wHatCoefN[idx(i, j, k)] / (kDy * kDy) * (2.0 * m_BC->m_BC_DirichletConstantWN);
+		}
+		else if (j == kNumBCGrid + kNy - 1 && m_BC->m_BC_WN == BC3D::PERIODIC) {
+			AValsDic["N"] = wHatCoefN[idx(i, kNumBCGrid, k)];
+		}
+
+		if (k == kNumBCGrid && (m_BC->m_BC_WB == BC3D::NEUMANN || m_BC->m_BC_WB == BC3D::OUTLET)) {
+			AColsDic["B"] = -1;
+			AValsDic["B"] = 0.0;
+			AValsDic["C"] += wHatCoefB[idx(i, j, k)] / (kDz * kDz);
+		}
+		else if (k == kNumBCGrid && (m_BC->m_BC_WB == BC3D::DIRICHLET || m_BC->m_BC_WB == BC3D::INLET)) {
+			AColsDic["B"] = -1;
+			AValsDic["B"] = 0.0;
+			rhs[idx(i, j, k)] -= wHatCoefB[idx(i, j, k)] / (kDz * kDz) * (m_BC->m_BC_DirichletConstantWB);
+		}
+		else if (k == kNumBCGrid && m_BC->m_BC_WB == BC3D::PERIODIC) {
+			AValsDic["B"] = wHatCoefB[idx(i, j, kNumBCGrid + kNz - 1)];
+		}
+
+		if (k == kNumBCGrid + kNz - 1 && (m_BC->m_BC_WT == BC3D::NEUMANN || m_BC->m_BC_WT == BC3D::OUTLET)) {
+			AColsDic["T"] = -1;
+			AValsDic["T"] = 0.0;
+			AValsDic["C"] += wHatCoefT[idx(i, j, k)] / (kDz * kDz);
+		}
+		else if (k == kNumBCGrid + kNz - 1 && (m_BC->m_BC_WT == BC3D::DIRICHLET || m_BC->m_BC_WT == BC3D::INLET)) {
+			AColsDic["T"] = -1;
+			AValsDic["T"] = 0.0;
+			rhs[idx(i, j, k)] -= wHatCoefT[idx(i, j, k)] / (kDz * kDz) * (m_BC->m_BC_DirichletConstantWT);
+		}
+		else if (k == kNumBCGrid + kNz - 1 && m_BC->m_BC_WT == BC3D::PERIODIC) {
+			AValsDic["T"] = wHatCoefT[idx(i, j, kNumBCGrid)];
+		}
+
+		// add non zero values to AVals and ACols
+		// KEEP ORDER OF PUSH_BACK!!
+		if (AColsDic["B"] >= 0) {
+			tmpRowIdx++;
+			AVals.push_back(AValsDic["B"]);
+			ACols.push_back(AColsDic["B"]);
+		}
+
+		if (AColsDic["S"] >= 0) {
+			tmpRowIdx++;
+			AVals.push_back(AValsDic["S"]);
+			ACols.push_back(AColsDic["S"]);
+		}
+
+		if (AColsDic["W"] >= 0) {
+			tmpRowIdx++;
+			AVals.push_back(AValsDic["W"]);
+			ACols.push_back(AColsDic["W"]);
+		}
+
+		// Center, it doens't neeed to check
+		tmpRowIdx++;
+		AVals.push_back(AValsDic["C"]);
+		ACols.push_back(AColsDic["C"]);
+
+		if (AColsDic["E"] >= 0) {
+			tmpRowIdx++;
+			AVals.push_back(AValsDic["E"]);
+			ACols.push_back(AColsDic["E"]);
+		}
+
+		if (AColsDic["N"] >= 0) {
+			tmpRowIdx++;
+			AVals.push_back(AValsDic["N"]);
+			ACols.push_back(AColsDic["N"]);
+		}
+
+		if (AColsDic["T"] >= 0) {
+			tmpRowIdx++;
+			AVals.push_back(AValsDic["T"]);
+			ACols.push_back(AColsDic["T"]);
+		}
+
+		tmpMRowIdx++;
+		DiagVals.push_back(AValsDic["C"]);
+		DiagCols.push_back(AColsDic["C"]);
+
+		rowIdx += tmpRowIdx;
+		MRowIdx += tmpMRowIdx;
+
+		assert(rhs[idx(i, j, k)] == rhs[idx(i, j, k)]);
+		if (std::isnan(rhs[idx(i, j, k)]) || std::isinf(rhs[idx(i, j, k)])) {
+			std::cout << "right hand side of poisson equation nan/inf error : "
+				<< i << " " << j << " " << rhs[idx(i, j, k)] << std::endl;
 			exit(1);
 		}
 	}
-	
-	return 0;
+	ARowIdx.push_back(rowIdx);
+	DiagRowIdx.push_back(MRowIdx);
+
+	if (m_ImplicitSolverType == POISSONTYPE::CG) {
+		// std::cout << "Poisson : CG" << std::endl;
+		m_Poisson->CG_2FUniformW_3D(what, rhs, AVals, ACols, ARowIdx,
+			DiagVals, DiagCols, DiagRowIdx, m_BC, maxIter);
+
+		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
+			for (int k = kNumBCGrid + 1; k < kNz + kNumBCGrid; k++)
+			if (std::isnan(what[idx(i, j, k)]) || std::isinf(what[idx(i, j, k)]))
+				std::cout << "what nan/inf error : " << i << " " << j << " " << k << " " << what[idx(i, j, k)] << std::endl;
+	}
+	else if (m_ImplicitSolverType == POISSONTYPE::BICGSTAB) {
+		// std::cout << "Poisson : BiCG" << std::endl;
+		m_Poisson->BiCGStab_2FUniformW_3D(what, rhs, AVals, ACols, ARowIdx,
+			DiagVals, DiagCols, DiagRowIdx, m_BC, maxIter);
+
+		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
+		for (int k = kNumBCGrid + 1; k < kNz + kNumBCGrid; k++)
+			if (std::isnan(what[idx(i, j, k)]) || std::isinf(what[idx(i, j, k)]))
+				std::cout << "what nan/inf error : " << i << " " << j << " " << k << " " << what[idx(i, j, k)] << std::endl;
+	}
+	else {
+		std::cout << "Implicit Solver (Poisson equation for uhat) not set!" << std::endl;
+		exit(1);
+	}
+
+	ApplyBC_P_3D(what);
+
+	return what;
+
 }
 
 int MACSolver3D::SetPoissonSolver(POISSONTYPE type) {
@@ -2047,8 +2921,7 @@ int MACSolver3D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 			|| m_BC->m_BC_PW == BC3D::OUTLET || m_BC->m_BC_PW == BC3D::PRESSURE)) {
 			AColsDic["W"] = -1;
 			AValsDic["W"] = 0.0;
-			// AValsDic["C"] -= pCoefW[idx(i, j, k)] / (kDx * kDx);
-			rhs[idx(i, j, k)] -= pCoefW[idx(i, j, k)] / (kDx * kDx) * (m_BC->m_BC_DirichletConstantPW);
+			rhs[idx(i, j, k)] -= pCoefW[idx(i, j, k)] / (kDx * kDx) * (2.0 * m_BC->m_BC_DirichletConstantPW);
 		}
 		else if (i == kNumBCGrid && m_BC->m_BC_PW == BC3D::PERIODIC) {
 			AValsDic["W"] = pCoefW[idx(kNumBCGrid + kNx - 1, j, k)];
@@ -2064,8 +2937,7 @@ int MACSolver3D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 			|| m_BC->m_BC_PE == BC3D::OUTLET || m_BC->m_BC_PE == BC3D::PRESSURE)) {
 			AColsDic["E"] = -1;
 			AValsDic["E"] = 0.0;
-			// AValsDic["C"] -= pCoefE[idx(i, j, k)] / (kDx * kDx);
-			rhs[idx(i, j, k)] -= pCoefE[idx(i, j, k)] / (kDx * kDx) * (m_BC->m_BC_DirichletConstantPE);
+			rhs[idx(i, j, k)] -= pCoefE[idx(i, j, k)] / (kDx * kDx) * (2.0 * m_BC->m_BC_DirichletConstantPE);
 		}
 		else if (i == kNumBCGrid + kNx - 1 && m_BC->m_BC_PE == BC3D::PERIODIC) {
 			AValsDic["E"] = pCoefE[idx(kNumBCGrid, j, k)];
@@ -2080,8 +2952,7 @@ int MACSolver3D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 			|| m_BC->m_BC_PS == BC3D::OUTLET || m_BC->m_BC_PS == BC3D::PRESSURE)) {
 			AColsDic["S"] = -1;
 			AValsDic["S"] = 0.0;
-			// AValsDic["C"] -= pCoefS[idx(i, j, k)] / (kDy * kDy);
-			rhs[idx(i, j, k)] -= pCoefS[idx(i, j, k)] / (kDy * kDy) * (m_BC->m_BC_DirichletConstantPS);
+			rhs[idx(i, j, k)] -= pCoefS[idx(i, j, k)] / (kDy * kDy) * (2.0 * m_BC->m_BC_DirichletConstantPS);
 		}
 		else if (j == kNumBCGrid && m_BC->m_BC_PS == BC3D::PERIODIC) {
 			AValsDic["S"] = pCoefS[idx(i, kNumBCGrid + kNy - 1, k)];
@@ -2097,7 +2968,7 @@ int MACSolver3D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 			AColsDic["N"] = -1;
 			AValsDic["N"] = 0.0;
 			// AValsDic["C"] -= pCoefN[idx(i, j, k)] / (kDy * kDy);
-			rhs[idx(i, j, k)] -= pCoefN[idx(i, j, k)] / (kDy * kDy) * (m_BC->m_BC_DirichletConstantPN);
+			rhs[idx(i, j, k)] -= pCoefN[idx(i, j, k)] / (kDy * kDy) * (2.0 * m_BC->m_BC_DirichletConstantPN);
 		}
 		else if (j == kNumBCGrid + kNy - 1 && m_BC->m_BC_PN == BC3D::PERIODIC) {
 			AValsDic["N"] = pCoefN[idx(i, kNumBCGrid, k)];
@@ -2112,8 +2983,7 @@ int MACSolver3D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 			|| m_BC->m_BC_PB == BC3D::OUTLET || m_BC->m_BC_PB == BC3D::PRESSURE)) {
 			AColsDic["B"] = -1;
 			AValsDic["B"] = 0.0;
-			// AValsDic["C"] -= pCoefB[idx(i, j, k)] / (kDz * kDz);
-			rhs[idx(i, j, k)] -= pCoefB[idx(i, j, k)] / (kDz * kDz) * (m_BC->m_BC_DirichletConstantPB);
+			rhs[idx(i, j, k)] -= pCoefB[idx(i, j, k)] / (kDz * kDz) * (2.0 * m_BC->m_BC_DirichletConstantPB);
 		}
 		else if (k == kNumBCGrid && m_BC->m_BC_PB == BC3D::PERIODIC) {
 			AValsDic["B"] = pCoefB[idx(i, j, kNumBCGrid + kNz - 1)];
@@ -2128,8 +2998,7 @@ int MACSolver3D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 			|| m_BC->m_BC_PT == BC3D::OUTLET || m_BC->m_BC_PT == BC3D::PRESSURE)) {
 			AColsDic["T"] = -1;
 			AValsDic["T"] = 0.0;
-			// AValsDic["C"] -= pCoefT[idx(i, j, k)] / (kDz * kDz);
-			rhs[idx(i, j, k)] -= pCoefT[idx(i, j, k)] / (kDz * kDz) * (m_BC->m_BC_DirichletConstantPT);
+			rhs[idx(i, j, k)] -= pCoefT[idx(i, j, k)] / (kDz * kDz) * (2.0 * m_BC->m_BC_DirichletConstantPT);
 		}
 		else if (k == kNumBCGrid + kNz - 1 && m_BC->m_BC_PT == BC3D::PERIODIC) {
 			AValsDic["T"] = pCoefT[idx(i, j, kNumBCGrid)];
@@ -2197,8 +3066,8 @@ int MACSolver3D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 
 	if (m_PoissonSolverType == POISSONTYPE::CG) {
 		// std::cout << "Poisson : CG" << std::endl;
-		m_Poisson->CG_2FUniform_3D(ps, rhs, AVals, ACols, ARowIdx,
-			DiagVals, DiagCols, DiagRowIdx, kLenX, kLenY, kLenZ, kDx, kDy, kDz, m_BC, maxIter);
+		m_Poisson->CG_2FUniformP_3D(ps, rhs, AVals, ACols, ARowIdx,
+			DiagVals, DiagCols, DiagRowIdx, m_BC, maxIter);
 	
 		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
@@ -2208,8 +3077,8 @@ int MACSolver3D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 	}
 	else if (m_PoissonSolverType == POISSONTYPE::BICGSTAB) {
 		// std::cout << "Poisson : BiCG" << std::endl;
-		m_Poisson->BiCGStab_2FUniform_3D(ps, rhs, AVals, ACols, ARowIdx,
-			DiagVals, DiagCols, DiagRowIdx, kLenX, kLenY, kLenZ, kDx, kDy, kDz, m_BC, maxIter);
+		m_Poisson->BiCGStab_2FUniformP_3D(ps, rhs, AVals, ACols, ARowIdx,
+			DiagVals, DiagCols, DiagRowIdx, m_BC, maxIter);
 
 		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
@@ -2380,13 +3249,12 @@ double MACSolver3D::UpdateDt(const std::vector<double>& u, const std::vector<dou
 	}
 	
 	Cefl = uAMax / kDx + vAMax / kDy + wAMax / kDz;
-	Vefl = std::max(kMuH, kMuL) * (2.0 / (kDx * kDx) + 2.0 / (kDy * kDy) + 2.0 / (kDz * kDz));
-	Gefl = std::max(std::max(std::sqrt(std::fabs(kG) / kDy), std::sqrt(std::fabs(kG) / kDx)), std::sqrt(std::fabs(kG) / kDz));
+	Gefl = std::max(std::max(std::sqrt(std::fabs(kG) / kDx), std::sqrt(std::fabs(kG) / kDy)), std::sqrt(std::fabs(kG) / kDz));
 	Sefl = std::sqrt((kSigma / std::min(std::min(kDx, kDy), kDz))
 		/ (std::min(kRhoH, kRhoL) * std::pow(std::min(std::min(kDx, kDy), kDz), 2.0)));
 	dt = std::min(dt,
-		kCFL / (0.5 * (Cefl + Vefl +
-		std::sqrt(std::pow(Cefl + Vefl, 2.0) +
+		kCFL / (0.5 * (Cefl +
+		std::sqrt(std::pow(Cefl, 2.0) +
 		4.0 * Gefl * Gefl + 4.0 * Sefl * Sefl))));
 
 	if (std::isnan(dt) || std::isinf(dt)) {

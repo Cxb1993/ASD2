@@ -13,10 +13,10 @@ int MAC3DTest_NonSurfaceTension() {
 	// # of cells
 	const int nx = 128, ny = 128, nz = 128;
 	// related to initialize level set
-	const double baseX = 0.0, baseY = 0.0, baseZ = 0.0, lenX = 0.04, lenY = 0.04, lenZ = 0.04, cfl = 0.1;
-	double radius = 0.01, x = 0.0, y = 0.0, z = 0.0, d = 0.0;
+	const double baseX = 0.0, baseY = 0.0, baseZ = 0.0, lenX = 1.0, lenY = 1.0, lenZ = 1.0, cfl = 0.5;
+	double radius = 0.2, x = 0.0, y = 0.0, z = 0.0, d = 0.0;
 
-	const int maxiter = 10, niterskip = 1, num_bc_grid = 3;
+	const int maxiter = 2, niterskip = 1, num_bc_grid = 3;
 	const int64_t arrSize = (nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid) * (nz + 2 * num_bc_grid);
 	const double maxtime = 0.06;
 	const bool writeVTK = false;
@@ -42,18 +42,17 @@ int MAC3DTest_NonSurfaceTension() {
 		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nz))->str();
 	const std::string fname_div = outfname_stream2.str();
 	const int iterskip = 1;
-	const TIMEORDERENUM timeOrder = TIMEORDERENUM::EULER;
 	double ambientPressure = 1.0;
 	int stat = 0;
 
 	std::unique_ptr<MACSolver3D> MSolver;
 	MSolver = std::make_unique<MACSolver3D>(rhoH, rhoL, muH, muL, gConstant, GAxis,
 		L, U, sigma, nx, ny, nz, baseX, baseY, baseY, lenX, lenY, lenZ,
-		timeOrder, cfl, maxtime, maxiter, niterskip, num_bc_grid, writeVTK);
+		cfl, maxtime, maxiter, niterskip, num_bc_grid, writeVTK);
 	MSolver->SetBC_U_3D("wall", "wall", "wall", "wall", "inlet", "outlet");
 	MSolver->SetBC_V_3D("wall", "wall", "wall", "wall", "inlet", "outlet");
 	MSolver->SetBC_W_3D("wall", "wall", "wall", "wall", "inlet", "outlet");
-	MSolver->SetBC_P_3D("wall", "wall", "wall", "wall", "pressure", "pressure");
+	MSolver->SetBC_P_3D("wall", "wall", "wall", "wall", "neumann", "pressure");
 	MSolver->SetBCConstantUW(0.0);
 	MSolver->SetBCConstantUE(0.0);
 	MSolver->SetBCConstantUS(0.0);
@@ -76,6 +75,7 @@ int MAC3DTest_NonSurfaceTension() {
 	MSolver->SetPLTType(PLTTYPE::BINARY);
 
 	MSolver->SetPoissonSolver(POISSONTYPE::CG);
+	MSolver->SetImplicitSolver(POISSONTYPE::CG);
 	// MSolver->SetPoissonSolver(POISSONTYPE::BICGSTAB);
 	const int poissonMaxIter = 2500;
 
@@ -114,14 +114,14 @@ int MAC3DTest_NonSurfaceTension() {
 		z = baseZ + (k + 0.5 - num_bc_grid) * dz;
 
 		// d - inside : -, outside : +
-		d = std::sqrt(std::pow(x - 0.02, 2.0) + std::pow(y - 0.02, 2.0) + std::pow(z - 0.02, 2.0)) - radius;
+		d = std::sqrt(std::pow(x - lenX * 0.5, 2.0) + std::pow(y - lenY * 0.5, 2.0) + std::pow(z - lenZ * 0.5, 2.0)) - radius;
 
 		// ls - inside : -(gas), outside : +(liquid)
 		ls[idx3_3D(ny, nz, i, j, k)] = d;
 
 		MSolver->m_u[idx3_3D(ny, nz, i, j, k)] = 0.0;
 		MSolver->m_v[idx3_3D(ny, nz, i, j, k)] = 0.0;
-		MSolver->m_w[idx3_3D(ny, nz, i, j, k)] = 1.0;
+		MSolver->m_w[idx3_3D(ny, nz, i, j, k)] = 0.0;
 		MSolver->m_p[idx3_3D(ny, nz, i, j, k)] = ambientPressure;
 		MSolver->m_ps[idx3_3D(ny, nz, i, j, k)] = ambientPressure;
 	}
@@ -135,6 +135,7 @@ int MAC3DTest_NonSurfaceTension() {
 	MSolver->m_dt = cfl * std::min(dx, dy) / U;
 	std::cout << " dt : " << MSolver->m_dt << std::endl;
 
+	std::vector<double> rhsU(arrSize), rhsV(arrSize), rhsW(arrSize);
 	std::vector<double> uhat(arrSize), vhat(arrSize), what(arrSize);
 	std::vector<double> div(arrSize);
 	MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
@@ -157,11 +158,17 @@ int MAC3DTest_NonSurfaceTension() {
 		H = MSolver->UpdateHeavisideFunc(ls);
 		HSmooth = MSolver->UpdateSmoothHeavisideFunc(ls);
 
-		// Get intermediate velocity
-		MSolver->GetIntermediateVel(LSolver, ls, MSolver->m_u, MSolver->m_v, MSolver->m_w, uhat, vhat, what, HSmooth);
+		rhsU = MSolver->GetRHSU(LSolver, ls, MSolver->m_u, MSolver->m_v, MSolver->m_w, H);
+		rhsV = MSolver->GetRHSV(LSolver, ls, MSolver->m_u, MSolver->m_v, MSolver->m_w, H);
+		rhsW = MSolver->GetRHSW(LSolver, ls, MSolver->m_u, MSolver->m_v, MSolver->m_w, H);
+
+		uhat = MSolver->GetUHat(ls, rhsU, H, poissonMaxIter);
+		vhat = MSolver->GetVHat(ls, rhsV, H, poissonMaxIter);
+		what = MSolver->GetWHat(ls, rhsW, H, poissonMaxIter);
 
 		MSolver->ApplyBC_U_3D(uhat);
 		MSolver->ApplyBC_V_3D(vhat);
+		MSolver->ApplyBC_W_3D(what);
 
 		// From intermediate velocity, get divergence
 		div = MSolver->GetDivergence(uhat, vhat, what);
@@ -193,8 +200,10 @@ int MAC3DTest_NonSurfaceTension() {
 
 			std::cout << "Non SurfaceTension : " << std::ctime(&t) << " " << MSolver->m_iter << " " << MSolver->m_curTime << " " << MSolver->m_dt << " " << std::endl;
 
+			// MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
+			// 	MSolver->m_u, MSolver->m_v, MSolver->m_w, MSolver->m_ps, ls);
 			MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
-				MSolver->m_u, MSolver->m_v, MSolver->m_w, MSolver->m_ps, ls);
+				uhat, vhat, what, MSolver->m_ps, ls);
 		}
 		std::fill(uhat.begin(), uhat.end(), 0.0);
 		std::fill(vhat.begin(), vhat.end(), 0.0);
@@ -231,10 +240,10 @@ int MAC3DTest_StationaryBubble() {
 	// # of cells
 	const int nx = 128, ny = 128, nz = 128;
 	// related to initialize level set
-	const double baseX = 0.0, baseY = 0.0, baseZ = 0.0, lenX = 0.04, lenY = 0.04, lenZ = 0.04, cfl = 0.1;
+	const double baseX = 0.0, baseY = 0.0, baseZ = 0.0, lenX = 0.04, lenY = 0.04, lenZ = 0.04, cfl = 0.5;
 	double radius = 0.01, x = 0.0, y = 0.0, z = 0.0, d = 0.0;
 
-	const int maxiter = 20, niterskip = 1, num_bc_grid = 3;
+	const int maxiter = 5, niterskip = 1, num_bc_grid = 3;
 	const int64_t arrSize = (nx + 2 * num_bc_grid) * (ny + 2 * num_bc_grid) * (nz + 2 * num_bc_grid);
 	const double maxtime = 0.06;
 	const bool writeVTK = false;
@@ -260,13 +269,12 @@ int MAC3DTest_StationaryBubble() {
 		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nz))->str();
 	const std::string fname_div = outfname_stream2.str();
 	const int iterskip = 1;
-	const TIMEORDERENUM timeOrder = TIMEORDERENUM::EULER;
 	int stat = 0;
 
 	std::unique_ptr<MACSolver3D> MSolver;
 	MSolver = std::make_unique<MACSolver3D>(rhoH, rhoL, muH, muL, gConstant, GAxis,
 		L, U, sigma, nx, ny, nz, baseX, baseY, baseY, lenX, lenY, lenZ,
-		timeOrder, cfl, maxtime, maxiter, niterskip, num_bc_grid, writeVTK);
+		cfl, maxtime, maxiter, niterskip, num_bc_grid, writeVTK);
 	MSolver->SetBC_U_3D("wall", "wall", "wall", "wall", "wall", "wall");
 	MSolver->SetBC_V_3D("wall", "wall", "wall", "wall", "wall", "wall");
 	MSolver->SetBC_W_3D("wall", "wall", "wall", "wall", "wall", "wall");
@@ -289,9 +297,11 @@ int MAC3DTest_StationaryBubble() {
 	MSolver->SetBCConstantWN(0.0);
 	MSolver->SetBCConstantWB(0.0);
 	MSolver->SetBCConstantWT(0.0);
+	MSolver->SetAmbientPressure(1.0);
 	MSolver->SetPLTType(PLTTYPE::BINARY);
 
 	MSolver->SetPoissonSolver(POISSONTYPE::CG);
+	MSolver->SetImplicitSolver(POISSONTYPE::CG);
 	const int poissonMaxIter = 2500;
 
 	std::shared_ptr<LevelSetSolver3D> LSolver;
@@ -343,6 +353,7 @@ int MAC3DTest_StationaryBubble() {
 	MSolver->m_dt = cfl * std::min(dx, dy) / U;
 	std::cout << " dt : " << MSolver->m_dt << std::endl;
 
+	std::vector<double> rhsU(arrSize), rhsV(arrSize), rhsW(arrSize);
 	std::vector<double> uhat(arrSize), vhat(arrSize), what(arrSize);
 	std::vector<double> div(arrSize);
 	MSolver->OutRes(MSolver->m_iter, MSolver->m_curTime, fname_vel, fname_div,
@@ -365,11 +376,17 @@ int MAC3DTest_StationaryBubble() {
 		H = MSolver->UpdateHeavisideFunc(ls);
 		HSmooth = MSolver->UpdateSmoothHeavisideFunc(ls);
 
-		// Get intermediate velocity
-		MSolver->GetIntermediateVel(LSolver, ls, MSolver->m_u, MSolver->m_v, MSolver->m_w, uhat, vhat, what, HSmooth);
+		rhsU = MSolver->GetRHSU(LSolver, ls, MSolver->m_u, MSolver->m_v, MSolver->m_w, H);
+		rhsV = MSolver->GetRHSV(LSolver, ls, MSolver->m_u, MSolver->m_v, MSolver->m_w, H);
+		rhsW = MSolver->GetRHSW(LSolver, ls, MSolver->m_u, MSolver->m_v, MSolver->m_w, H);
+
+		uhat = MSolver->GetUHat(ls, rhsU, H, poissonMaxIter);
+		vhat = MSolver->GetVHat(ls, rhsV, H, poissonMaxIter);
+		what = MSolver->GetWHat(ls, rhsW, H, poissonMaxIter);
 
 		MSolver->ApplyBC_U_3D(uhat);
 		MSolver->ApplyBC_V_3D(vhat);
+		MSolver->ApplyBC_W_3D(what);
 		
 		// From intermediate velocity, get divergence
 		div = MSolver->GetDivergence(uhat, vhat, what);
