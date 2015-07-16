@@ -1755,7 +1755,7 @@ int MACSolver2DAxisym::SolvePoisson(std::vector<double>& ps, const std::vector<d
 				|| m_BC->m_BC_PW == BC2D::OUTLET || m_BC->m_BC_PW == BC2D::PRESSURE)) {
 			AColsDic["W"] = -1;
 			AValsDic["W"] = 0.0;
-			rhs[idx(i, j)] -= pCoefW[idx(i, j)] / (kDr * kDr) * (2.0 * m_BC->m_BC_DirichletConstantPW);
+			rhs[idx(i, j)] -= pCoefW[idx(i, j)] / (kDr * kDr) * (2.0 * m_dt * m_BC->m_BC_DirichletConstantPW);
 		}
 		else if (i == kNumBCGrid && m_BC->m_BC_PW == BC2D::PERIODIC) {
 			AValsDic["W"] = pCoefW[idx(kNumBCGrid + kNr - 1, j)];
@@ -1772,7 +1772,7 @@ int MACSolver2DAxisym::SolvePoisson(std::vector<double>& ps, const std::vector<d
 			|| m_BC->m_BC_PE == BC2D::OUTLET || m_BC->m_BC_PE == BC2D::PRESSURE)) {
 			AColsDic["E"] = -1;
 			AValsDic["E"] = 0.0;
-			rhs[idx(i, j)] -= pCoefE[idx(i, j)] / (kDr * kDr) * (2.0 * m_BC->m_BC_DirichletConstantPE);
+			rhs[idx(i, j)] -= pCoefE[idx(i, j)] / (kDr * kDr) * (2.0 * m_dt * m_BC->m_BC_DirichletConstantPE);
 		}
 		else if (i == kNumBCGrid + kNr - 1 && m_BC->m_BC_PE == BC2D::PERIODIC) {
 			AValsDic["E"] = pCoefE[idx(kNumBCGrid, j)];
@@ -1788,7 +1788,7 @@ int MACSolver2DAxisym::SolvePoisson(std::vector<double>& ps, const std::vector<d
 			|| m_BC->m_BC_PS == BC2D::OUTLET || m_BC->m_BC_PS == BC2D::PRESSURE)) {
 			AColsDic["S"] = -1;
 			AValsDic["S"] = 0.0;
-			rhs[idx(i, j)] -= pCoefS[idx(i, j)] / (kDz * kDz) * (2.0 * m_BC->m_BC_DirichletConstantPS);
+			rhs[idx(i, j)] -= pCoefS[idx(i, j)] / (kDz * kDz) * (2.0 * m_dt * m_BC->m_BC_DirichletConstantPS);
 		}
 		else if (j == kNumBCGrid && m_BC->m_BC_PS == BC2D::PERIODIC) {
 			AValsDic["S"] = pCoefS[idx(i, kNumBCGrid + kNz - 1)];
@@ -1804,7 +1804,7 @@ int MACSolver2DAxisym::SolvePoisson(std::vector<double>& ps, const std::vector<d
 			|| m_BC->m_BC_PN == BC2D::OUTLET || m_BC->m_BC_PN == BC2D::PRESSURE)) {
 			AColsDic["N"] = -1;
 			AValsDic["N"] = 0.0;
-			rhs[idx(i, j)] -= pCoefN[idx(i, j)] / (kDz * kDz) * (2.0 * m_BC->m_BC_DirichletConstantPN);
+			rhs[idx(i, j)] -= pCoefN[idx(i, j)] / (kDz * kDz) * (2.0 * m_dt * m_BC->m_BC_DirichletConstantPN);
 		}
 		else if (j == kNumBCGrid + kNz - 1 && m_BC->m_BC_PN == BC2D::PERIODIC) {
 			AValsDic["N"] = pCoefN[idx(i, kNumBCGrid)];
@@ -2168,7 +2168,7 @@ double MACSolver2DAxisym::UpdateDt(const std::vector<double>& u, const std::vect
 
 int MACSolver2DAxisym::SetBC_U_2D(std::string BC_W, std::string BC_E,	std::string BC_S, std::string BC_N) {
 	if (!m_BC) {
-		m_BC = std::make_shared<BoundaryCondition2D>(kNr, kNz, kNumBCGrid);
+		m_BC = std::make_shared<BoundaryCondition2D>(kNr, kNz, kDr, kDz, kNumBCGrid);
 	}
 
 	m_BC->SetBC_U_2D(BC_W, BC_E, BC_S, BC_N);
@@ -2178,7 +2178,7 @@ int MACSolver2DAxisym::SetBC_U_2D(std::string BC_W, std::string BC_E,	std::strin
 
 int MACSolver2DAxisym::SetBC_V_2D(std::string BC_W, std::string BC_E, std::string BC_S, std::string BC_N) {
 	if (!m_BC) {
-		m_BC = std::make_shared<BoundaryCondition2D>(kNr, kNz, kNumBCGrid);
+		m_BC = std::make_shared<BoundaryCondition2D>(kNr, kNz, kDr, kDz, kNumBCGrid);
 	}
 
 	m_BC->SetBC_V_2D(BC_W, BC_E, BC_S, BC_N);
@@ -2188,7 +2188,7 @@ int MACSolver2DAxisym::SetBC_V_2D(std::string BC_W, std::string BC_E, std::strin
 
 int MACSolver2DAxisym::SetBC_P_2D(std::string BC_W, std::string BC_E, std::string BC_S, std::string BC_N) {
 	if (!m_BC) {
-		m_BC = std::make_shared<BoundaryCondition2D>(kNr, kNz, kNumBCGrid);
+		m_BC = std::make_shared<BoundaryCondition2D>(kNr, kNz, kDr, kDz, kNumBCGrid);
 	}
 
 	m_BC->SetBC_P_2D(BC_W, BC_E, BC_S, BC_N);

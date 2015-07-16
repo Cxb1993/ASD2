@@ -132,7 +132,7 @@ public:
 		const std::vector<double>& ls, const std::vector<double>& lsB,
 		const std::vector<double>& H);
 	double UpdateDt(const std::vector<double>& u, const std::vector<double>& v);
-
+	
 	// BC
 	int SetBC_U_2D(std::string BC_W, std::string BC_E, std::string BC_S, std::string BC_N);
 	int SetBC_V_2D(std::string BC_W, std::string BC_E, std::string BC_S, std::string BC_N);

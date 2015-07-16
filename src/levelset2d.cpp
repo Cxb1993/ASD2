@@ -924,7 +924,7 @@ std::vector<double> LevelSetSolver2D::GetSmoothedSignFunc(const std::vector<doub
 
 int LevelSetSolver2D::SetBC_U_2D(std::string BC_W, std::string BC_E, std::string BC_S, std::string BC_N) {
 	if (!m_BC) {
-		m_BC = std::make_shared<BoundaryCondition2D>(kNx, kNy, kNumBCGrid);
+		m_BC = std::make_shared<BoundaryCondition2D>(kNx, kNy, kDx, kDy, kNumBCGrid);
 	}
 
 	m_BC->SetBC_U_2D(BC_W, BC_E, BC_S, BC_N);
@@ -934,7 +934,7 @@ int LevelSetSolver2D::SetBC_U_2D(std::string BC_W, std::string BC_E, std::string
 
 int LevelSetSolver2D::SetBC_V_2D(std::string BC_W, std::string BC_E, std::string BC_S, std::string BC_N) {
 	if (!m_BC) {
-		m_BC = std::make_shared<BoundaryCondition2D>(kNx, kNy, kNumBCGrid);
+		m_BC = std::make_shared<BoundaryCondition2D>(kNx, kNy, kDx, kDy, kNumBCGrid);
 	}
 
 	m_BC->SetBC_V_2D(BC_W, BC_E, BC_S, BC_N);
@@ -944,7 +944,7 @@ int LevelSetSolver2D::SetBC_V_2D(std::string BC_W, std::string BC_E, std::string
 
 int LevelSetSolver2D::SetBC_P_2D(std::string BC_W, std::string BC_E, std::string BC_S, std::string BC_N) {
 	if (!m_BC) {
-		m_BC = std::make_shared<BoundaryCondition2D>(kNx, kNy, kNumBCGrid);
+		m_BC = std::make_shared<BoundaryCondition2D>(kNx, kNy, kDx, kDy, kNumBCGrid);
 	}
 
 	m_BC->SetBC_P_2D(BC_W, BC_E, BC_S, BC_N);

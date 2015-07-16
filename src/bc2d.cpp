@@ -1,8 +1,13 @@
 #include "bc2d.h"
 
 BoundaryCondition2D::BoundaryCondition2D(int nx, int ny, int num_bc_grid)
-	: kNx(nx), kNy(ny), kNumBCGrid(num_bc_grid) {
+	: kNx(nx), kNy(ny), kNumBCGrid(num_bc_grid), kDx(-1.0), kDy(-1.0) {
 }
+
+BoundaryCondition2D::BoundaryCondition2D(int nx, int ny, double dx, double dy, int num_bc_grid)
+	: kNx(nx), kNy(ny), kNumBCGrid(num_bc_grid), kDx(dx), kDy(dy) {
+}
+
 
 inline int BoundaryCondition2D::idx(int i, int j) {
 	return (j + (kNy + 2 * kNumBCGrid) * (i));
@@ -229,6 +234,8 @@ int BoundaryCondition2D::SetBC_P_2D(std::string BC_W, std::string BC_E,	std::str
 		m_BC_PW = BC2D::OUTLET;
 	else if (BC_W == "pressure")
 		m_BC_PW = BC2D::PRESSURE;
+	else if (BC_W == "lsfree")
+		m_BC_PW = BC2D::LSFREE;
 	// not supported
 	else
 		m_BC_PW = BC2D::CUSTOM;
@@ -247,6 +254,8 @@ int BoundaryCondition2D::SetBC_P_2D(std::string BC_W, std::string BC_E,	std::str
 		m_BC_PE = BC2D::OUTLET;
 	else if (BC_E == "pressure")
 		m_BC_PE = BC2D::PRESSURE;
+	else if (BC_E == "lsfree")
+		m_BC_PE = BC2D::LSFREE;
 	// not supported
 	else
 		m_BC_PE = BC2D::CUSTOM;
@@ -265,6 +274,8 @@ int BoundaryCondition2D::SetBC_P_2D(std::string BC_W, std::string BC_E,	std::str
 		m_BC_PS = BC2D::OUTLET;
 	else if (BC_S == "pressure")
 		m_BC_PS = BC2D::PRESSURE;
+	else if (BC_S == "lsfree")
+		m_BC_PS = BC2D::LSFREE;
 	// not supported
 	else
 		m_BC_PS = BC2D::CUSTOM;
@@ -283,6 +294,8 @@ int BoundaryCondition2D::SetBC_P_2D(std::string BC_W, std::string BC_E,	std::str
 		m_BC_PN = BC2D::OUTLET;
 	else if (BC_N == "pressure")
 		m_BC_PN = BC2D::PRESSURE;
+	else if (BC_N == "lsfree")
+		m_BC_PN = BC2D::LSFREE;
 	// not supported
 	else
 		m_BC_PN = BC2D::CUSTOM;
@@ -434,6 +447,8 @@ void BoundaryCondition2D::BC_PW(std::vector<double>& arr) {
 		BC_DirichletPW(arr);
 	else if (m_BC_PW == BC2D::PRESSURE)
 		BC_DirichletPW(arr);
+	else if (m_BC_PW == BC2D::LSFREE)
+		BC_LSFreeBoundaryPW(arr);
 }
 
 void BoundaryCondition2D::BC_PE(std::vector<double>& arr) {
@@ -451,6 +466,8 @@ void BoundaryCondition2D::BC_PE(std::vector<double>& arr) {
 		BC_DirichletPE(arr);
 	else if (m_BC_PE == BC2D::PRESSURE)
 		BC_DirichletPE(arr);
+	else if (m_BC_PE == BC2D::LSFREE)
+		BC_LSFreeBoundaryPE(arr);
 }
 
 void BoundaryCondition2D::BC_PS(std::vector<double>& arr) {
@@ -468,6 +485,8 @@ void BoundaryCondition2D::BC_PS(std::vector<double>& arr) {
 		BC_DirichletPS(arr);
 	else if (m_BC_PS == BC2D::PRESSURE)
 		BC_DirichletPS(arr);
+	else if (m_BC_PS == BC2D::LSFREE)
+		BC_LSFreeBoundaryPS(arr);
 }
 
 void BoundaryCondition2D::BC_PN(std::vector<double>& arr) {
@@ -485,6 +504,8 @@ void BoundaryCondition2D::BC_PN(std::vector<double>& arr) {
 		BC_DirichletPN(arr);
 	else if (m_BC_PN == BC2D::PRESSURE)
 		BC_DirichletPN(arr);
+	else if (m_BC_PN == BC2D::LSFREE)
+		BC_LSFreeBoundaryPN(arr);
 }
 
 void BoundaryCondition2D::BC_PeriodicUW(std::vector<double>& arr) {
@@ -797,3 +818,42 @@ void BoundaryCondition2D::BC_DirichletPN(std::vector<double>& arr) {
 	for (int j = 0; j < kNumBCGrid; j++)
 		arr[idx(i, kNy + kNumBCGrid * 2 - j - 1)] = -arr[idx(i, kNy + j)] + 2.0 * m_BC_DirichletConstantPN;
 }
+
+void BoundaryCondition2D::BC_LSFreeBoundaryPW(std::vector<double>& arr) {
+	if (kDx < 0.0)
+		std::cout << "BC Initialization Error : kDx not set" << std::endl;
+
+	for (int i = kNumBCGrid - 1; i >= 0; i--)
+	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
+		arr[idx(i, j)] = arr[idx(i + 1, j)] + kDx * (arr[idx(i + 1, j)] - arr[idx(i + 2, j)]) / kDx;
+}
+
+void BoundaryCondition2D::BC_LSFreeBoundaryPE(std::vector<double>& arr) {
+	if (kDx < 0.0)
+		std::cout << "BC Initialization Error : kDx not set" << std::endl;
+
+	for (int i = 0; i < kNumBCGrid; i++)
+	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
+		arr[idx(kNx + kNumBCGrid + i, j)] = arr[idx(kNx + kNumBCGrid + i - 1, j)] 
+			+ kDx * (arr[idx(kNx + kNumBCGrid + i - 1, j)] - arr[idx(kNx + kNumBCGrid + i - 2, j)]) / kDx;
+}
+
+void BoundaryCondition2D::BC_LSFreeBoundaryPS(std::vector<double>& arr) {
+	if (kDy < 0.0)
+		std::cout << "BC Initialization Error : kDy not set" << std::endl;
+
+	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+	for (int j = kNumBCGrid - 1; j >= 0; j--)
+		arr[idx(i, j)] = arr[idx(i, j + 1)] + kDy * (arr[idx(i, j + 1)] - arr[idx(i, j + 2)]) / kDy;
+}
+
+void BoundaryCondition2D::BC_LSFreeBoundaryPN(std::vector<double>& arr) {
+	if (kDy < 0.0)
+		std::cout << "BC Initialization Error : kDy not set" << std::endl;
+
+	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+	for (int j = 0; j < kNumBCGrid; j++)
+		arr[idx(i, kNy + kNumBCGrid + j)] = arr[idx(i, kNy + kNumBCGrid + j - 1)]
+		+ kDy * (arr[idx(i, kNy + kNumBCGrid + j - 1)] - arr[idx(i, kNy + kNumBCGrid + j - 2)]) / kDy;
+}
+

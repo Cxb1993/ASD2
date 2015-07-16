@@ -20,9 +20,11 @@
 class BoundaryCondition2D {
 public:
 	BoundaryCondition2D(int nx, int ny, int num_bc_grid);
+	BoundaryCondition2D(int nx, int ny, double dx, double dy, int num_bc_grid);
 
 	const int kNx, kNy;
 	const int kNumBCGrid;
+	const double kDx, kDy;
 	double m_AmbientPressure;
 	// Boundary Condition Variables
 	
@@ -113,6 +115,13 @@ public:
 	void SetBCConstantPE(double BC_ConstantE);
 	void SetBCConstantPS(double BC_ConstantS);
 	void SetBCConstantPN(double BC_ConstantN);
+	
+	// Free boundary condition for Level Set
+	// Extrpolate level set
+	void BC_LSFreeBoundaryPW(std::vector<double>& arr);
+	void BC_LSFreeBoundaryPE(std::vector<double>& arr);
+	void BC_LSFreeBoundaryPS(std::vector<double>& arr);
+	void BC_LSFreeBoundaryPN(std::vector<double>& arr);
 
 	void SetAmbientPressure(double ambientPressure);
 };

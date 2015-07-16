@@ -1185,13 +1185,13 @@ int MAC2DAxisymTest_NonSurfaceTension() {
 		cfl, maxtime, maxiter, niterskip, num_bc_grid, writeVTK);
 	MSolver->SetBC_U_2D("axisym", "wall", "inlet", "outlet");
 	MSolver->SetBC_V_2D("axisym", "wall", "inlet", "outlet");
-	MSolver->SetBC_P_2D("neumann", "neumann", "neumann", "pressure");
+	MSolver->SetBC_P_2D("neumann", "wall", "neumann", "pressure");
 	MSolver->SetBCConstantUE(0.0);
 	MSolver->SetBCConstantUS(0.0);
 	MSolver->SetBCConstantUN(0.0);
 	MSolver->SetBCConstantVE(0.0);
 	MSolver->SetBCConstantVS(1.0);
-	MSolver->SetBCConstantVN(1.0);
+	MSolver->SetBCConstantVN(0.0);
 	MSolver->SetAmbientPressure(ambientPressure);
 	MSolver->SetPLTType(PLTTYPE::BOTH);
 
@@ -1211,7 +1211,7 @@ int MAC2DAxisymTest_NonSurfaceTension() {
 	// init velocity and pseudo-pressure
 	MSolver->AllocateVariables();
 
-	LSolver->SetBC_P_2D("axisym", "neumann", "neumann", "neumann");
+	LSolver->SetBC_P_2D("axisym", "lsfree", "lsfree", "lsfree");
 	LSolver->SetBCConstantPW(0.0);
 	LSolver->SetBCConstantPE(0.0);
 	LSolver->SetBCConstantPS(0.0);
