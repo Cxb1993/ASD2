@@ -1001,8 +1001,8 @@ std::vector<double> MACSolver2DAxisym::GetUHat(const std::vector<double>& ls, co
 			rPW = (i + 0.5) * kDr;
 			rPM = (i + 1.5) * kDr;
 			
-			// i (without boudnary array) = i' + kNumBCGrid + 1 (with boundary array)
-			// j (without boudnary array) = j' + kNumBCGrid (with boundary array)
+			// i (without boundary array) = i' + kNumBCGrid + 1 (with boundary array)
+			// j (without boundary array) = j' + kNumBCGrid (with boundary array)
 			lsW = ls[idx(i + kNumBCGrid, j + kNumBCGrid)];
 			lsM = ls[idx(i + kNumBCGrid + 1, j + kNumBCGrid)];
 			muW = mu[idx(i + kNumBCGrid, j + kNumBCGrid)];
@@ -1086,8 +1086,8 @@ std::vector<double> MACSolver2DAxisym::GetUHat(const std::vector<double>& ls, co
 		}
 
 		for (int j = 0; j < kNz; j++) {
-			// i (without boudnary array) = i' + kNumBCGrid + 1 (with boundary array)
-			// j (without boudnary array) = j' + kNumBCGrid (with boundary array)
+			// i (without boundary array) = i' + kNumBCGrid + 1 (with boundary array)
+			// j (without boundary array) = j' + kNumBCGrid (with boundary array)
 			lsUSHalf = 0.25 * (ls[idx(i + kNumBCGrid + 1, j + kNumBCGrid)] + ls[idx(i + kNumBCGrid, j + kNumBCGrid)]
 				+ ls[idx(i + kNumBCGrid, j + kNumBCGrid - 1)] + ls[idx(i + kNumBCGrid + 1, j + kNumBCGrid - 1)]);
 			lsUNHalf = 0.25 * (ls[idx(i + kNumBCGrid + 1, j + kNumBCGrid)] + ls[idx(i + kNumBCGrid, j + kNumBCGrid)]
@@ -1276,8 +1276,8 @@ std::vector<double> MACSolver2DAxisym::GetVHat(const std::vector<double>& ls, co
 			rVWHalf = i * kDr;
 			rVEHalf = (i + 1.0) * kDr;
 			
-			// i (without boudnary array) = i' + kNumBCGrid (with boundary array)
-			// j (without boudnary array) = j' + kNumBCGrid + 1 (with boundary array)
+			// i (without boundary array) = i' + kNumBCGrid (with boundary array)
+			// j (without boundary array) = j' + kNumBCGrid + 1 (with boundary array)
 
 			lsVWHalf = 0.25 * (ls[idx(i + kNumBCGrid, j + kNumBCGrid + 1)] + ls[idx(i + kNumBCGrid - 1, j + kNumBCGrid + 1)]
 				+ ls[idx(i + kNumBCGrid, j + kNumBCGrid)] + ls[idx(i + kNumBCGrid - 1, j + kNumBCGrid)]);
@@ -1368,8 +1368,8 @@ std::vector<double> MACSolver2DAxisym::GetVHat(const std::vector<double>& ls, co
 		}
 
 		for (int j = 0; j < kNz - 1; j++) {
-			// i (without boudnary array) = i' + kNumBCGrid (with boundary array)
-			// j (without boudnary array) = j' + kNumBCGrid + 1 (with boundary array)
+			// i (without boundary array) = i' + kNumBCGrid (with boundary array)
+			// j (without boundary array) = j' + kNumBCGrid + 1 (with boundary array)
 
 			lsS = ls[idx(i + kNumBCGrid, j + kNumBCGrid)];
 			lsM = ls[idx(i + kNumBCGrid, j + kNumBCGrid + 1)];
@@ -1755,8 +1755,7 @@ int MACSolver2DAxisym::SolvePoisson(std::vector<double>& ps, const std::vector<d
 				|| m_BC->m_BC_PW == BC2D::OUTLET || m_BC->m_BC_PW == BC2D::PRESSURE)) {
 			AColsDic["W"] = -1;
 			AValsDic["W"] = 0.0;
-			// AValsDic["C"] -= pCoefW[idx(i, j)] / (kDr * kDr);
-			rhs[idx(i, j)] -= pCoefW[idx(i, j)] / (kDr * kDr) * (m_BC->m_BC_DirichletConstantPW);
+			rhs[idx(i, j)] -= pCoefW[idx(i, j)] / (kDr * kDr) * (2.0 * m_BC->m_BC_DirichletConstantPW);
 		}
 		else if (i == kNumBCGrid && m_BC->m_BC_PW == BC2D::PERIODIC) {
 			AValsDic["W"] = pCoefW[idx(kNumBCGrid + kNr - 1, j)];
@@ -1773,8 +1772,7 @@ int MACSolver2DAxisym::SolvePoisson(std::vector<double>& ps, const std::vector<d
 			|| m_BC->m_BC_PE == BC2D::OUTLET || m_BC->m_BC_PE == BC2D::PRESSURE)) {
 			AColsDic["E"] = -1;
 			AValsDic["E"] = 0.0;
-			// AValsDic["C"] -= pCoefE[idx(i, j)] / (kDr * kDr);
-			rhs[idx(i, j)] -= pCoefE[idx(i, j)] / (kDr * kDr) * (m_BC->m_BC_DirichletConstantPE);
+			rhs[idx(i, j)] -= pCoefE[idx(i, j)] / (kDr * kDr) * (2.0 * m_BC->m_BC_DirichletConstantPE);
 		}
 		else if (i == kNumBCGrid + kNr - 1 && m_BC->m_BC_PE == BC2D::PERIODIC) {
 			AValsDic["E"] = pCoefE[idx(kNumBCGrid, j)];
@@ -1790,8 +1788,7 @@ int MACSolver2DAxisym::SolvePoisson(std::vector<double>& ps, const std::vector<d
 			|| m_BC->m_BC_PS == BC2D::OUTLET || m_BC->m_BC_PS == BC2D::PRESSURE)) {
 			AColsDic["S"] = -1;
 			AValsDic["S"] = 0.0;
-			// AValsDic["C"] -= pCoefS[idx(i, j)] / (kDz * kDz);
-			rhs[idx(i, j)] -= pCoefS[idx(i, j)] / (kDz * kDz) * (m_BC->m_BC_DirichletConstantPS);
+			rhs[idx(i, j)] -= pCoefS[idx(i, j)] / (kDz * kDz) * (2.0 * m_BC->m_BC_DirichletConstantPS);
 		}
 		else if (j == kNumBCGrid && m_BC->m_BC_PS == BC2D::PERIODIC) {
 			AValsDic["S"] = pCoefS[idx(i, kNumBCGrid + kNz - 1)];
@@ -1807,8 +1804,7 @@ int MACSolver2DAxisym::SolvePoisson(std::vector<double>& ps, const std::vector<d
 			|| m_BC->m_BC_PN == BC2D::OUTLET || m_BC->m_BC_PN == BC2D::PRESSURE)) {
 			AColsDic["N"] = -1;
 			AValsDic["N"] = 0.0;
-			// AValsDic["C"] -= pCoefN[idx(i, j)] / (kDz * kDz);
-			rhs[idx(i, j)] -= pCoefN[idx(i, j)] / (kDz * kDz) * (m_BC->m_BC_DirichletConstantPN);
+			rhs[idx(i, j)] -= pCoefN[idx(i, j)] / (kDz * kDz) * (2.0 * m_BC->m_BC_DirichletConstantPN);
 		}
 		else if (j == kNumBCGrid + kNz - 1 && m_BC->m_BC_PN == BC2D::PERIODIC) {
 			AValsDic["N"] = pCoefN[idx(i, kNumBCGrid)];
@@ -2088,7 +2084,7 @@ int MACSolver2DAxisym::UpdateVel(std::vector<double>& u, std::vector<double>& v,
 
 		outF << "TITLE = VEL" << std::endl;
 		// outF << "VARIABLES = \"R\", \"Z\", \"U\", \"V\", \"Uhat\", \"Vhat\", \"LS\", \"PS\", \"pCoefEffW\", \"Rho*AWEff\", \"Rho*Px\", \"Px+AW\",\"pCoefEffS\", \"Rho*ASEff\",\"Rho*Py\", \"Py+AS\", \"UmU\", \"VmV\", \"RealDIV\", \"KAPPA\"" << std::endl;
-		outF << "VARIABLES = \"R\", \"Z\", \"U\", \"V\", \"Uhat\", \"Vhat\", \"LS\", \"PS\", \"pCoefEffW\", \"Px+AW\",\"pCoefEffS\",\"Py+AS\", \"KAPPA\"" << std::endl;
+		outF << "VARIABLES = \"R\", \"Z\", \"U\", \"V\", \"Uhat\", \"Vhat\", \"LS\", \"PS\", \"pCoefEffW\", \"Px\", \"Px+AW\",\"pCoefEffS\",\"Py\", \"Py+AS\", \"KAPPA\"" << std::endl;
 		outF.close();
 	}
 
@@ -2122,11 +2118,11 @@ int MACSolver2DAxisym::UpdateVel(std::vector<double>& u, std::vector<double>& v,
 			<< static_cast<double>(ls[idx(i, j)]) << std::string(",")
 			<< static_cast<double>(ps[idx(i, j)]) << std::string(",")
 			<< static_cast<double>(pCoefEffWVec[idx(i, j)]) << std::string(",")
-			// << static_cast<double>(aWEff[idx(i, j)]) << std::string(",")
+			<< static_cast<double>(pCoefEffWVec[idx(i, j)] * (ps[idx(i, j)] - ps[idx(i - 1, j)]) / kDr) << std::string(",")
 			// << static_cast<double>(-pCoefEffWVec[idx(i, j)] * (ps[idx(i, j)] - ps[idx(i - 1, j)]) / kDr) << std::string(",")
 			<< static_cast<double>(u[idx(i, j)] - us[idx(i, j)]) << std::string(",")
 			<< static_cast<double>(pCoefEffSVec[idx(i, j)]) << std::string(",")
-			// << static_cast<double>(aSEff[idx(i, j)]) << std::string(",")
+			<< static_cast<double>(pCoefEffSVec[idx(i, j)] * (ps[idx(i, j)] - ps[idx(i, j - 1)]) / kDz) << std::string(",")
 			// << static_cast<double>(-pCoefEffSVec[idx(i, j)] * (ps[idx(i, j)] - ps[idx(i, j - 1)]) / kDz) << std::string(",")
 			<< static_cast<double>(v[idx(i, j)] - vs[idx(i, j)]) << std::string(",")
 			// << static_cast<double>(u[idx(i, j)] / rPM + (u[idx(i + 1, j)] - u[idx(i, j)]) / kDr) << std::string(",")

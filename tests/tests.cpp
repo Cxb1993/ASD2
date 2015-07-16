@@ -31,11 +31,11 @@ int main(int argc, char *argv[]) {
 	// MAC2DTest_LargeAirBubbleRising();
 	// MAC2DTest_TaylorInstability();
 
-	// MAC2DAxisymTest_NonSurfaceTension();
+	MAC2DAxisymTest_NonSurfaceTension();
 	// MAC2DAxisymTest_StationaryBubble();
 	// MAC2DAxisymTest_SmallAirBubbleRising();
 	// MAC2DAxisymTest_WaterDropletCollison1();
 	
 	// MAC3DTest_NonSurfaceTension();
-	MAC3DTest_StationaryBubble();
+	// MAC3DTest_StationaryBubble();
 }

@@ -1153,9 +1153,9 @@ int MAC2DAxisymTest_NonSurfaceTension() {
 	// # of cells
 	const int nr = 64, nz = 128;
 	// related to initialize level set
-	const double baseR = 0.0, baseZ = 0.0, lenR = 0.02, lenZ = 0.04, cfl = 0.5;
+	const double baseR = 0.0, baseZ = 0.0, lenR = 0.5, lenZ = 1.0, cfl = 0.5;
 
-	const int maxiter = 20, niterskip = 1, num_bc_grid = 3;
+	const int maxiter = 10, niterskip = 1, num_bc_grid = 3;
 	const double maxtime = 1.0;
 	const bool writeVTK = false;
 	// length of each cell
@@ -1176,6 +1176,7 @@ int MAC2DAxisymTest_NonSurfaceTension() {
 		<< static_cast<std::ostringstream*>(&(std::ostringstream() << nz))->str();
 	std::string fname_div = outfname_stream2.str();
 	const int iterskip = 1;
+	double ambientPressure = 1.0;
 	int stat = 0;
 
 	std::unique_ptr<MACSolver2DAxisym> MSolver;
@@ -1184,14 +1185,14 @@ int MAC2DAxisymTest_NonSurfaceTension() {
 		cfl, maxtime, maxiter, niterskip, num_bc_grid, writeVTK);
 	MSolver->SetBC_U_2D("axisym", "wall", "inlet", "outlet");
 	MSolver->SetBC_V_2D("axisym", "wall", "inlet", "outlet");
-	MSolver->SetBC_P_2D("neumann", "neumann", "pressure", "pressure");
+	MSolver->SetBC_P_2D("neumann", "neumann", "neumann", "pressure");
 	MSolver->SetBCConstantUE(0.0);
 	MSolver->SetBCConstantUS(0.0);
 	MSolver->SetBCConstantUN(0.0);
 	MSolver->SetBCConstantVE(0.0);
 	MSolver->SetBCConstantVS(1.0);
-	MSolver->SetBCConstantVN(0.0);
-	MSolver->SetAmbientPressure(1.0);
+	MSolver->SetBCConstantVN(1.0);
+	MSolver->SetAmbientPressure(ambientPressure);
 	MSolver->SetPLTType(PLTTYPE::BOTH);
 
 	MSolver->SetPoissonSolver(POISSONTYPE::BICGSTAB);
@@ -1215,7 +1216,7 @@ int MAC2DAxisymTest_NonSurfaceTension() {
 	LSolver->SetBCConstantPE(0.0);
 	LSolver->SetBCConstantPS(0.0);
 	LSolver->SetBCConstantPN(0.0);
-	double radius = 0.01, r = 0.0, z = 0.0, d = 0.0;
+	double radius = 0.2, r = 0.0, z = 0.0, d = 0.0;
 	for (int i = 0; i < nr + 2 * num_bc_grid; i++)
 	for (int j = 0; j < nz + 2 * num_bc_grid; j++) {
 		// positive : inside & gas, negative : outside & liquid 
@@ -1236,12 +1237,9 @@ int MAC2DAxisymTest_NonSurfaceTension() {
 	for (int i = 0; i < nr + 2 * num_bc_grid; i++)
 	for (int j = 0; j < nz + 2 * num_bc_grid; j++) {
 		MSolver->m_u[idx3_2D(nz, i, j)] = 0.0;
-		// if (ls[idx3_2D(nz, i, j)] < 0)
-			MSolver->m_v[idx3_2D(nz, i, j)] = 1.0;
-		// else
-		// 	MSolver->m_v[idx3_2D(nz, i, j)] = 0.0;
-		MSolver->m_p[idx3_2D(nz, i, j)] = 1.0;
-		MSolver->m_ps[idx3_2D(nz, i, j)] = 1.0;
+		MSolver->m_v[idx3_2D(nz, i, j)] = 0.0;
+		MSolver->m_p[idx3_2D(nz, i, j)] = ambientPressure;
+		MSolver->m_ps[idx3_2D(nz, i, j)] = ambientPressure;
 	}
 
 	MSolver->ApplyBC_U_2D(MSolver->m_u);
