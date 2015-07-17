@@ -1185,18 +1185,17 @@ int MAC2DAxisymTest_NonSurfaceTension() {
 		cfl, maxtime, maxiter, niterskip, num_bc_grid, writeVTK);
 	MSolver->SetBC_U_2D("axisym", "wall", "inlet", "outlet");
 	MSolver->SetBC_V_2D("axisym", "wall", "inlet", "outlet");
-	MSolver->SetBC_P_2D("neumann", "wall", "neumann", "pressure");
+	MSolver->SetBC_P_2D("axisym", "wall", "neumann", "pressure");
 	MSolver->SetBCConstantUE(0.0);
 	MSolver->SetBCConstantUS(0.0);
 	MSolver->SetBCConstantUN(0.0);
 	MSolver->SetBCConstantVE(0.0);
 	MSolver->SetBCConstantVS(1.0);
 	MSolver->SetBCConstantVN(0.0);
-	MSolver->SetAmbientPressure(ambientPressure);
 	MSolver->SetPLTType(PLTTYPE::BOTH);
 
 	MSolver->SetPoissonSolver(POISSONTYPE::BICGSTAB);
-	const int poissonMaxIter = 20000;
+	const int poissonMaxIter = 5000;
 
 	std::shared_ptr<LevelSetSolver2D> LSolver;
 	LSolver = std::make_shared<LevelSetSolver2D>(nr, nz, num_bc_grid, baseR, baseZ, dr, dz);
@@ -1238,8 +1237,8 @@ int MAC2DAxisymTest_NonSurfaceTension() {
 	for (int j = 0; j < nz + 2 * num_bc_grid; j++) {
 		MSolver->m_u[idx3_2D(nz, i, j)] = 0.0;
 		MSolver->m_v[idx3_2D(nz, i, j)] = 0.0;
-		MSolver->m_p[idx3_2D(nz, i, j)] = ambientPressure;
-		MSolver->m_ps[idx3_2D(nz, i, j)] = ambientPressure;
+		MSolver->m_p[idx3_2D(nz, i, j)] = 0.0;
+		MSolver->m_ps[idx3_2D(nz, i, j)] = 0.0;
 	}
 
 	MSolver->ApplyBC_U_2D(MSolver->m_u);
@@ -1250,6 +1249,7 @@ int MAC2DAxisymTest_NonSurfaceTension() {
 	// prevent dt == 0.0
 	MSolver->m_dt = cfl * std::min(dr, dz) / U;
 	std::cout << " dt : " << MSolver->m_dt << std::endl;
+	MSolver->UpdateAmbientPressure(ambientPressure);
 
 	std::vector<double> uhat((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid)),
 		vhat((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid));
@@ -1276,12 +1276,12 @@ int MAC2DAxisymTest_NonSurfaceTension() {
 		HSmooth = MSolver->UpdateSmoothHeavisideFunc(ls);
 
 		// Get intermediate velocity
-		rhsU = MSolver->UpdateFU(ls, MSolver->m_u, MSolver->m_v, HSmooth);
+		rhsU = MSolver->GetRHSU(ls, MSolver->m_u, MSolver->m_v, HSmooth);
 		uhat = MSolver->GetUHat(ls, MSolver->m_u, rhsU, HSmooth);
 
 		MSolver->ApplyBC_U_2D(uhat);
 
-		rhsV = MSolver->UpdateFV(ls, MSolver->m_u, uhat, MSolver->m_v, HSmooth);
+		rhsV = MSolver->GetRHSV(ls, MSolver->m_u, uhat, MSolver->m_v, HSmooth);
 		vhat = MSolver->GetVHat(ls, MSolver->m_v, rhsV, HSmooth);
 
 		MSolver->ApplyBC_U_2D(uhat);
@@ -1303,8 +1303,9 @@ int MAC2DAxisymTest_NonSurfaceTension() {
 		MSolver->ApplyBC_U_2D(MSolver->m_u);
 		MSolver->ApplyBC_V_2D(MSolver->m_v);
 
-		// MSolver->m_dt = MSolver->UpdateDt(MSolver->m_u, MSolver->m_v);
+		MSolver->m_dt = MSolver->UpdateDt(MSolver->m_u, MSolver->m_v);
 		MSolver->m_curTime += MSolver->m_dt;
+		MSolver->UpdateAmbientPressure(ambientPressure);
 
 		std::ofstream outF;
 		std::string fname("RR_ASCII.plt");
@@ -1391,7 +1392,7 @@ int MAC2DAxisymTest_StationaryBubble() {
 	// related to initialize level set
 	const double baseR = 0.0, baseZ = 0.0, lenR = 0.02, lenZ = 0.04, cfl = 0.5;
 	
-	const int maxiter = 2000, niterskip = 50, num_bc_grid = 3;
+	const int maxiter = 10, niterskip = 1, num_bc_grid = 3;
 	const double maxtime = 1.0;
 	const bool writeVTK = false;
 	// length of each cell
@@ -1429,8 +1430,8 @@ int MAC2DAxisymTest_StationaryBubble() {
 	MSolver->SetBCConstantVN(0.0);
 	MSolver->SetPLTType(PLTTYPE::BOTH);
 
-	MSolver->SetPoissonSolver(POISSONTYPE::BICGSTAB);
-	// MSolver->SetPoissonSolver(POISSONTYPE::CG);
+	// MSolver->SetPoissonSolver(POISSONTYPE::BICGSTAB);
+	MSolver->SetPoissonSolver(POISSONTYPE::CG);
 	// MSolver->SetPoissonSolver(POISSONTYPE::GS);
 	const int poissonMaxIter = 20000;
 
@@ -1512,10 +1513,10 @@ int MAC2DAxisymTest_StationaryBubble() {
 		HSmooth = MSolver->UpdateSmoothHeavisideFunc(ls);
 
 		// Get intermediate velocity
-		rhsU = MSolver->UpdateFU(ls, MSolver->m_u, MSolver->m_v, HSmooth);
+		rhsU = MSolver->GetRHSU(ls, MSolver->m_u, MSolver->m_v, HSmooth);
 		uhat = MSolver->GetUHat(ls, MSolver->m_u, rhsU, HSmooth);
 
-		rhsV = MSolver->UpdateFV(ls, MSolver->m_u, uhat, MSolver->m_v, HSmooth);
+		rhsV = MSolver->GetRHSV(ls, MSolver->m_u, uhat, MSolver->m_v, HSmooth);
 		vhat = MSolver->GetVHat(ls, MSolver->m_v, rhsV, HSmooth);
 
 		MSolver->ApplyBC_U_2D(uhat);
@@ -1709,10 +1710,10 @@ int MAC2DAxisymTest_SmallAirBubbleRising() {
 		HSmooth = MSolver->UpdateSmoothHeavisideFunc(ls);
 
 		// Get intermediate velocity
-		rhsU = MSolver->UpdateFU(ls, MSolver->m_u, MSolver->m_v, HSmooth);
+		rhsU = MSolver->GetRHSU(ls, MSolver->m_u, MSolver->m_v, HSmooth);
 		uhat = MSolver->GetUHat(ls, MSolver->m_u, rhsU, HSmooth);
 
-		rhsV = MSolver->UpdateFV(ls, MSolver->m_u, uhat, MSolver->m_v, HSmooth);
+		rhsV = MSolver->GetRHSV(ls, MSolver->m_u, uhat, MSolver->m_v, HSmooth);
 		vhat = MSolver->GetVHat(ls, MSolver->m_v, rhsV, HSmooth);
 
 		MSolver->ApplyBC_U_2D(uhat);
@@ -1915,10 +1916,10 @@ int MAC2DAxisymTest_WaterDropletCollison1() {
 		HSmooth = MSolver->UpdateSmoothHeavisideFunc(ls);
 
 		// Get intermediate velocity
-		rhsU = MSolver->UpdateFU(ls, MSolver->m_u, MSolver->m_v, HSmooth);
+		rhsU = MSolver->GetRHSU(ls, MSolver->m_u, MSolver->m_v, HSmooth);
 		uhat = MSolver->GetUHat(ls, MSolver->m_u, rhsU, HSmooth);
 
-		rhsV = MSolver->UpdateFV(ls, MSolver->m_u, uhat, MSolver->m_v, HSmooth);
+		rhsV = MSolver->GetRHSV(ls, MSolver->m_u, uhat, MSolver->m_v, HSmooth);
 		vhat = MSolver->GetVHat(ls, MSolver->m_v, rhsV, HSmooth);
 
 		MSolver->ApplyBC_U_2D(uhat);

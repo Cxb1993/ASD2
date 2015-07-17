@@ -94,8 +94,8 @@ public:
 		std::tuple<std::vector<double>&, std::vector<double>&, std::vector<double>&> t2Vec,
 		std::vector<double>& kappa);
 	int UpdateKappa(const std::vector<double>& ls);
-	std::vector<double> UpdateFU(const std::vector<double>& ls, const std::vector<double>& u, const std::vector<double>& v, const std::vector<double>& H);
-	std::vector<double> UpdateFV(const std::vector<double>& ls, const std::vector<double>& u, const std::vector<double>& uhat, const std::vector<double>& v, const std::vector<double>& H);
+	std::vector<double> GetRHSU(const std::vector<double>& ls, const std::vector<double>& u, const std::vector<double>& v, const std::vector<double>& H);
+	std::vector<double> GetRHSV(const std::vector<double>& ls, const std::vector<double>& u, const std::vector<double>& uhat, const std::vector<double>& v, const std::vector<double>& H);
 
 	// Convection Term
 	std::vector<double> AddConvectionFU(const std::vector<double>& u, const std::vector<double>& v);
@@ -152,7 +152,7 @@ public:
 	void SetBCConstantPE(double BC_ConstantE);
 	void SetBCConstantPS(double BC_ConstantS);
 	void SetBCConstantPN(double BC_ConstantN);
-	void SetAmbientPressure(double ambientPressure);
+	void UpdateAmbientPressure(double ambientPressure);
 
 	int SolveTDMA(std::vector<double>& a, std::vector<double>& b, std::vector<double>& c, std::vector<double>& d, int n);
 	int sign(const double& val);
