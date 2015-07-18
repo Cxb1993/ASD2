@@ -71,7 +71,7 @@ int MAC3DTest_NonSurfaceTension() {
 	MSolver->SetBCConstantWN(0.0);
 	MSolver->SetBCConstantWB(1.0);
 	MSolver->SetBCConstantWT(0.0);
-	MSolver->SetAmbientPressure(ambientPressure);
+	
 	MSolver->SetPLTType(PLTTYPE::BINARY);
 
 	MSolver->SetPoissonSolver(POISSONTYPE::CG);
@@ -132,8 +132,9 @@ int MAC3DTest_NonSurfaceTension() {
 	LSolver->ApplyBC_P_3D(ls);
 
 	// prevent dt == 0.0
-	MSolver->m_dt = cfl * std::min(dx, dy) / U;
+	MSolver->m_dt = cfl * std::min(std::min(dx, dy), dz) / U;
 	std::cout << " dt : " << MSolver->m_dt << std::endl;
+	MSolver->UpdateAmbientPressure(MSolver->m_dt * ambientPressure);
 
 	std::vector<double> rhsU(arrSize), rhsV(arrSize), rhsW(arrSize);
 	std::vector<double> uhat(arrSize), vhat(arrSize), what(arrSize);
@@ -189,6 +190,7 @@ int MAC3DTest_NonSurfaceTension() {
 
 		MSolver->m_dt = MSolver->UpdateDt(MSolver->m_u, MSolver->m_v, MSolver->m_w);
 		MSolver->m_curTime += MSolver->m_dt;
+		MSolver->UpdateAmbientPressure(MSolver->m_dt * ambientPressure);
 
 		if ((MSolver->m_iter % MSolver->kNIterSkip) == 0) {
 			std::chrono::high_resolution_clock::time_point p = std::chrono::high_resolution_clock::now();
@@ -235,6 +237,7 @@ int MAC3DTest_StationaryBubble() {
 	// const double rhoH = 1000, muH = 1.137e-3;
 	const double rhoH = 1000, muH = 1.137e-3, sigma = 0.0728;
 	// const double rhoL = 1000, muL = 1.137e-3, sigma = 0.0;
+	const double ambientPressure = 1.0;
 	const double gConstant = 0.0; 
 	GAXISENUM3D GAxis = GAXISENUM3D::Y;
 	// # of cells
@@ -297,7 +300,7 @@ int MAC3DTest_StationaryBubble() {
 	MSolver->SetBCConstantWN(0.0);
 	MSolver->SetBCConstantWB(0.0);
 	MSolver->SetBCConstantWT(0.0);
-	MSolver->SetAmbientPressure(1.0);
+	MSolver->UpdateAmbientPressure(MSolver->m_dt * ambientPressure);
 	MSolver->SetPLTType(PLTTYPE::BINARY);
 
 	MSolver->SetPoissonSolver(POISSONTYPE::CG);
