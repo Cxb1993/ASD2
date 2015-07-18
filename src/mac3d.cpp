@@ -1640,7 +1640,8 @@ std::vector<double> MACSolver3D::GetUHat(const std::vector<double>& ls, const st
 		}
 		else if (lsUBHalf >= 0 && lsUTHalf < 0) {
 			// interface lies between lsUBHalf and lsUTHalf
-			theta = std::fabs(lsUBHalf) / (std::fabs(lsUTHalf) + std::fabs(lsUTHalf));
+			theta = std::fabs(lsUBHalf) / (std::fabs(lsUBHalf) + std::fabs(lsUTHalf));
+			thetaH = std::fabs(lsUBHalf) / (std::fabs(lsUTHalf) + std::fabs(lsUTHalf));
 			// |(lsUBHalf)| ===   high(+)  === |(interface)| ===      low(-)     === |(lsUTHalf)|
 			// |(lsUBHalf)| === theta * d  === |(interface)| === (1 - theta) * d === |(lsUTHalf)|
 			rhoEffBT = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
@@ -1648,6 +1649,7 @@ std::vector<double> MACSolver3D::GetUHat(const std::vector<double>& ls, const st
 		else if (lsUBHalf < 0 && lsUTHalf >= 0) {
 			// interface lies between lsUBHalf and lsUTHalf
 			theta = std::fabs(lsUBHalf) / (std::fabs(lsUBHalf) + std::fabs(lsUTHalf));
+			thetaH = std::fabs(lsUTHalf) / (std::fabs(lsUBHalf) + std::fabs(lsUTHalf));
 			// |(lsUBHalf)| ===    low(-)   === |(interface)| ===     high(+)     === |(lsUTHalf)|
 			// |(lsUBHalf)| ===  theta * d  === |(interface)| === (1 - theta) * d === |(lsUTHalf)|
 			rhoEffBT = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
@@ -1698,17 +1700,17 @@ std::vector<double> MACSolver3D::GetUHat(const std::vector<double>& ls, const st
 		AValsDic["T"] = uHatCoefT[idx(i, j, k)] / (kDz * kDz);
 		AColsDic["T"] = (i - kNumBCGrid - 1) + (kNx - 1) * (j - kNumBCGrid) + (kNx - 1) * kNy * (k + 1 - kNumBCGrid);
 
-		if (i == kNumBCGrid && (m_BC->m_BC_UW == BC3D::NEUMANN || m_BC->m_BC_UW == BC3D::OUTLET)) {
+		if (i == kNumBCGrid + 1 && (m_BC->m_BC_UW == BC3D::NEUMANN || m_BC->m_BC_UW == BC3D::OUTLET)) {
 			AColsDic["W"] = -1;
 			AValsDic["W"] = 0.0;
 			AValsDic["C"] += uHatCoefW[idx(i, j, k)] / (kDx * kDx);
 		}
-		else if (i == kNumBCGrid && (m_BC->m_BC_UW == BC3D::DIRICHLET || m_BC->m_BC_UW == BC3D::INLET)) {
+		else if (i == kNumBCGrid + 1 && (m_BC->m_BC_UW == BC3D::DIRICHLET || m_BC->m_BC_UW == BC3D::INLET)) {
 			AColsDic["W"] = -1;
 			AValsDic["W"] = 0.0;
 			rhs[idx(i, j, k)] -= uHatCoefW[idx(i, j, k)] / (kDx * kDx) * (m_BC->m_BC_DirichletConstantUW);
 		}
-		else if (i == kNumBCGrid && m_BC->m_BC_UW == BC3D::PERIODIC) {
+		else if (i == kNumBCGrid + 1 && m_BC->m_BC_UW == BC3D::PERIODIC) {
 			AValsDic["W"] = uHatCoefW[idx(kNumBCGrid + kNx - 1, j, k)];
 		}
 
@@ -1724,7 +1726,7 @@ std::vector<double> MACSolver3D::GetUHat(const std::vector<double>& ls, const st
 			rhs[idx(i, j, k)] -= uHatCoefE[idx(i, j, k)] / (kDx * kDx) * (m_BC->m_BC_DirichletConstantUE);
 		}
 		else if (i == kNumBCGrid + kNx - 1 && m_BC->m_BC_UE == BC3D::PERIODIC) {
-			AValsDic["E"] = uHatCoefE[idx(kNumBCGrid, j, k)];
+			AValsDic["E"] = uHatCoefE[idx(kNumBCGrid + 1, j, k)];
 		}
 
 		if (j == kNumBCGrid && (m_BC->m_BC_US == BC3D::NEUMANN || m_BC->m_BC_US == BC3D::OUTLET)) {
@@ -2098,17 +2100,17 @@ std::vector<double> MACSolver3D::GetVHat(const std::vector<double>& ls, const st
 			AValsDic["E"] = vHatCoefE[idx(kNumBCGrid, j, k)];
 		}
 
-		if (j == kNumBCGrid && (m_BC->m_BC_VS == BC3D::NEUMANN || m_BC->m_BC_VS == BC3D::OUTLET)) {
+		if (j == kNumBCGrid + 1 && (m_BC->m_BC_VS == BC3D::NEUMANN || m_BC->m_BC_VS == BC3D::OUTLET)) {
 			AColsDic["S"] = -1;
 			AValsDic["S"] = 0.0;
 			AValsDic["C"] += vHatCoefS[idx(i, j, k)] / (kDy * kDy);
 		}
-		else if (j == kNumBCGrid && (m_BC->m_BC_VS == BC3D::DIRICHLET || m_BC->m_BC_VS == BC3D::INLET)) {
+		else if (j == kNumBCGrid + 1 && (m_BC->m_BC_VS == BC3D::DIRICHLET || m_BC->m_BC_VS == BC3D::INLET)) {
 			AColsDic["S"] = -1;
 			AValsDic["S"] = 0.0;
 			rhs[idx(i, j, k)] -= vHatCoefS[idx(i, j, k)] / (kDy * kDy) * (m_BC->m_BC_DirichletConstantVS);
 		}
-		else if (j == kNumBCGrid && m_BC->m_BC_VS == BC3D::PERIODIC) {
+		else if (j == kNumBCGrid + 1 && m_BC->m_BC_VS == BC3D::PERIODIC) {
 			AValsDic["S"] = vHatCoefS[idx(i, kNumBCGrid + kNy - 1, k)];
 		}
 
@@ -2123,7 +2125,7 @@ std::vector<double> MACSolver3D::GetVHat(const std::vector<double>& ls, const st
 			rhs[idx(i, j, k)] -= vHatCoefN[idx(i, j, k)] / (kDy * kDy) * (m_BC->m_BC_DirichletConstantVN);
 		}
 		else if (j == kNumBCGrid + kNy - 1 && m_BC->m_BC_VN == BC3D::PERIODIC) {
-			AValsDic["N"] = vHatCoefN[idx(i, kNumBCGrid, k)];
+			AValsDic["N"] = vHatCoefN[idx(i, kNumBCGrid + 1, k)];
 		}
 
 		if (k == kNumBCGrid && (m_BC->m_BC_VB == BC3D::NEUMANN || m_BC->m_BC_VB == BC3D::OUTLET)) {
@@ -2490,17 +2492,17 @@ std::vector<double> MACSolver3D::GetWHat(const std::vector<double>& ls, const st
 			AValsDic["N"] = wHatCoefN[idx(i, kNumBCGrid, k)];
 		}
 
-		if (k == kNumBCGrid && (m_BC->m_BC_WB == BC3D::NEUMANN || m_BC->m_BC_WB == BC3D::OUTLET)) {
+		if (k == kNumBCGrid + 1 && (m_BC->m_BC_WB == BC3D::NEUMANN || m_BC->m_BC_WB == BC3D::OUTLET)) {
 			AColsDic["B"] = -1;
 			AValsDic["B"] = 0.0;
 			AValsDic["C"] += wHatCoefB[idx(i, j, k)] / (kDz * kDz);
 		}
-		else if (k == kNumBCGrid && (m_BC->m_BC_WB == BC3D::DIRICHLET || m_BC->m_BC_WB == BC3D::INLET)) {
+		else if (k == kNumBCGrid + 1 && (m_BC->m_BC_WB == BC3D::DIRICHLET || m_BC->m_BC_WB == BC3D::INLET)) {
 			AColsDic["B"] = -1;
 			AValsDic["B"] = 0.0;
 			rhs[idx(i, j, k)] -= wHatCoefB[idx(i, j, k)] / (kDz * kDz) * (m_BC->m_BC_DirichletConstantWB);
 		}
-		else if (k == kNumBCGrid && m_BC->m_BC_WB == BC3D::PERIODIC) {
+		else if (k == kNumBCGrid + 1 && m_BC->m_BC_WB == BC3D::PERIODIC) {
 			AValsDic["B"] = wHatCoefB[idx(i, j, kNumBCGrid + kNz - 1)];
 		}
 
@@ -2921,7 +2923,8 @@ int MACSolver3D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 			|| m_BC->m_BC_PW == BC3D::OUTLET || m_BC->m_BC_PW == BC3D::PRESSURE)) {
 			AColsDic["W"] = -1;
 			AValsDic["W"] = 0.0;
-			rhs[idx(i, j, k)] -= pCoefW[idx(i, j, k)] / (kDx * kDx) * (2.0 * m_BC->m_BC_DirichletConstantPW);
+			rhs[idx(i, j, k)] -= pCoefW[idx(i, j, k)] / (kDx * kDx) 
+				* (-ps[idx(i, j, k)] + 2.0 * m_BC->m_BC_DirichletConstantPW);
 		}
 		else if (i == kNumBCGrid && m_BC->m_BC_PW == BC3D::PERIODIC) {
 			AValsDic["W"] = pCoefW[idx(kNumBCGrid + kNx - 1, j, k)];
@@ -2937,7 +2940,8 @@ int MACSolver3D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 			|| m_BC->m_BC_PE == BC3D::OUTLET || m_BC->m_BC_PE == BC3D::PRESSURE)) {
 			AColsDic["E"] = -1;
 			AValsDic["E"] = 0.0;
-			rhs[idx(i, j, k)] -= pCoefE[idx(i, j, k)] / (kDx * kDx) * (2.0 * m_BC->m_BC_DirichletConstantPE);
+			rhs[idx(i, j, k)] -= pCoefE[idx(i, j, k)] / (kDx * kDx) 
+				* (-ps[idx(i, j, k)] + 2.0 * m_BC->m_BC_DirichletConstantPE);
 		}
 		else if (i == kNumBCGrid + kNx - 1 && m_BC->m_BC_PE == BC3D::PERIODIC) {
 			AValsDic["E"] = pCoefE[idx(kNumBCGrid, j, k)];
@@ -2952,7 +2956,8 @@ int MACSolver3D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 			|| m_BC->m_BC_PS == BC3D::OUTLET || m_BC->m_BC_PS == BC3D::PRESSURE)) {
 			AColsDic["S"] = -1;
 			AValsDic["S"] = 0.0;
-			rhs[idx(i, j, k)] -= pCoefS[idx(i, j, k)] / (kDy * kDy) * (2.0 * m_BC->m_BC_DirichletConstantPS);
+			rhs[idx(i, j, k)] -= pCoefS[idx(i, j, k)] / (kDy * kDy) 
+				* (-ps[idx(i, j, k)] + 2.0 * m_BC->m_BC_DirichletConstantPS);
 		}
 		else if (j == kNumBCGrid && m_BC->m_BC_PS == BC3D::PERIODIC) {
 			AValsDic["S"] = pCoefS[idx(i, kNumBCGrid + kNy - 1, k)];
@@ -2968,7 +2973,8 @@ int MACSolver3D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 			AColsDic["N"] = -1;
 			AValsDic["N"] = 0.0;
 			// AValsDic["C"] -= pCoefN[idx(i, j, k)] / (kDy * kDy);
-			rhs[idx(i, j, k)] -= pCoefN[idx(i, j, k)] / (kDy * kDy) * (2.0 * m_BC->m_BC_DirichletConstantPN);
+			rhs[idx(i, j, k)] -= pCoefN[idx(i, j, k)] / (kDy * kDy) 
+				* (-ps[idx(i, j, k)] + 2.0 * m_BC->m_BC_DirichletConstantPN);
 		}
 		else if (j == kNumBCGrid + kNy - 1 && m_BC->m_BC_PN == BC3D::PERIODIC) {
 			AValsDic["N"] = pCoefN[idx(i, kNumBCGrid, k)];
@@ -2983,7 +2989,8 @@ int MACSolver3D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 			|| m_BC->m_BC_PB == BC3D::OUTLET || m_BC->m_BC_PB == BC3D::PRESSURE)) {
 			AColsDic["B"] = -1;
 			AValsDic["B"] = 0.0;
-			rhs[idx(i, j, k)] -= pCoefB[idx(i, j, k)] / (kDz * kDz) * (2.0 * m_BC->m_BC_DirichletConstantPB);
+			rhs[idx(i, j, k)] -= pCoefB[idx(i, j, k)] / (kDz * kDz) 
+				* (-ps[idx(i, j, k)] + 2.0 * m_BC->m_BC_DirichletConstantPB);
 		}
 		else if (k == kNumBCGrid && m_BC->m_BC_PB == BC3D::PERIODIC) {
 			AValsDic["B"] = pCoefB[idx(i, j, kNumBCGrid + kNz - 1)];
@@ -2998,7 +3005,8 @@ int MACSolver3D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 			|| m_BC->m_BC_PT == BC3D::OUTLET || m_BC->m_BC_PT == BC3D::PRESSURE)) {
 			AColsDic["T"] = -1;
 			AValsDic["T"] = 0.0;
-			rhs[idx(i, j, k)] -= pCoefT[idx(i, j, k)] / (kDz * kDz) * (2.0 * m_BC->m_BC_DirichletConstantPT);
+			rhs[idx(i, j, k)] -= pCoefT[idx(i, j, k)] / (kDz * kDz) 
+				* (-ps[idx(i, j, k)] + 2.0 * m_BC->m_BC_DirichletConstantPT);
 		}
 		else if (k == kNumBCGrid + kNz - 1 && m_BC->m_BC_PT == BC3D::PERIODIC) {
 			AValsDic["T"] = pCoefT[idx(i, j, kNumBCGrid)];
@@ -3420,7 +3428,7 @@ void MACSolver3D::SetBCConstantPT(double BC_ConstantT) {
 	return m_BC->SetBCConstantPT(BC_ConstantT);
 }
 
-void MACSolver3D::SetAmbientPressure(double ambientPressure) {
+void MACSolver3D::UpdateAmbientPressure(double ambientPressure) {
 	return m_BC->SetAmbientPressure(ambientPressure);
 }
 

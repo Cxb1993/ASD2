@@ -184,7 +184,7 @@ public:
 	void SetBCConstantPN(double BC_ConstantN);
 	void SetBCConstantPB(double BC_ConstantS);
 	void SetBCConstantPT(double BC_ConstantN);
-	void SetAmbientPressure(double ambientPressure);
+	void UpdateAmbientPressure(double ambientPressure);
 
 	int sign(const double& val);
 	int SetPLTType(PLTTYPE type);
