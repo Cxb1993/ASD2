@@ -1403,7 +1403,7 @@ std::vector<double> MACSolver2DAxisym::GetVHat(const std::vector<double>& ls, co
 			b[j] = 1.0 + m_dt / rhoEffSN * 2.0 * (muS + muM) / (kDz * kDz);
 			c[j] = -m_dt / rhoEffSN * (2.0 * muM) / (kDz * kDz);
 
-			if (j == 0 && m_BC->m_BC_VS == BC2D::NEUMANN || m_BC->m_BC_VS == BC2D::OUTLET) {
+			if (j == 0 && (m_BC->m_BC_VS == BC2D::NEUMANN || m_BC->m_BC_VS == BC2D::OUTLET)) {
 				b[j] += a[j];
 				a[j] = 0.0;
 			}
@@ -1417,7 +1417,7 @@ std::vector<double> MACSolver2DAxisym::GetVHat(const std::vector<double>& ls, co
 				a[j] = 0.0;
 			}
 
-			if (j == kNz - 2 && m_BC->m_BC_VN == BC2D::NEUMANN || m_BC->m_BC_VS == BC2D::OUTLET) {
+			if (j == kNz - 2 && (m_BC->m_BC_VN == BC2D::NEUMANN || m_BC->m_BC_VS == BC2D::OUTLET)) {
 				b[j] += c[j];
 				c[j] = 0.0;
 			}
@@ -1560,6 +1560,8 @@ int MACSolver2DAxisym::SolvePoisson(std::vector<double>& ps, const std::vector<d
 		rPW = kBaseR + (i - 0.5 - kNumBCGrid) * kDr;
 		rPM = kBaseR + (i + 0.5 - kNumBCGrid) * kDr;
 		rPE = kBaseR + (i + 1.5 - kNumBCGrid) * kDr;
+		rPWHalf = kBaseR + (i - kNumBCGrid) * kDr;
+		rPEHalf = kBaseR + (i + 1.0 - kNumBCGrid) * kDr;
 		
 		// [a]_\Gamma = a^+ - a^- = a^inside - a^outside
 		// [p^*] = 2 dt[mu](\del u \cdot n, \del v \cdot n) \cdot N + dt \sigma \kappa
@@ -1572,22 +1574,26 @@ int MACSolver2DAxisym::SolvePoisson(std::vector<double>& ps, const std::vector<d
 		// theta = portion of fluid adjacent to lsM, such as |lsW| / (|lsW| + |lsM|), |lsE| / (|lsWE| + |lsM|), and so on
 		if (lsW >= 0.0 && lsM >= 0.0)  {
 			thetaH = 1.0; theta = 0.0;
+			rEff = rPWHalf;
 		}
 		else if (lsW < 0.0 && lsM < 0.0) {
 			thetaH = 0.0; theta = 0.0;
+			rEff = rPWHalf;
 		}
 		else if (lsW >= 0.0 && lsM < 0.0) {
 			thetaH = std::fabs(lsW) / (std::fabs(lsW) + std::fabs(lsM));
 			theta = std::fabs(lsW) / (std::fabs(lsW) + std::fabs(lsM));	
+			rEff = rPM * theta + rPW * (1.0 - theta);
+			rEff = std::max(rEff, 0.0);
 		}
 		else if (lsW < 0.0 && lsM >= 0.0) {
 			thetaH = std::fabs(lsM) / (std::fabs(lsW) + std::fabs(lsM));
 			theta = std::fabs(lsW) / (std::fabs(lsW) + std::fabs(lsM));
+			rEff = rPM * theta + rPW * (1.0 - theta);
+			rEff = std::max(rEff, 0.0);
 		}
 		
 		rhoEff = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
-		rEff = rPM * theta + rPW * (1.0 - theta);
-		rEff = std::max(rEff, 0.0);
 		kappaEff = m_kappa[idx(i, j)] * theta + m_kappa[idx(i - 1, j)] * (1.0 - theta);
 
 		// coefficient
@@ -1605,22 +1611,26 @@ int MACSolver2DAxisym::SolvePoisson(std::vector<double>& ps, const std::vector<d
 		// theta = portion of fluid cell adjacent to lsM, such as |lsW| / (|lsW| + |lsM|), |lsE| / (|lsWE| + |lsM|), and so on
 		if (lsM >= 0.0 && lsE >= 0.0)  {
 			thetaH = 1.0; theta = 0.0;
+			rEff = rPEHalf;
 		}
 		else if (lsM < 0.0 && lsE < 0.0) {
 			thetaH = 0.0; theta = 0.0;
+			rEff = rPEHalf;
 		}
 		else if (lsM >= 0.0 && lsE < 0.0) {
 			thetaH = std::fabs(lsM) / (std::fabs(lsM) + std::fabs(lsE));
 			theta = std::fabs(lsE) / (std::fabs(lsM) + std::fabs(lsE));
+			rEff = rPM * theta + rPE * (1.0 - theta);
 		}
 		else if (lsM < 0.0 && lsE >= 0.0) {
 			thetaH = std::fabs(lsE) / (std::fabs(lsM) + std::fabs(lsE));
 			theta = std::fabs(lsE) / (std::fabs(lsM) + std::fabs(lsE));
+			rEff = rPM * theta + rPE * (1.0 - theta);
 		}
 
 		rhoEff = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
 		rhoE[idx(i, j)] = rhoEff;
-		rEff = rPM * theta + rPE * (1.0 - theta);
+
 		kappaEff = m_kappa[idx(i, j)] * theta + m_kappa[idx(i + 1, j)] * (1.0 - theta);
 
 		pCoefE[idx(i, j)] = rEff / rhoEff;

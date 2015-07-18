@@ -1194,7 +1194,8 @@ int MAC2DAxisymTest_NonSurfaceTension() {
 	MSolver->SetBCConstantVN(0.0);
 	MSolver->SetPLTType(PLTTYPE::BOTH);
 
-	MSolver->SetPoissonSolver(POISSONTYPE::BICGSTAB);
+	// MSolver->SetPoissonSolver(POISSONTYPE::BICGSTAB);
+	MSolver->SetPoissonSolver(POISSONTYPE::CG);
 	const int poissonMaxIter = 5000;
 
 	std::shared_ptr<LevelSetSolver2D> LSolver;
@@ -1241,15 +1242,15 @@ int MAC2DAxisymTest_NonSurfaceTension() {
 		MSolver->m_ps[idx3_2D(nz, i, j)] = 0.0;
 	}
 
-	MSolver->ApplyBC_U_2D(MSolver->m_u);
-	MSolver->ApplyBC_V_2D(MSolver->m_v);
-	MSolver->ApplyBC_P_2D(MSolver->m_ps);
-	MSolver->ApplyBC_P_2D(MSolver->m_p);
-
 	// prevent dt == 0.0
 	MSolver->m_dt = cfl * std::min(dr, dz) / U;
 	std::cout << " dt : " << MSolver->m_dt << std::endl;
-	MSolver->UpdateAmbientPressure(ambientPressure);
+	MSolver->UpdateAmbientPressure(MSolver->m_dt * ambientPressure);
+
+	MSolver->ApplyBC_U_2D(MSolver->m_u);
+	MSolver->ApplyBC_V_2D(MSolver->m_v);
+	MSolver->ApplyBC_P_2D(MSolver->m_ps);
+
 
 	std::vector<double> uhat((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid)),
 		vhat((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid));
@@ -1305,7 +1306,7 @@ int MAC2DAxisymTest_NonSurfaceTension() {
 
 		MSolver->m_dt = MSolver->UpdateDt(MSolver->m_u, MSolver->m_v);
 		MSolver->m_curTime += MSolver->m_dt;
-		MSolver->UpdateAmbientPressure(ambientPressure);
+		MSolver->UpdateAmbientPressure(MSolver->m_dt * ambientPressure);
 
 		std::ofstream outF;
 		std::string fname("RR_ASCII.plt");
@@ -1487,7 +1488,7 @@ int MAC2DAxisymTest_StationaryBubble() {
 	// prevent dt == 0.0
 	MSolver->m_dt = cfl * std::min(dr, dz) / U;
 	std::cout << " dt : " << MSolver->m_dt << std::endl;
-
+	
 	std::vector<double> uhat((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid)),
 		vhat((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid));
 	std::vector<double> rhsU((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid)),
