@@ -1251,7 +1251,6 @@ int MAC2DAxisymTest_NonSurfaceTension() {
 	MSolver->ApplyBC_V_2D(MSolver->m_v);
 	MSolver->ApplyBC_P_2D(MSolver->m_ps);
 
-
 	std::vector<double> uhat((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid)),
 		vhat((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid));
 	std::vector<double> rhsU((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid)),
@@ -1462,7 +1461,7 @@ int MAC2DAxisymTest_StationaryBubble() {
 	MSolver->ApplyBC_P_2D(MSolver->m_ps);
 	MSolver->ApplyBC_P_2D(MSolver->m_p);
 
-	LSolver->SetBC_P_2D("axisym", "neumann", "neumann", "neumann");
+	LSolver->SetBC_P_2D("axisym", "lsfree", "lsfree", "lsfree");
 	LSolver->SetBCConstantPW(0.0);
 	LSolver->SetBCConstantPE(0.0);
 	LSolver->SetBCConstantPS(0.0);
@@ -1591,10 +1590,11 @@ int MAC2DAxisymTest_SmallAirBubbleRising() {
 	const double baseR = 0.0, baseZ = -0.01, lenR = 0.01, lenZ = 0.03, cfl = 0.5;
 	
 	const double maxtime = 2.0;
-	const int maxiter = 1000, niterskip = 50, num_bc_grid = 3;
+	const int maxiter = 100, niterskip = 10, num_bc_grid = 3;
 	const bool writeVTK = false;
 	// length of each cell
 	const double dr = lenR / nr, dz = lenZ / nz;
+	const double ambientPressure = 1.0;
 	std::ostringstream outfname_stream1;
 	outfname_stream1 << "testMAC2DAxisym_SmallBubbleRisingVel_Re_"
 		<< std::to_string(Re) << "_"
@@ -1617,9 +1617,9 @@ int MAC2DAxisymTest_SmallAirBubbleRising() {
 	MSolver = std::make_unique<MACSolver2DAxisym>(rhoH, rhoL, muH, muL, gConstant, GAxis,
 		L, U, sigma, nr, nz, baseR, baseZ, lenR, lenZ,
 		cfl, maxtime, maxiter, niterskip, num_bc_grid, writeVTK);
-	MSolver->SetBC_U_2D("axisym", "dirichlet", "dirichlet", "dirichlet");
-	MSolver->SetBC_V_2D("axisym", "dirichlet", "dirichlet", "dirichlet");
-	MSolver->SetBC_P_2D("axisym", "neumann", "neumann", "neumann");
+	MSolver->SetBC_U_2D("axisym", "wall", "inlet", "outlet");
+	MSolver->SetBC_V_2D("axisym", "wall", "inlet", "outlet");
+	MSolver->SetBC_P_2D("axisym", "wall", "neumann", "neumann");
 	MSolver->SetBCConstantUW(0.0);
 	MSolver->SetBCConstantUE(0.0);
 	MSolver->SetBCConstantUS(0.0);
@@ -1630,8 +1630,8 @@ int MAC2DAxisymTest_SmallAirBubbleRising() {
 	MSolver->SetBCConstantVN(0.0);
 	MSolver->SetPLTType(PLTTYPE::BOTH);
 
-	MSolver->SetPoissonSolver(POISSONTYPE::BICGSTAB);
-	// MSolver->SetPoissonSolver(POISSONTYPE::CG);
+	// MSolver->SetPoissonSolver(POISSONTYPE::BICGSTAB);
+	MSolver->SetPoissonSolver(POISSONTYPE::CG);
 	// MSolver->SetPoissonSolver(POISSONTYPE::GS);
 	const int poissonMaxIter = 20000;
 
@@ -1660,7 +1660,7 @@ int MAC2DAxisymTest_SmallAirBubbleRising() {
 	MSolver->ApplyBC_P_2D(MSolver->m_ps);
 	MSolver->ApplyBC_P_2D(MSolver->m_p);
 
-	LSolver->SetBC_P_2D("axisym", "neumann", "neumann", "neumann");
+	LSolver->SetBC_P_2D("axisym", "lsfree", "lsfree", "lsfree");
 	LSolver->SetBCConstantPW(0.0);
 	LSolver->SetBCConstantPE(0.0);
 	LSolver->SetBCConstantPS(0.0);
@@ -1683,8 +1683,10 @@ int MAC2DAxisymTest_SmallAirBubbleRising() {
 	LSolver->ApplyBC_P_2D(ls);
 
 	// prevent dt == 0.0
-	MSolver->m_dt = cfl * std::min(dr, dz) / U;
+	// MSolver->m_dt = cfl * std::min(dr, dz) / U;
+	MSolver->m_dt = MSolver->UpdateDt(MSolver->m_u, MSolver->m_v);
 	std::cout << " dt : " << MSolver->m_dt << std::endl;
+	MSolver->UpdateAmbientPressure(MSolver->m_dt * ambientPressure);
 
 	std::vector<double> uhat((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid)),
 		vhat((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid));
@@ -1737,6 +1739,7 @@ int MAC2DAxisymTest_SmallAirBubbleRising() {
 
 		MSolver->m_dt = MSolver->UpdateDt(MSolver->m_u, MSolver->m_v);
 		MSolver->m_curTime += MSolver->m_dt;
+		MSolver->UpdateAmbientPressure(MSolver->m_dt * ambientPressure);
 
 		if ((MSolver->m_iter % MSolver->kNIterSkip) == 0) {
 			std::chrono::high_resolution_clock::time_point p = std::chrono::high_resolution_clock::now();
@@ -1794,7 +1797,8 @@ int MAC2DAxisymTest_WaterDropletCollison1() {
 	const int maxiter = 10, niterskip = 1, num_bc_grid = 3;
 	const bool writeVTK = false;
 	// length of each cell
-	const double dr = lenR / nr, dz = lenZ / nz;
+	const double dr = lenR / nr, dz = lenZ / nz;\
+	const double ambientPressure = 1.0;
 	std::ostringstream outfname_stream1;
 	outfname_stream1 << "testMAC2D_WaterDropletCollision01Vel_Re_"
 		<< std::to_string(Re) << "_"
@@ -1831,7 +1835,8 @@ int MAC2DAxisymTest_WaterDropletCollison1() {
 	MSolver->SetBCConstantVN(0.0);
 	MSolver->SetPLTType(PLTTYPE::BOTH);
 
-	MSolver->SetPoissonSolver(POISSONTYPE::BICGSTAB);
+	// MSolver->SetPoissonSolver(POISSONTYPE::BICGSTAB);
+	MSolver->SetPoissonSolver(POISSONTYPE::CG);
 	const int poissonMaxIter = 20000;
 
 	std::shared_ptr<LevelSetSolver2D> LSolver;
@@ -1889,8 +1894,10 @@ int MAC2DAxisymTest_WaterDropletCollison1() {
 	LSolver->ApplyBC_P_2D(ls);
 
 	// prevent dt == 0.0
-	MSolver->m_dt = cfl * std::min(dr, dz) / U;
+	// MSolver->m_dt = cfl * std::min(dr, dz) / U;
+	MSolver->m_dt = MSolver->UpdateDt(MSolver->m_u, MSolver->m_v);
 	std::cout << " dt : " << MSolver->m_dt << std::endl;
+	MSolver->UpdateAmbientPressure(MSolver->m_dt * ambientPressure);
 
 	std::vector<double> uhat((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid)),
 		vhat((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid));
@@ -1943,6 +1950,7 @@ int MAC2DAxisymTest_WaterDropletCollison1() {
 
 		MSolver->m_dt = MSolver->UpdateDt(MSolver->m_u, MSolver->m_v);
 		MSolver->m_curTime += MSolver->m_dt;
+		MSolver->UpdateAmbientPressure(MSolver->m_dt * ambientPressure);
 
 		if ((MSolver->m_iter % MSolver->kNIterSkip) == 0) {
 			std::chrono::high_resolution_clock::time_point p = std::chrono::high_resolution_clock::now();
