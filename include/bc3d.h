@@ -21,9 +21,11 @@
 class BoundaryCondition3D {
 public:
 	BoundaryCondition3D(int nx, int ny, int nz, int num_bc_grid);
+	BoundaryCondition3D(int nx, int ny, int nz, double dx, double dy, double dz, int num_bc_grid);
 
 	const int64_t kNx, kNy, kNz;
 	const int kNumBCGrid;
+	const double kDx, kDy, kDz;
 	double m_AmbientPressure;
 	// Boundary Condition Variables
 	
@@ -178,6 +180,13 @@ public:
 	void SetBCConstantPN(double BC_ConstantN);
 	void SetBCConstantPB(double BC_ConstantS);
 	void SetBCConstantPT(double BC_ConstantN);
+
+	void BC_LSFreeBoundaryPW(std::vector<double>& arr);
+	void BC_LSFreeBoundaryPE(std::vector<double>& arr);
+	void BC_LSFreeBoundaryPS(std::vector<double>& arr);
+	void BC_LSFreeBoundaryPN(std::vector<double>& arr);
+	void BC_LSFreeBoundaryPB(std::vector<double>& arr);
+	void BC_LSFreeBoundaryPT(std::vector<double>& arr);
 
 	void SetAmbientPressure(double ambientPressure);
 };

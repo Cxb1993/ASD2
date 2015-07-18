@@ -1188,7 +1188,7 @@ std::vector<double> LevelSetSolver3D::GetSmoothedSignFunc(const std::vector<doub
 
 int LevelSetSolver3D::SetBC_U_3D(std::string BC_W, std::string BC_E, std::string BC_S, std::string BC_N, std::string BC_B, std::string BC_T) {
 	if (!m_BC) {
-		m_BC = std::make_shared<BoundaryCondition3D>(kNx, kNy, kNz, kNumBCGrid);
+		m_BC = std::make_shared<BoundaryCondition3D>(kNx, kNy, kNz, kDx, kDy, kDz, kNumBCGrid);
 	}
 
 	m_BC->SetBC_U_3D(BC_W, BC_E, BC_S, BC_N, BC_B, BC_T);
@@ -1198,7 +1198,7 @@ int LevelSetSolver3D::SetBC_U_3D(std::string BC_W, std::string BC_E, std::string
 
 int LevelSetSolver3D::SetBC_V_3D(std::string BC_W, std::string BC_E, std::string BC_S, std::string BC_N, std::string BC_B, std::string BC_T) {
 	if (!m_BC) {
-		m_BC = std::make_shared<BoundaryCondition3D>(kNx, kNz, kNy, kNumBCGrid);
+		m_BC = std::make_shared<BoundaryCondition3D>(kNx, kNz, kNy, kDx, kDy, kDz, kNumBCGrid);
 	}
 
 	m_BC->SetBC_V_3D(BC_W, BC_E, BC_S, BC_N, BC_B, BC_T);
@@ -1208,7 +1208,7 @@ int LevelSetSolver3D::SetBC_V_3D(std::string BC_W, std::string BC_E, std::string
 
 int LevelSetSolver3D::SetBC_W_3D(std::string BC_W, std::string BC_E, std::string BC_S, std::string BC_N, std::string BC_B, std::string BC_T) {
 	if (!m_BC) {
-		m_BC = std::make_shared<BoundaryCondition3D>(kNx, kNz, kNy, kNumBCGrid);
+		m_BC = std::make_shared<BoundaryCondition3D>(kNx, kNz, kNy, kDx, kDy, kDz, kNumBCGrid);
 	}
 
 	m_BC->SetBC_W_3D(BC_W, BC_E, BC_S, BC_N, BC_B, BC_T);
@@ -1218,7 +1218,7 @@ int LevelSetSolver3D::SetBC_W_3D(std::string BC_W, std::string BC_E, std::string
 
 int LevelSetSolver3D::SetBC_P_3D(std::string BC_W, std::string BC_E, std::string BC_S, std::string BC_N, std::string BC_B, std::string BC_T) {
 	if (!m_BC) {
-		m_BC = std::make_shared<BoundaryCondition3D>(kNx, kNy, kNz, kNumBCGrid);
+		m_BC = std::make_shared<BoundaryCondition3D>(kNx, kNy, kNz, kDx, kDy, kDz, kNumBCGrid);
 	}
 
 	m_BC->SetBC_P_3D(BC_W, BC_E, BC_S, BC_N, BC_B, BC_T);

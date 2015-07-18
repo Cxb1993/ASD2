@@ -1,7 +1,11 @@
 #include "bc3d.h"
 
 BoundaryCondition3D::BoundaryCondition3D(int nx, int ny, int nz, int num_bc_grid)
-	: kNx(nx), kNy(ny), kNz(nz), kNumBCGrid(num_bc_grid) {
+	: kNx(nx), kNy(ny), kNz(nz), kDx(-1.0), kDy(-1.0), kDz(-1.0), kNumBCGrid(num_bc_grid) {
+}
+
+BoundaryCondition3D::BoundaryCondition3D(int nx, int ny, int nz, double dx, double dy, double dz, int num_bc_grid)
+	: kNx(nx), kNy(ny), kNz(nz), kDx(dx), kDy(dy), kDz(dz), kNumBCGrid(num_bc_grid) {
 }
 
 inline int BoundaryCondition3D::idx(int i, int j, int k) {
@@ -350,6 +354,8 @@ int BoundaryCondition3D::SetBC_P_3D(std::string BC_W, std::string BC_E, std::str
 		m_BC_PW = BC3D::OUTLET;
 	else if (BC_W == "pressure")
 		m_BC_PW = BC3D::PRESSURE;
+	else if (BC_W == "lsfree")
+		m_BC_PW = BC3D::LSFREE;
 	// not supported
 	else
 		m_BC_PW = BC3D::CUSTOM;
@@ -366,6 +372,8 @@ int BoundaryCondition3D::SetBC_P_3D(std::string BC_W, std::string BC_E, std::str
 		m_BC_PE = BC3D::OUTLET;
 	else if (BC_E == "pressure")
 		m_BC_PE = BC3D::PRESSURE;
+	else if (BC_E == "lsfree")
+		m_BC_PE = BC3D::LSFREE;
 	// not supported
 	else
 		m_BC_PE = BC3D::CUSTOM;
@@ -382,6 +390,8 @@ int BoundaryCondition3D::SetBC_P_3D(std::string BC_W, std::string BC_E, std::str
 		m_BC_PS = BC3D::OUTLET;
 	else if (BC_S == "pressure")
 		m_BC_PS = BC3D::PRESSURE;
+	else if (BC_S == "lsfree")
+		m_BC_PS = BC3D::LSFREE;
 	// not supported
 	else
 		m_BC_PS = BC3D::CUSTOM;
@@ -398,6 +408,8 @@ int BoundaryCondition3D::SetBC_P_3D(std::string BC_W, std::string BC_E, std::str
 		m_BC_PN = BC3D::OUTLET;
 	else if (BC_N == "pressure")
 		m_BC_PN = BC3D::PRESSURE;
+	else if (BC_N == "lsfree")
+		m_BC_PN = BC3D::LSFREE;
 	// not supported
 	else
 		m_BC_PN = BC3D::CUSTOM;
@@ -414,6 +426,8 @@ int BoundaryCondition3D::SetBC_P_3D(std::string BC_W, std::string BC_E, std::str
 		m_BC_PB = BC3D::OUTLET;
 	else if (BC_B == "pressure")
 		m_BC_PB = BC3D::PRESSURE;
+	else if (BC_B == "lsfree")
+		m_BC_PB = BC3D::LSFREE;
 	// not supported
 	else
 		m_BC_PB = BC3D::CUSTOM;
@@ -430,6 +444,8 @@ int BoundaryCondition3D::SetBC_P_3D(std::string BC_W, std::string BC_E, std::str
 		m_BC_PT = BC3D::OUTLET;
 	else if (BC_T == "pressure")
 		m_BC_PT = BC3D::PRESSURE;
+	else if (BC_T == "lsfree")
+		m_BC_PT = BC3D::LSFREE;
 	// not supported
 	else
 		m_BC_PT = BC3D::CUSTOM;
@@ -695,6 +711,8 @@ void BoundaryCondition3D::BC_PW(std::vector<double>& arr) {
 		BC_DirichletPW(arr);
 	else if (m_BC_PW == BC3D::PRESSURE)
 		BC_DirichletPW(arr);
+	else if (m_BC_PW == BC3D::LSFREE)
+		BC_LSFreeBoundaryPW(arr);
 }
 
 void BoundaryCondition3D::BC_PE(std::vector<double>& arr) {
@@ -710,6 +728,8 @@ void BoundaryCondition3D::BC_PE(std::vector<double>& arr) {
 		BC_DirichletPE(arr);
 	else if (m_BC_PE == BC3D::PRESSURE)
 		BC_DirichletPE(arr);
+	else if (m_BC_PE == BC3D::LSFREE)
+		BC_LSFreeBoundaryPE(arr);
 }
 
 void BoundaryCondition3D::BC_PS(std::vector<double>& arr) {
@@ -725,6 +745,8 @@ void BoundaryCondition3D::BC_PS(std::vector<double>& arr) {
 		BC_DirichletPS(arr);
 	else if (m_BC_PS == BC3D::PRESSURE)
 		BC_DirichletPS(arr);
+	else if (m_BC_PS == BC3D::LSFREE)
+		BC_LSFreeBoundaryPS(arr);
 }
 
 void BoundaryCondition3D::BC_PN(std::vector<double>& arr) {
@@ -740,6 +762,8 @@ void BoundaryCondition3D::BC_PN(std::vector<double>& arr) {
 		BC_DirichletPN(arr);
 	else if (m_BC_PN == BC3D::PRESSURE)
 		BC_DirichletPN(arr);
+	else if (m_BC_PN == BC3D::LSFREE)
+		BC_LSFreeBoundaryPN(arr);
 }
 
 void BoundaryCondition3D::BC_PB(std::vector<double>& arr) {
@@ -755,6 +779,8 @@ void BoundaryCondition3D::BC_PB(std::vector<double>& arr) {
 		BC_DirichletPB(arr);
 	else if (m_BC_PB == BC3D::PRESSURE)
 		BC_DirichletPB(arr);
+	else if (m_BC_PB == BC3D::LSFREE)
+		BC_LSFreeBoundaryPB(arr);
 }
 
 void BoundaryCondition3D::BC_PT(std::vector<double>& arr) {
@@ -770,6 +796,8 @@ void BoundaryCondition3D::BC_PT(std::vector<double>& arr) {
 		BC_DirichletPT(arr);
 	else if (m_BC_PT == BC3D::PRESSURE)
 		BC_DirichletPT(arr);
+	else if (m_BC_PT == BC3D::LSFREE)
+		BC_LSFreeBoundaryPT(arr);
 }
 
 void BoundaryCondition3D::BC_PeriodicUW(std::vector<double>& arr) {
@@ -1469,4 +1497,67 @@ void BoundaryCondition3D::BC_DirichletPT(std::vector<double>& arr) {
 	for (int k = 0; k < kNumBCGrid; k++)
 		arr[idx(i, j, kNz + kNumBCGrid * 2 - k - 1)] = -arr[idx(i, j, kNz + k)]
 			+ 2.0 * m_BC_DirichletConstantPT;
+}
+
+void BoundaryCondition3D::BC_LSFreeBoundaryPW(std::vector<double>& arr) {
+	if (kDx < 0.0)
+		std::cout << "BC Initialization Error : kDx not set" << std::endl;
+
+	for (int i = kNumBCGrid - 1; i >= 0; i--)
+	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
+	for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++)
+		arr[idx(i, j, k)] = arr[idx(i + 1, j, k)] + kDx * (arr[idx(i + 1, j, k)] - arr[idx(i + 2, j, k)]) / kDx;
+}
+
+void BoundaryCondition3D::BC_LSFreeBoundaryPE(std::vector<double>& arr) {
+	if (kDx < 0.0)
+		std::cout << "BC Initialization Error : kDx not set" << std::endl;
+
+	for (int i = 0; i < kNumBCGrid; i++)
+	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
+	for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++)
+		arr[idx(kNx + kNumBCGrid + i, j, k)] = arr[idx(kNx + kNumBCGrid + i - 1, j, k)]
+		+ kDx * (arr[idx(kNx + kNumBCGrid + i - 1, j, k)] - arr[idx(kNx + kNumBCGrid + i - 2, j, k)]) / kDx;
+}
+
+void BoundaryCondition3D::BC_LSFreeBoundaryPS(std::vector<double>& arr) {
+	if (kDy < 0.0)
+		std::cout << "BC Initialization Error : kDy not set" << std::endl;
+
+	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+	for (int j = kNumBCGrid - 1; j >= 0; j--)
+	for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++)
+		arr[idx(i, j, k)] = arr[idx(i, j + 1, k)] + kDy * (arr[idx(i, j + 1, k)] - arr[idx(i, j + 2, k)]) / kDy;
+}
+
+void BoundaryCondition3D::BC_LSFreeBoundaryPN(std::vector<double>& arr) {
+	if (kDy < 0.0)
+		std::cout << "BC Initialization Error : kDy not set" << std::endl;
+
+	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+	for (int j = 0; j < kNumBCGrid; j++)
+	for (int k = kNumBCGrid; k < kNz + kNumBCGrid; k++)
+		arr[idx(i, kNy + kNumBCGrid + j, k)] = arr[idx(i, kNy + kNumBCGrid + j - 1, k)]
+		+ kDy * (arr[idx(i, kNy + kNumBCGrid + j - 1, k)] - arr[idx(i, kNy + kNumBCGrid + j - 2, k)]) / kDy;
+}
+
+void BoundaryCondition3D::BC_LSFreeBoundaryPB(std::vector<double>& arr) {
+	if (kDz < 0.0)
+		std::cout << "BC Initialization Error : kDz not set" << std::endl;
+
+	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
+	for (int k = kNumBCGrid - 1; k >= 0; k--)
+		arr[idx(i, j, k)] = arr[idx(i, j, k + 1)] + kDz * (arr[idx(i, j, k + 1)] - arr[idx(i, j, k + 2)]) / kDz;
+}
+
+void BoundaryCondition3D::BC_LSFreeBoundaryPT(std::vector<double>& arr) {
+	if (kDz < 0.0)
+		std::cout << "BC Initialization Error : kDz not set" << std::endl;
+
+	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
+	for (int k = 0; k < kNumBCGrid; k++)
+		arr[idx(i, j, kNz + kNumBCGrid + k)] = arr[idx(i, j, kNz + kNumBCGrid + k - 1)]
+		+ kDz * (arr[idx(i, j, kNz + kNumBCGrid + k - 1)] - arr[idx(i, j, kNz + kNumBCGrid + k - 2)]) / kDz;
 }
