@@ -998,7 +998,8 @@ std::vector<double> MACSolver3D::AddExternalViscosityFU(const std::vector<double
 		}
 		else if (lsUBHalf >= 0 && lsUTHalf < 0) {
 			// interface lies between lsUBHalf and lsUTHalf
-			theta = std::fabs(lsUBHalf) / (std::fabs(lsUTHalf) + std::fabs(lsUTHalf));
+			theta = std::fabs(lsUBHalf) / (std::fabs(lsUBHalf) + std::fabs(lsUTHalf));
+			thetaH = std::fabs(lsUBHalf) / (std::fabs(lsUBHalf) + std::fabs(lsUTHalf));
 			// |(lsUBHalf)| ===   high(+)  === |(interface)| ===      low(-)     === |(lsUTHalf)|
 			// |(lsUBHalf)| === theta * d  === |(interface)| === (1 - theta) * d === |(lsUTHalf)|
 			rhoEffBT = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
@@ -1007,6 +1008,7 @@ std::vector<double> MACSolver3D::AddExternalViscosityFU(const std::vector<double
 		else if (lsUBHalf < 0 && lsUTHalf >= 0) {
 			// interface lies between lsUBHalf and lsUTHalf
 			theta = std::fabs(lsUBHalf) / (std::fabs(lsUBHalf) + std::fabs(lsUTHalf));
+			thetaH = std::fabs(lsUTHalf) / (std::fabs(lsUBHalf) + std::fabs(lsUTHalf));
 			// |(lsUBHalf)| ===    low(-)   === |(interface)| ===     high(+)     === |(lsUTHalf)|
 			// |(lsUBHalf)| ===  theta * d  === |(interface)| === (1 - theta) * d === |(lsUTHalf)|
 			rhoEffBT = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
@@ -1641,7 +1643,7 @@ std::vector<double> MACSolver3D::GetUHat(const std::vector<double>& ls, const st
 		else if (lsUBHalf >= 0 && lsUTHalf < 0) {
 			// interface lies between lsUBHalf and lsUTHalf
 			theta = std::fabs(lsUBHalf) / (std::fabs(lsUBHalf) + std::fabs(lsUTHalf));
-			thetaH = std::fabs(lsUBHalf) / (std::fabs(lsUTHalf) + std::fabs(lsUTHalf));
+			thetaH = std::fabs(lsUBHalf) / (std::fabs(lsUBHalf) + std::fabs(lsUTHalf));
 			// |(lsUBHalf)| ===   high(+)  === |(interface)| ===      low(-)     === |(lsUTHalf)|
 			// |(lsUBHalf)| === theta * d  === |(interface)| === (1 - theta) * d === |(lsUTHalf)|
 			rhoEffBT = kRhoH * thetaH + kRhoL * (1.0 - thetaH);
