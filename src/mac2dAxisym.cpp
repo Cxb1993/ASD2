@@ -1049,7 +1049,7 @@ std::vector<double> MACSolver2DAxisym::GetUHat(const std::vector<double>& ls, co
 				a[i] = 0.0;
 			} 
 			else if (i == 0 && (m_BC->m_BC_UW == BC2D::DIRICHLET || m_BC->m_BC_UW == BC2D::AXISYM ||
-				m_BC->m_BC_UW == BC2D::INLET)) {
+				m_BC->m_BC_UW == BC2D::INLET || m_BC->m_BC_UW == BC2D::WALL)) {
 				d[i] -= a[i] * m_BC->m_BC_DirichletConstantUW;
 				a[i] = 0.0;
 			}
@@ -1063,7 +1063,7 @@ std::vector<double> MACSolver2DAxisym::GetUHat(const std::vector<double>& ls, co
 				c[i] = 0.0;
 			}
 			else if (i == kNr - 2 && (m_BC->m_BC_UE == BC2D::DIRICHLET || m_BC->m_BC_UE == BC2D::AXISYM ||
-				m_BC->m_BC_UE == BC2D::INLET)) {
+				m_BC->m_BC_UE == BC2D::INLET || m_BC->m_BC_UE == BC2D::WALL)) {
 				d[i] -= c[i] * m_BC->m_BC_DirichletConstantUE;
 				c[i] = 0.0;
 			}
@@ -1138,7 +1138,7 @@ std::vector<double> MACSolver2DAxisym::GetUHat(const std::vector<double>& ls, co
 				a[j] = 0.0;
 			}
 			else if (j == 0 && (m_BC->m_BC_US == BC2D::DIRICHLET ||
-				m_BC->m_BC_US == BC2D::INLET)) {
+				m_BC->m_BC_US == BC2D::INLET || m_BC->m_BC_US == BC2D::WALL)) {
 				d[j] -= a[j] * 2.0 * m_BC->m_BC_DirichletConstantUS;
 				a[j] = 0.0;
 			}
@@ -1153,7 +1153,7 @@ std::vector<double> MACSolver2DAxisym::GetUHat(const std::vector<double>& ls, co
 				c[j] = 0.0;
 			}
 			else if (j == kNz - 1 && (m_BC->m_BC_UN == BC2D::DIRICHLET ||
-				m_BC->m_BC_UN == BC2D::INLET)) {
+				m_BC->m_BC_UN == BC2D::INLET || m_BC->m_BC_UN == BC2D::WALL)) {
 				d[j] -= c[j] * 2.0 * m_BC->m_BC_DirichletConstantUN;
 				c[j] = 0.0;
 			}
@@ -1253,7 +1253,7 @@ std::vector<double> MACSolver2DAxisym::GetVHat(const std::vector<double>& ls, co
 	double theta = 0.0, thetaH = 0.0;
 
 	int64_t idxArr = 0;
-
+		
 	// Original RHS
 	for (int i = kNumBCGrid; i < kNr + kNumBCGrid; i++)
 	for (int j = kNumBCGrid + 1; j < kNz + kNumBCGrid; j++) {
@@ -1330,7 +1330,7 @@ std::vector<double> MACSolver2DAxisym::GetVHat(const std::vector<double>& ls, co
 				a[i] = 0.0;
 			}
 			else if (i == 0 && (m_BC->m_BC_VW == BC2D::DIRICHLET ||
-				m_BC->m_BC_VW == BC2D::INLET)) {
+				m_BC->m_BC_VW == BC2D::INLET || m_BC->m_BC_VW == BC2D::WALL)) {
 				d[i] -= a[i] * 2.0 * m_BC->m_BC_DirichletConstantVW;
 				a[i] = 0.0;
 			}
@@ -1345,7 +1345,7 @@ std::vector<double> MACSolver2DAxisym::GetVHat(const std::vector<double>& ls, co
 				c[i] = 0.0;
 			}
 			else if (i == kNr - 1 && (m_BC->m_BC_VE == BC2D::DIRICHLET ||
-				m_BC->m_BC_VE == BC2D::INLET)) {
+				m_BC->m_BC_VE == BC2D::INLET || m_BC->m_BC_VE == BC2D::WALL)) {
 				d[i] -= c[i] * 2.0 * m_BC->m_BC_DirichletConstantVE;
 				c[i] = 0.0;
 			}
@@ -1416,7 +1416,7 @@ std::vector<double> MACSolver2DAxisym::GetVHat(const std::vector<double>& ls, co
 				a[j] = 0.0;
 			}
 			else if (j == 0 && (m_BC->m_BC_VS == BC2D::DIRICHLET || m_BC->m_BC_VS == BC2D::AXISYM || 
-				m_BC->m_BC_VS == BC2D::INLET)) {
+				m_BC->m_BC_VS == BC2D::INLET || m_BC->m_BC_VS == BC2D::WALL)) {
 				d[j] -= a[j] * m_BC->m_BC_DirichletConstantVS;
 				a[j] = 0.0;
 			}
@@ -1430,7 +1430,7 @@ std::vector<double> MACSolver2DAxisym::GetVHat(const std::vector<double>& ls, co
 				c[j] = 0.0;
 			}
 			else if (j == kNz - 2 && (m_BC->m_BC_VN == BC2D::DIRICHLET || m_BC->m_BC_VN == BC2D::AXISYM ||
-				m_BC->m_BC_VN == BC2D::INLET)) {
+				m_BC->m_BC_VN == BC2D::INLET || m_BC->m_BC_VN == BC2D::WALL)) {
 				d[j] -= c[j] * m_BC->m_BC_DirichletConstantVN;
 				c[j] = 0.0;
 			}
@@ -1783,7 +1783,8 @@ int MACSolver2DAxisym::SolvePoisson(std::vector<double>& ps, const std::vector<d
 		}
 		else if (i == kNumBCGrid 
 			&& (m_BC->m_BC_PW == BC2D::DIRICHLET || m_BC->m_BC_PW == BC2D::INLET
-				|| m_BC->m_BC_PW == BC2D::OUTLET || m_BC->m_BC_PW == BC2D::PRESSURE)) {
+			|| m_BC->m_BC_PW == BC2D::OUTLET || m_BC->m_BC_PW == BC2D::PRESSURE
+			|| m_BC->m_BC_PW == BC2D::WALL)) {
 			AColsDic["W"] = -1;
 			AValsDic["W"] = 0.0;
 			rhs[idx(i, j)] -= pCoefW[idx(i, j)] / (kDr * kDr) 
@@ -1801,7 +1802,8 @@ int MACSolver2DAxisym::SolvePoisson(std::vector<double>& ps, const std::vector<d
 		}
 		else if (i == kNumBCGrid + kNr - 1
 			&& (m_BC->m_BC_PE == BC2D::DIRICHLET || m_BC->m_BC_PE == BC2D::INLET
-			|| m_BC->m_BC_PE == BC2D::OUTLET || m_BC->m_BC_PE == BC2D::PRESSURE)) {
+			|| m_BC->m_BC_PE == BC2D::OUTLET || m_BC->m_BC_PE == BC2D::PRESSURE
+			|| m_BC->m_BC_PE == BC2D::WALL)) {
 			AColsDic["E"] = -1;
 			AValsDic["E"] = 0.0;
 			rhs[idx(i, j)] -= pCoefE[idx(i, j)] / (kDr * kDr) 
@@ -1818,7 +1820,8 @@ int MACSolver2DAxisym::SolvePoisson(std::vector<double>& ps, const std::vector<d
 		}
 		else if (j == kNumBCGrid
 			&& (m_BC->m_BC_PS == BC2D::DIRICHLET || m_BC->m_BC_PS == BC2D::INLET
-			|| m_BC->m_BC_PS == BC2D::OUTLET || m_BC->m_BC_PS == BC2D::PRESSURE)) {
+			|| m_BC->m_BC_PS == BC2D::OUTLET || m_BC->m_BC_PS == BC2D::PRESSURE
+			|| m_BC->m_BC_PS == BC2D::WALL)) {
 			AColsDic["S"] = -1;
 			AValsDic["S"] = 0.0;
 			rhs[idx(i, j)] -= pCoefS[idx(i, j)] / (kDz * kDz) 
@@ -1835,7 +1838,8 @@ int MACSolver2DAxisym::SolvePoisson(std::vector<double>& ps, const std::vector<d
 		}
 		else if (j == kNumBCGrid + kNz - 1
 			&& (m_BC->m_BC_PN == BC2D::DIRICHLET || m_BC->m_BC_PN == BC2D::INLET
-			|| m_BC->m_BC_PN == BC2D::OUTLET || m_BC->m_BC_PN == BC2D::PRESSURE)) {
+			|| m_BC->m_BC_PN == BC2D::OUTLET || m_BC->m_BC_PN == BC2D::PRESSURE
+			|| m_BC->m_BC_PN == BC2D::WALL)) {
 			AColsDic["N"] = -1;
 			AValsDic["N"] = 0.0;
 			rhs[idx(i, j)] -= pCoefN[idx(i, j)] / (kDz * kDz) 
@@ -1847,7 +1851,7 @@ int MACSolver2DAxisym::SolvePoisson(std::vector<double>& ps, const std::vector<d
 		// add non zero values to AVals and ACols
 		// KEEP ORDER OF PUSH_BACK!!
 
-		// fix ps[idx(kNumBCGrid, kNumBCGrid)] = 0.0 for neumann condition of all boundary
+		// fix ps[idx(kNumBCGrid, kNumBCGrid)] = 0.0 if all boundary conditions are neumann condition like. 
 		if ((m_BC->m_BC_PW == BC2D::NEUMANN || m_BC->m_BC_PW == BC2D::AXISYM || m_BC->m_BC_PW == BC2D::WALL) && 
 			(m_BC->m_BC_PE == BC2D::NEUMANN || m_BC->m_BC_PE == BC2D::AXISYM || m_BC->m_BC_PE == BC2D::WALL) && 
 			(m_BC->m_BC_PS == BC2D::NEUMANN || m_BC->m_BC_PS == BC2D::AXISYM || m_BC->m_BC_PS == BC2D::WALL) &&
