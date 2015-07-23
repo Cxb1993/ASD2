@@ -2263,6 +2263,12 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 		AColsDic.clear();
 		tmpRowIdx = 0;
 		tmpMRowIdx = 0;
+		if ((m_BC->m_BC_PW == BC2D::NEUMANN || m_BC->m_BC_PW == BC2D::AXISYM || m_BC->m_BC_PW == BC2D::WALL) &&
+			(m_BC->m_BC_PE == BC2D::NEUMANN || m_BC->m_BC_PE == BC2D::AXISYM || m_BC->m_BC_PE == BC2D::WALL) &&
+			(m_BC->m_BC_PS == BC2D::NEUMANN || m_BC->m_BC_PS == BC2D::AXISYM || m_BC->m_BC_PS == BC2D::WALL) &&
+			(m_BC->m_BC_PN == BC2D::NEUMANN || m_BC->m_BC_PN == BC2D::AXISYM || m_BC->m_BC_PN == BC2D::WALL) &&
+			(i == kNumBCGrid && j == kNumBCGrid))
+			continue;
 		// Add starting rowIdx
 		ARowIdx.push_back(rowIdx);
 		DiagRowIdx.push_back(MRowIdx);
@@ -2345,6 +2351,31 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 		else if (j == kNumBCGrid + kNy - 1 && m_BC->m_BC_PN == BC2D::PERIODIC) {
 			AValsDic["N"] = iRhoN[idx(i, kNumBCGrid + kNy + 1)];
 		}
+
+		// fix ps[idx(kNumBCGrid, kNumBCGrid)] = 0.0 for neumann condition of all boundary
+		if ((m_BC->m_BC_PW == BC2D::NEUMANN || m_BC->m_BC_PW == BC2D::AXISYM || m_BC->m_BC_PW == BC2D::WALL) &&
+			(m_BC->m_BC_PE == BC2D::NEUMANN || m_BC->m_BC_PE == BC2D::AXISYM || m_BC->m_BC_PE == BC2D::WALL) &&
+			(m_BC->m_BC_PS == BC2D::NEUMANN || m_BC->m_BC_PS == BC2D::AXISYM || m_BC->m_BC_PS == BC2D::WALL) &&
+			(m_BC->m_BC_PN == BC2D::NEUMANN || m_BC->m_BC_PN == BC2D::AXISYM || m_BC->m_BC_PN == BC2D::WALL)) {
+			if (i == kNumBCGrid + 1 && j == kNumBCGrid) {
+				AColsDic["W"] = -1;
+				AValsDic["W"] = 0.0;
+				rhs[idx(i, j)] -= iRhoW[idx(i, j)] / (kDx * kDx) * (-ps[idx(i, j)]);
+			}
+			else if (i == kNumBCGrid && j == kNumBCGrid + 1) {
+				AColsDic["S"] = -1;
+				AValsDic["S"] = 0.0;
+				rhs[idx(i, j)] -= iRhoS[idx(i, j)] / (kDy * kDy) * (-ps[idx(i, j)]);
+			}
+
+			AColsDic["S"] = (i - kNumBCGrid) + (j - 1 - kNumBCGrid) * kNx - 1;
+			AColsDic["W"] = (i - 1 - kNumBCGrid) + (j - kNumBCGrid) * kNx - 1;
+			AColsDic["E"] = (i + 1 - kNumBCGrid) + (j - kNumBCGrid) * kNx - 1;
+			AColsDic["N"] = (i - kNumBCGrid) + (j + 1 - kNumBCGrid) * kNx - 1;
+
+			size = kNx * kNy - 1;
+		}
+
 		// add non zero values to AVals and ACols
 		// KEEP ORDER OF PUSH_BACK!!
 
@@ -2457,7 +2488,11 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 	}
 	
 	ApplyBC_P_2D(ps);
-	/*
+
+	for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
+	for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
+		m_p[idx(i, j)] = ps[idx(i, j)] / m_dt;
+	
 	std::ofstream outF;
 	std::string fname("P_ASCII.plt");
 	if (m_iter == 1) {
@@ -2502,7 +2537,7 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 			<< static_cast<double>(m_kappa[idx(i, j)]) << std::endl;
 	
 	outF.close();
-	*/
+	
 	return 0;
 }
 

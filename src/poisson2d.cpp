@@ -395,12 +395,6 @@ int PoissonSolver2D::CG_2FUniform_2D(double *x, double *b,
 		iter++;
 	}
 
-	if ((PBC->m_BC_PW == BC2D::NEUMANN || PBC->m_BC_PW == BC2D::AXISYM || PBC->m_BC_PW == BC2D::WALL) &&
-		(PBC->m_BC_PE == BC2D::NEUMANN || PBC->m_BC_PE == BC2D::AXISYM || PBC->m_BC_PE == BC2D::WALL) &&
-		(PBC->m_BC_PS == BC2D::NEUMANN || PBC->m_BC_PS == BC2D::AXISYM || PBC->m_BC_PS == BC2D::WALL) &&
-		(PBC->m_BC_PN == BC2D::NEUMANN || PBC->m_BC_PN == BC2D::AXISYM || PBC->m_BC_PN == BC2D::WALL))
-		x[0] = 0.0;
-
 	std::cout << "CG : " << iter << " " << maxIter << " Err : " << rnorm2 / bnorm2 << std::endl;
 	return 0;
 
