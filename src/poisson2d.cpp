@@ -227,21 +227,82 @@ int PoissonSolver2D::MKL_2FUniform_2D(std::vector<double>& ps, const std::vector
 	return 0;
 }
 
-int PoissonSolver2D::CG_2FUniform_2D(std::vector<double>& ps, const std::vector<double>& rhs,
+int PoissonSolver2D::CG_2FUniformP_2D(std::vector<double>& ps, const std::vector<double>& rhs,
 	std::vector<double>& AVals, std::vector<MKL_INT>& ACols, std::vector<MKL_INT>& ARowIdx,
 	std::vector<double>& MVals, std::vector<MKL_INT>& MCols, std::vector<MKL_INT>& MRowIdx,
-	const double lenX, const double lenY, const double dx, const double dy,
-	const std::shared_ptr<BoundaryCondition2D>& PBC, const int maxIter) {
+	const std::shared_ptr<BoundaryCondition2D>& PBC, int64_t size, const int maxIter) {
 	
-	MKL_INT Anrows = kNx * kNy, Ancols = kNx * kNy;
-	MKL_INT size = kNx * kNy;
 	double *b = Data::Allocate1Dd(size);
 	double *x = Data::Allocate1Dd(size);
-	double *Ax = Data::Allocate1Dd(size); 
+	int64_t idxArr = 0;
+
+	for (int j = 0; j < kNy; j++)
+	for (int i = 0; i < kNx; i++) {
+		idxArr = i + j * kNx;
+		if ((PBC->m_BC_PW == BC2D::NEUMANN || PBC->m_BC_PW == BC2D::AXISYM || PBC->m_BC_PW == BC2D::WALL) &&
+			(PBC->m_BC_PE == BC2D::NEUMANN || PBC->m_BC_PE == BC2D::AXISYM || PBC->m_BC_PE == BC2D::WALL) &&
+			(PBC->m_BC_PS == BC2D::NEUMANN || PBC->m_BC_PS == BC2D::AXISYM || PBC->m_BC_PS == BC2D::WALL) &&
+			(PBC->m_BC_PN == BC2D::NEUMANN || PBC->m_BC_PN == BC2D::AXISYM || PBC->m_BC_PN == BC2D::WALL)) {
+
+			if (i == 0 && j == 0)
+				continue;
+			idxArr--;
+		}
+
+		b[idxArr] = rhs[idx(i + kNumBCGrid, j + kNumBCGrid)];
+	}
+	
+	CG_2FUniform_2D(x, b, AVals, ACols, ARowIdx, MVals, MCols, MRowIdx, PBC, size, maxIter);
+
+	for (int j = 0; j < kNy; j++)
+	for (int i = 0; i < kNx; i++) {
+		idxArr = i + j * kNx;
+		if ((PBC->m_BC_PW == BC2D::NEUMANN || PBC->m_BC_PW == BC2D::AXISYM || PBC->m_BC_PW == BC2D::WALL) &&
+			(PBC->m_BC_PE == BC2D::NEUMANN || PBC->m_BC_PE == BC2D::AXISYM || PBC->m_BC_PE == BC2D::WALL) &&
+			(PBC->m_BC_PS == BC2D::NEUMANN || PBC->m_BC_PS == BC2D::AXISYM || PBC->m_BC_PS == BC2D::WALL) &&
+			(PBC->m_BC_PN == BC2D::NEUMANN || PBC->m_BC_PN == BC2D::AXISYM || PBC->m_BC_PN == BC2D::WALL)) {
+			if (i == 0 && j == 0)
+				continue;
+			idxArr--;
+		}
+		
+		ps[idx(i + kNumBCGrid, j + kNumBCGrid)] = x[idxArr];
+		assert(ps[idx(i + kNumBCGrid, j + kNumBCGrid)] == ps[idx(i + kNumBCGrid, j + kNumBCGrid)]);
+		if (std::isnan(ps[idx(i + kNumBCGrid, j + kNumBCGrid)]) || std::isinf(ps[idx(i + kNumBCGrid, j + kNumBCGrid)])) {
+			std::cout << "poisson equation nan/inf error : " << i + kNumBCGrid << " " << j + kNumBCGrid
+				 << " " << ps[idx(i + kNumBCGrid, j + kNumBCGrid)] << std::endl;
+			exit(1);
+		}
+	}
+	
+	Data::Deallocate1Dd(b);
+	Data::Deallocate1Dd(x);
+
+	return 0;
+}
+
+
+int PoissonSolver2D::CG_2FUniform_2D(double *x, double *b,
+	std::vector<double>& AVals, std::vector<MKL_INT>& ACols, std::vector<MKL_INT>& ARowIdx,
+	std::vector<double>& MVals, std::vector<MKL_INT>& MCols, std::vector<MKL_INT>& MRowIdx,
+	const std::shared_ptr<BoundaryCondition2D>& PBC, int64_t size, const int maxIter) {
+
+	MKL_INT Anrows = size, Ancols = size;
+	int64_t idxArr = 0;
+
+	double *Ax = Data::Allocate1Dd(size);
 	double *p = Data::Allocate1Dd(size);
 	double *q = Data::Allocate1Dd(size);
 	double *r = Data::Allocate1Dd(size);
 	double *z = Data::Allocate1Dd(size);
+
+	for (int i = 0; i < size; i++) {
+		x[i] = 0.0;
+		p[i] = 0.0;
+		r[i] = 0.0;
+		q[i] = 0.0;
+		z[i] = 0.0;
+	}
 
 	double alpha = 1.0, beta = 1.0;
 	double rho = 1.0, rho1 = 1.0;
@@ -255,16 +316,6 @@ int PoissonSolver2D::CG_2FUniform_2D(std::vector<double>& ps, const std::vector<
 	if (Anrows != ARowIdx.size() - 1)
 		std::cout << "the # of rows is invalid!" << std::endl;
 
-	for (int j = 0; j < kNy; j++)
-	for (int i = 0; i < kNx; i++) {
-		b[i + j * kNx] = rhs[idx(i + kNumBCGrid, j + kNumBCGrid)];
-		x[i + j * kNx] = 0.0;
-		p[i + j * kNx] = 0.0;
-		r[i + j * kNx] = 0.0;
-		q[i + j * kNx] = 0.0;
-		z[i + j * kNx] = 0.0;
-	}
-	
 	// get Ax(=A*x), using upper triangular matrix (Sparse BLAS)
 	// https://software.intel.com/en-us/node/468560
 	char transa = 'n';
@@ -279,7 +330,7 @@ int PoissonSolver2D::CG_2FUniform_2D(std::vector<double>& ps, const std::vector<
 
 	// p_0 = r_0
 	cblas_dcopy(size, r, 1, p, 1);
-	
+
 	bnorm2 = cblas_dnrm2(size, b, 1);
 	if (bnorm2 == 0.0)
 		bnorm2 = 1.0;
@@ -290,7 +341,7 @@ int PoissonSolver2D::CG_2FUniform_2D(std::vector<double>& ps, const std::vector<
 	}
 
 	std::vector<double> MInvVals = InvertMatrixDiagonal(MVals);
-	
+
 	while (iter < maxIter && isConverged == false) {
 		// z = M^-1 r
 		mkl_cspblas_dcsrgemv(&transa, &Anrows, MInvVals.data(), MRowIdx.data(), MCols.data(), r, z);
@@ -320,7 +371,7 @@ int PoissonSolver2D::CG_2FUniform_2D(std::vector<double>& ps, const std::vector<
 		// get alpha (r^T_k * r_k) / (d^T_k q) (= (r^T_k * r_k) / (d^T_k A d_k))
 		// https://software.intel.com/en-us/node/468398#D4E53C70-D8FA-4095-A800-4203CAFE64FE
 		alpha = rho / (cblas_ddot(size, p, 1, q, 1) + err_tol * err_tol);
-		
+
 		// x_k+1 = x_k + alpha * p_k
 		// https://software.intel.com/en-us/node/468394
 		cblas_daxpy(size, alpha, p, 1, x, 1);
@@ -333,49 +384,35 @@ int PoissonSolver2D::CG_2FUniform_2D(std::vector<double>& ps, const std::vector<
 		// Update r
 		// r_k+1 = -alpha * A * p_k + r_k = -alpha * q + r_k
 		cblas_daxpy(size, -alpha, q, 1, r, 1);
-		
+
 		rnorm2 = cblas_dnrm2(size, r, 1);
 		if ((resid = rnorm2 / bnorm2) <= err_tol) {
 			isConverged = true;
 		}
-		
+
 		rho1 = rho;
-		
+
 		iter++;
 	}
 
-	// std::cout << "CG : " << iter << " " << maxIter << " Err : " << rnorm2 / bnorm2 << std::endl;
-	for (int j = 0; j < kNy; j++)
-	for (int i = 0; i < kNx; i++) {
-		ps[idx(i + kNumBCGrid, j + kNumBCGrid)] = x[i + j * kNx];
-		assert(ps[idx(i + kNumBCGrid, j + kNumBCGrid)] == ps[idx(i + kNumBCGrid, j + kNumBCGrid)]);
-		if (std::isnan(ps[idx(i + kNumBCGrid, j + kNumBCGrid)]) || std::isinf(ps[idx(i + kNumBCGrid, j + kNumBCGrid)])) {
-			std::cout << "poisson equation nan/inf error : " << i + kNumBCGrid << " " << j + kNumBCGrid
-				 << " " << ps[idx(i + kNumBCGrid, j + kNumBCGrid)] << std::endl;
-			exit(1);
-		}
-	}
+	if ((PBC->m_BC_PW == BC2D::NEUMANN || PBC->m_BC_PW == BC2D::AXISYM || PBC->m_BC_PW == BC2D::WALL) &&
+		(PBC->m_BC_PE == BC2D::NEUMANN || PBC->m_BC_PE == BC2D::AXISYM || PBC->m_BC_PE == BC2D::WALL) &&
+		(PBC->m_BC_PS == BC2D::NEUMANN || PBC->m_BC_PS == BC2D::AXISYM || PBC->m_BC_PS == BC2D::WALL) &&
+		(PBC->m_BC_PN == BC2D::NEUMANN || PBC->m_BC_PN == BC2D::AXISYM || PBC->m_BC_PN == BC2D::WALL))
+		x[0] = 0.0;
 
-	Data::Deallocate1Dd(b);
-	Data::Deallocate1Dd(x);
-	Data::Deallocate1Dd(Ax);
-	Data::Deallocate1Dd(p);
-	Data::Deallocate1Dd(q);
-	Data::Deallocate1Dd(r);
-	Data::Deallocate1Dd(z);
-
+	std::cout << "CG : " << iter << " " << maxIter << " Err : " << rnorm2 / bnorm2 << std::endl;
 	return 0;
+
 }
 
 int PoissonSolver2D::BiCGStab_2FUniform_2D(std::vector<double>& ps, const std::vector<double>& rhs,
 	std::vector<double>& AVals, std::vector<MKL_INT>& ACols, std::vector<MKL_INT>& ARowIdx,
 	std::vector<double>& MVals, std::vector<MKL_INT>& MCols, std::vector<MKL_INT>& MRowIdx,
-	const double lenX, const double lenY, const double dx, const double dy,
-	const std::shared_ptr<BoundaryCondition2D>& PBC, const int maxIter) {
+	const std::shared_ptr<BoundaryCondition2D>& PBC, int64_t size, const int maxIter) {
 	
 	// http://math.nist.gov/iml++/bicgstab.h.txt
 	MKL_INT Anrows = kNx * kNy, Ancols = kNx * kNy;
-	MKL_INT size = kNx * kNy;
 	double *b = Data::Allocate1Dd(size);
 	double *x = Data::Allocate1Dd(size);
 	double *Ax = Data::Allocate1Dd(size);
@@ -516,7 +553,7 @@ int PoissonSolver2D::BiCGStab_2FUniform_2D(std::vector<double>& ps, const std::v
 		iter++;
 	}
 	
-	// std::cout << "BiCG : " << iter << " " << maxIter << " Err : " << rnorm2 / bnorm2 << std::endl;
+	std::cout << "BiCG : " << iter << " " << maxIter << " Err : " << rnorm2 / bnorm2 << std::endl;
 	for (int j = 0; j < kNy; j++)
 	for (int i = 0; i < kNx; i++) {
 		ps[idx(i + kNumBCGrid, j + kNumBCGrid)] = x[i + j * kNx];

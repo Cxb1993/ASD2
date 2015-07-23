@@ -2428,8 +2428,8 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 	}
 	else if (m_PoissonSolverType == POISSONTYPE::CG) {
 		// std::cout << "Poisson : CG" << std::endl;
-		m_Poisson->CG_2FUniform_2D(ps, rhs, AVals, ACols, ARowIdx,
-			DiagVals, DiagCols, DiagRowIdx, kLenX, kLenY, kDx, kDy, m_BC, maxIter);
+		m_Poisson->CG_2FUniformP_2D(ps, rhs, AVals, ACols, ARowIdx,
+			DiagVals, DiagCols, DiagRowIdx, m_BC, size, maxIter);
 	
 		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)
@@ -2439,7 +2439,7 @@ int MACSolver2D::SolvePoisson(std::vector<double>& ps, const std::vector<double>
 	else if (m_PoissonSolverType == POISSONTYPE::BICGSTAB) {
 		// std::cout << "Poisson : BiCG" << std::endl;
 		m_Poisson->BiCGStab_2FUniform_2D(ps, rhs, AVals, ACols, ARowIdx,
-			DiagVals, DiagCols, DiagRowIdx, kLenX, kLenY, kDx, kDy, m_BC, maxIter);
+			DiagVals, DiagCols, DiagRowIdx, m_BC, size, maxIter);
 
 		for (int i = kNumBCGrid; i < kNx + kNumBCGrid; i++)
 		for (int j = kNumBCGrid; j < kNy + kNumBCGrid; j++)

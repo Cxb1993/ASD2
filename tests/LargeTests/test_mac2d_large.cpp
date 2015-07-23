@@ -1145,7 +1145,7 @@ int MAC2DTest_TaylorInstability() {
 int MAC2DAxisymTest_NonSurfaceTension() {
 	// Set initial level set
 	const double Re = 0.0, We = 0.0, Fr = 0.0;
-	const double L = 1.0, U = 1.0;
+	const double L = 0.5, U = 1.0;
 	const double rhoL = 1.226, muL = 1.78e-5;
 	const double rhoH = 1.226, muH = 1.78e-5, sigma = 0.0;
 	const double gConstant = 0.0;
@@ -1153,7 +1153,7 @@ int MAC2DAxisymTest_NonSurfaceTension() {
 	// # of cells
 	const int nr = 64, nz = 128;
 	// related to initialize level set
-	const double baseR = 0.0, baseZ = 0.0, lenR = 0.5, lenZ = 1.0, cfl = 0.5;
+	const double baseR = 0.0, baseZ = 0.0, lenR = 0.5, lenZ = 1.0, cfl = 0.3;
 
 	const int maxiter = 10, niterskip = 1, num_bc_grid = 3;
 	const double maxtime = 1.0;
@@ -1185,7 +1185,8 @@ int MAC2DAxisymTest_NonSurfaceTension() {
 		cfl, maxtime, maxiter, niterskip, num_bc_grid, writeVTK);
 	MSolver->SetBC_U_2D("axisym", "wall", "inlet", "outlet");
 	MSolver->SetBC_V_2D("axisym", "wall", "inlet", "outlet");
-	MSolver->SetBC_P_2D("axisym", "wall", "neumann", "pressure");
+	MSolver->SetBC_P_2D("neumann", "neumann", "neumann", "neumann");
+
 	MSolver->SetBCConstantUE(0.0);
 	MSolver->SetBCConstantUS(0.0);
 	MSolver->SetBCConstantUN(0.0);
@@ -1196,7 +1197,7 @@ int MAC2DAxisymTest_NonSurfaceTension() {
 
 	// MSolver->SetPoissonSolver(POISSONTYPE::BICGSTAB);
 	MSolver->SetPoissonSolver(POISSONTYPE::CG);
-	const int poissonMaxIter = 5000;
+	const int poissonMaxIter = 2500;
 
 	std::shared_ptr<LevelSetSolver2D> LSolver;
 	LSolver = std::make_shared<LevelSetSolver2D>(nr, nz, num_bc_grid, baseR, baseZ, dr, dz);
@@ -1237,13 +1238,14 @@ int MAC2DAxisymTest_NonSurfaceTension() {
 	for (int i = 0; i < nr + 2 * num_bc_grid; i++)
 	for (int j = 0; j < nz + 2 * num_bc_grid; j++) {
 		MSolver->m_u[idx3_2D(nz, i, j)] = 0.0;
-		MSolver->m_v[idx3_2D(nz, i, j)] = 0.0;
-		MSolver->m_p[idx3_2D(nz, i, j)] = 0.0;
+		MSolver->m_v[idx3_2D(nz, i, j)] = 1.0;
+		MSolver->m_p[idx3_2D(nz, i, j)] = ambientPressure;
 		MSolver->m_ps[idx3_2D(nz, i, j)] = 0.0;
 	}
 
 	// prevent dt == 0.0
 	MSolver->m_dt = cfl * std::min(dr, dz) / U;
+	MSolver->m_dt = MSolver->UpdateDt(MSolver->m_u, MSolver->m_v);
 	std::cout << " dt : " << MSolver->m_dt << std::endl;
 	MSolver->UpdateAmbientPressure(MSolver->m_dt * ambientPressure);
 
@@ -1284,12 +1286,10 @@ int MAC2DAxisymTest_NonSurfaceTension() {
 		rhsV = MSolver->GetRHSV(ls, MSolver->m_u, uhat, MSolver->m_v, HSmooth);
 		vhat = MSolver->GetVHat(ls, MSolver->m_v, rhsV, HSmooth);
 
-		MSolver->ApplyBC_U_2D(uhat);
 		MSolver->ApplyBC_V_2D(vhat);
 
 		// From intermediate velocity, get divergence
 		div = MSolver->GetDivergence4Poisson(uhat, vhat);
-		MSolver->ApplyBC_P_2D(MSolver->m_ps);
 		LSolver->ApplyBC_P_2D(ls);
 
 		// Solve Poisson equation
@@ -1306,44 +1306,47 @@ int MAC2DAxisymTest_NonSurfaceTension() {
 		MSolver->m_dt = MSolver->UpdateDt(MSolver->m_u, MSolver->m_v);
 		MSolver->m_curTime += MSolver->m_dt;
 		MSolver->UpdateAmbientPressure(MSolver->m_dt * ambientPressure);
-
+		
 		std::ofstream outF;
 		std::string fname("RR_ASCII.plt");
 		if (MSolver->m_iter == 1) {
 			outF.open(fname.c_str(), std::ios::out);
 
 			outF << "TITLE = VEL" << std::endl;
-			outF << "VARIABLES = \"R\", \"Z\",\"RHSU\", \"UHAT\", \"RHSV\", \"VHAT\", \"HATDIV\", \"HatRealDiv\"" << std::endl;
+			outF << "VARIABLES = \"R\", \"Z\",\"RHSU\", \"UHAT\", \"U\", \"RHSV\", \"VHAT\", \"V\", \"PS\", \"HATDIV\", \"RealDiv\"" << std::endl;
 			outF.close();
 		}
 		if (MSolver->m_iter % MSolver->kNIterSkip == 0) {
 			std::vector<double> realDiv((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid));
 
-			realDiv = MSolver->GetDivergence(uhat, vhat);
+			div = MSolver->GetDivergence(uhat, vhat);
+			realDiv = MSolver->GetDivergence(MSolver->m_u, MSolver->m_v);
 
 			outF.open(fname.c_str(), std::ios::app);
 
 			outF << std::string("ZONE T=\"") << MSolver->m_iter
-				<< std::string("\", I=") << nr + 6 << std::string(", J=") << nz + 6
+				<< std::string("\", I=") << nr << std::string(", J=") << nz
 				<< std::string(", SOLUTIONTIME=") << MSolver->m_iter * 0.1
 				<< std::string(", STRANDID=") << MSolver->m_iter + 1
 				<< std::endl;
 
 			// for (int j = kNumBCGrid; j < kNz + kNumBCGrid; j++)
 			// for (int i = kNumBCGrid; i < kNr + kNumBCGrid; i++)
-			for (int j = 0; j < nz + 2 * num_bc_grid; j++)
-			for (int i = 0; i < nr + 2 * num_bc_grid; i++)
-				outF << baseR + static_cast<double>(i + 0.5 - num_bc_grid) * dr << std::string(",")
+			for (int j = num_bc_grid; j < nz + num_bc_grid; j++)
+				for (int i = num_bc_grid; i < nr + num_bc_grid; i++)
+					outF << baseR + static_cast<double>(i + 0.5 - num_bc_grid) * dr << std::string(",")
 					<< baseZ + static_cast<double>(j + 0.5 - num_bc_grid) * dz << std::string(",")
 					<< static_cast<double>(rhsU[idx3_2D(nz, i, j)]) << std::string(",")
 					<< static_cast<double>(uhat[idx3_2D(nz, i, j)]) << std::string(",")
+					<< static_cast<double>(MSolver->m_u[idx3_2D(nz, i, j)]) << std::string(",")
 					<< static_cast<double>(rhsV[idx3_2D(nz, i, j)]) << std::string(",")
 					<< static_cast<double>(vhat[idx3_2D(nz, i, j)]) << std::string(",")
-					<< static_cast<double>(div[idx3_2D(nz, i, j)])	<< std::string(",")
+					<< static_cast<double>(MSolver->m_v[idx3_2D(nz, i, j)]) << std::string(",")
+					<< static_cast<double>(MSolver->m_ps[idx3_2D(nz, i, j)]) << std::string(",")
+					<< static_cast<double>(div[idx3_2D(nz, i, j)]) << std::string(",")
 					<< static_cast<double>(realDiv[idx3_2D(nz, i, j)]) << std::endl;
 			outF.close();
 		}
-
 		if ((MSolver->m_iter % MSolver->kNIterSkip) == 0) {
 			std::chrono::high_resolution_clock::time_point p = std::chrono::high_resolution_clock::now();
 			std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(p.time_since_epoch());
@@ -1391,8 +1394,9 @@ int MAC2DAxisymTest_StationaryBubble() {
 	const int nr = 64, nz = 128;
 	// related to initialize level set
 	const double baseR = 0.0, baseZ = 0.0, lenR = 0.02, lenZ = 0.04, cfl = 0.5;
+	double ambientPressure = 1.0;
 	
-	const int maxiter = 10, niterskip = 1, num_bc_grid = 3;
+	const int maxiter = 100, niterskip = 5, num_bc_grid = 3;
 	const double maxtime = 1.0;
 	const bool writeVTK = false;
 	// length of each cell
@@ -1485,9 +1489,12 @@ int MAC2DAxisymTest_StationaryBubble() {
 	LSolver->ApplyBC_P_2D(ls);
 
 	// prevent dt == 0.0
-	MSolver->m_dt = cfl * std::min(dr, dz) / U;
+	// MSolver->m_dt = cfl * std::min(dr, dz) / U;
+	MSolver->UpdateKappa(ls);
+	MSolver->m_dt = MSolver->UpdateDt(MSolver->m_u, MSolver->m_v);
 	std::cout << " dt : " << MSolver->m_dt << std::endl;
-	
+	MSolver->UpdateAmbientPressure(MSolver->m_dt * ambientPressure);
+
 	std::vector<double> uhat((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid)),
 		vhat((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid));
 	std::vector<double> rhsU((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid)),
@@ -1516,6 +1523,8 @@ int MAC2DAxisymTest_StationaryBubble() {
 		rhsU = MSolver->GetRHSU(ls, MSolver->m_u, MSolver->m_v, HSmooth);
 		uhat = MSolver->GetUHat(ls, MSolver->m_u, rhsU, HSmooth);
 
+		MSolver->ApplyBC_U_2D(uhat);
+
 		rhsV = MSolver->GetRHSV(ls, MSolver->m_u, uhat, MSolver->m_v, HSmooth);
 		vhat = MSolver->GetVHat(ls, MSolver->m_v, rhsV, HSmooth);
 
@@ -1540,7 +1549,7 @@ int MAC2DAxisymTest_StationaryBubble() {
 
 		MSolver->m_dt = MSolver->UpdateDt(MSolver->m_u, MSolver->m_v);
 		MSolver->m_curTime += MSolver->m_dt;
-
+		MSolver->CheckCompatibility(MSolver->m_u, MSolver->m_v, uhat, vhat);
 		if ((MSolver->m_iter % MSolver->kNIterSkip) == 0) {
 			std::chrono::high_resolution_clock::time_point p = std::chrono::high_resolution_clock::now();
 			std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(p.time_since_epoch());
@@ -1587,10 +1596,10 @@ int MAC2DAxisymTest_SmallAirBubbleRising() {
 	// # of cells
 	const int nr = 64, nz = 128;
 	// related to initialize level set
-	const double baseR = 0.0, baseZ = -0.01, lenR = 0.01, lenZ = 0.03, cfl = 0.5;
+	const double baseR = 0.0, baseZ = -0.01, lenR = 0.01, lenZ = 0.03, cfl = 0.25;
 	
 	const double maxtime = 2.0;
-	const int maxiter = 100, niterskip = 10, num_bc_grid = 3;
+	const int maxiter = 10, niterskip = 1, num_bc_grid = 3;
 	const bool writeVTK = false;
 	// length of each cell
 	const double dr = lenR / nr, dz = lenZ / nz;
@@ -1674,7 +1683,8 @@ int MAC2DAxisymTest_SmallAirBubbleRising() {
 		z = baseZ + (j + 0.5 - num_bc_grid) * dz;
 
 		d = std::sqrt(r * r + z * z) - radius;
-
+		// High Density -> positive level set
+		// Low Density -> negative level set
 		ls[idx3_2D(nz, i, j)] = d;
 	}
 	LSolver->ApplyBC_P_2D(ls);
@@ -1684,6 +1694,7 @@ int MAC2DAxisymTest_SmallAirBubbleRising() {
 
 	// prevent dt == 0.0
 	// MSolver->m_dt = cfl * std::min(dr, dz) / U;
+	MSolver->UpdateKappa(ls);
 	MSolver->m_dt = MSolver->UpdateDt(MSolver->m_u, MSolver->m_v);
 	std::cout << " dt : " << MSolver->m_dt << std::endl;
 	MSolver->UpdateAmbientPressure(MSolver->m_dt * ambientPressure);
@@ -1716,6 +1727,8 @@ int MAC2DAxisymTest_SmallAirBubbleRising() {
 		rhsU = MSolver->GetRHSU(ls, MSolver->m_u, MSolver->m_v, HSmooth);
 		uhat = MSolver->GetUHat(ls, MSolver->m_u, rhsU, HSmooth);
 
+		MSolver->ApplyBC_U_2D(uhat);
+
 		rhsV = MSolver->GetRHSV(ls, MSolver->m_u, uhat, MSolver->m_v, HSmooth);
 		vhat = MSolver->GetVHat(ls, MSolver->m_v, rhsV, HSmooth);
 
@@ -1740,7 +1753,48 @@ int MAC2DAxisymTest_SmallAirBubbleRising() {
 		MSolver->m_dt = MSolver->UpdateDt(MSolver->m_u, MSolver->m_v);
 		MSolver->m_curTime += MSolver->m_dt;
 		MSolver->UpdateAmbientPressure(MSolver->m_dt * ambientPressure);
+		MSolver->CheckCompatibility(MSolver->m_u, MSolver->m_v, uhat, vhat);
 
+		std::ofstream outF;
+		std::string fname("RR_ASCII.plt");
+		if (MSolver->m_iter == 1) {
+			outF.open(fname.c_str(), std::ios::out);
+
+			outF << "TITLE = VEL" << std::endl;
+			outF << "VARIABLES = \"R\", \"Z\",\"RHSU\", \"UHAT\", \"U\", \"RHSV\", \"VHAT\", \"V\", \"PS\", \"HATDIV\", \"RealDiv\"" << std::endl;
+			outF.close();
+		}
+		if (MSolver->m_iter % MSolver->kNIterSkip == 0) {
+			std::vector<double> realDiv((nr + 2 * num_bc_grid) * (nz + 2 * num_bc_grid));
+
+			div = MSolver->GetDivergence(uhat, vhat);
+			realDiv = MSolver->GetDivergence(MSolver->m_u, MSolver->m_v);
+			
+			outF.open(fname.c_str(), std::ios::app);
+
+			outF << std::string("ZONE T=\"") << MSolver->m_iter
+				<< std::string("\", I=") << nr << std::string(", J=") << nz
+				<< std::string(", SOLUTIONTIME=") << MSolver->m_iter * 0.1
+				<< std::string(", STRANDID=") << MSolver->m_iter + 1
+				<< std::endl;
+
+			// for (int j = kNumBCGrid; j < kNz + kNumBCGrid; j++)
+			// for (int i = kNumBCGrid; i < kNr + kNumBCGrid; i++)
+			for (int j = num_bc_grid; j < nz + num_bc_grid; j++)
+			for (int i = num_bc_grid; i < nr + num_bc_grid; i++)
+					outF << baseR + static_cast<double>(i + 0.5 - num_bc_grid) * dr << std::string(",")
+					<< baseZ + static_cast<double>(j + 0.5 - num_bc_grid) * dz << std::string(",")
+					<< static_cast<double>(rhsU[idx3_2D(nz, i, j)]) << std::string(",")
+					<< static_cast<double>(uhat[idx3_2D(nz, i, j)]) << std::string(",")
+					<< static_cast<double>(MSolver->m_u[idx3_2D(nz, i, j)]) << std::string(",")
+					<< static_cast<double>(rhsV[idx3_2D(nz, i, j)]) << std::string(",")
+					<< static_cast<double>(vhat[idx3_2D(nz, i, j)]) << std::string(",")
+					<< static_cast<double>(MSolver->m_v[idx3_2D(nz, i, j)]) << std::string(",")
+					<< static_cast<double>(MSolver->m_ps[idx3_2D(nz, i, j)]) << std::string(",")
+					<< static_cast<double>(div[idx3_2D(nz, i, j)]) << std::string(",")
+					<< static_cast<double>(realDiv[idx3_2D(nz, i, j)]) << std::endl;
+			outF.close();
+		}
 		if ((MSolver->m_iter % MSolver->kNIterSkip) == 0) {
 			std::chrono::high_resolution_clock::time_point p = std::chrono::high_resolution_clock::now();
 			std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(p.time_since_epoch());
@@ -1951,6 +2005,7 @@ int MAC2DAxisymTest_WaterDropletCollison1() {
 		MSolver->m_dt = MSolver->UpdateDt(MSolver->m_u, MSolver->m_v);
 		MSolver->m_curTime += MSolver->m_dt;
 		MSolver->UpdateAmbientPressure(MSolver->m_dt * ambientPressure);
+		MSolver->CheckCompatibility(MSolver->m_u, MSolver->m_v, uhat, vhat);
 
 		if ((MSolver->m_iter % MSolver->kNIterSkip) == 0) {
 			std::chrono::high_resolution_clock::time_point p = std::chrono::high_resolution_clock::now();

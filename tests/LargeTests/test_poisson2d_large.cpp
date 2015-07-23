@@ -320,7 +320,7 @@ int test_poisson2D_CG() {
 	ARowIdx.push_back(rowIdx);
 	DiagRowIdx.push_back(MRowIdx);
 
-	PSolver->CG_2FUniform_2D(u, b, AVals, ACols, ARowIdx, DiagVals, DiagCols, DiagRowIdx, kLenX, kLenY, kDx, kDy, PBC, 10000);
+	PSolver->CG_2FUniformP_2D(u, b, AVals, ACols, ARowIdx, DiagVals, DiagCols, DiagRowIdx, PBC, size, 10000);
 
 	std::string fname_p_base("TestPoisson2D_CG");
 	std::ofstream outF;
@@ -499,7 +499,7 @@ int test_poisson2D_BiCGStab() {
 	ARowIdx.push_back(rowIdx);
 	DiagRowIdx.push_back(MRowIdx);
 
-	PSolver->BiCGStab_2FUniform_2D(u, b, AVals, ACols, ARowIdx, DiagVals, DiagCols, DiagRowIdx, kLenX, kLenY, kDx, kDy, PBC, 10000);
+	PSolver->BiCGStab_2FUniform_2D(u, b, AVals, ACols, ARowIdx, DiagVals, DiagCols, DiagRowIdx, PBC, size, 10000);
 
 	std::string fname_p_base("TestPoisson2D_BiCGSTAB");
 	std::ofstream outF;
