@@ -1,8 +1,25 @@
 # ASD2
-A Simulator of Droplet (Unfinished)
+A Simulator for Droplet (Unfinished)
+
+Now, I changed to my topic so I'm not developing this code now. I failed to make this solver, however I decided to make it open because some part of this code is working and it is worth to read for someone new to level set or weno method. If you found a reason of bug in this code, please report to issue tracker.
+
+# Environment
+* Windows only.
+* Visual Studio 2013
+* Compiler : Intel C++ Compiler 14.0
+* CPU : i7-2600 (I turned on AVX for optimization)
+
+# How to run
+* Open asd2_vs2013/asd2_vs2013.sln
+* Just build and run, recommend Release build mode
 
 # Current Status
 
+## Level Set
+* 2D : Seems to be working
+* 3D : not sure
+
+## Momentum
 * 2D : Seems to be working
 * 2D Axisymmetric : It's running but it's not right answer
 * 3D : Failed to run
