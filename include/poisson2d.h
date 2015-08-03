@@ -29,35 +29,35 @@
 #include "bc2d.h"
 
 class PoissonSolver2D {
-	int kNx, kNy, kNumBCGrid;
+    int kNx, kNy, kNumBCGrid;
 public:
-	PoissonSolver2D(int nx, int ny, int num_bc_grid);
+    PoissonSolver2D(int nx, int ny, int num_bc_grid);
 
-	int GS_2FUniform_2D(std::vector<double>& ps, const std::vector<double>& rhs,
-		std::vector<double>& AVals, std::vector<MKL_INT>& ACols, std::vector<MKL_INT>& ARowIdx,
-		const double lenX, const double lenY, const double dx, const double dy,
-		const std::shared_ptr<BoundaryCondition2D>& PBC, const int maxiter);
-	int MKL_2FUniform_2D(std::vector<double>& phi, const std::vector<double>& rhs,
-		double lenX, double lenY, double dx, double dy, std::shared_ptr<BoundaryCondition2D> PBC);
-	
-	int CG_2FUniformP_2D(std::vector<double>& ps, const std::vector<double>& rhs,
-		std::vector<double>& AVals, std::vector<MKL_INT>& ACols, std::vector<MKL_INT>& ARowIdx,
-		std::vector<double>& MVals, std::vector<MKL_INT>& MCols, std::vector<MKL_INT>& MRowIdx,
-		const std::shared_ptr<BoundaryCondition2D>& PBC, int64_t size, const int maxIter);
-	int CG_2FUniform_2D(double *x, double *b,
-		std::vector<double>& AVals, std::vector<MKL_INT>& ACols, std::vector<MKL_INT>& ARowIdx,
-		std::vector<double>& MVals, std::vector<MKL_INT>& MCols, std::vector<MKL_INT>& MRowIdx,
-		const std::shared_ptr<BoundaryCondition2D>& PBC, int64_t size, const int maxIter);
+    int GS_2FUniform_2D(std::vector<double>& ps, const std::vector<double>& rhs,
+        std::vector<double>& AVals, std::vector<MKL_INT>& ACols, std::vector<MKL_INT>& ARowIdx,
+        const double lenX, const double lenY, const double dx, const double dy,
+        const std::shared_ptr<BoundaryCondition2D>& PBC, const int maxiter);
+    int MKL_2FUniform_2D(std::vector<double>& phi, const std::vector<double>& rhs,
+        double lenX, double lenY, double dx, double dy, std::shared_ptr<BoundaryCondition2D> PBC);
+    
+    int CG_2FUniformP_2D(std::vector<double>& ps, const std::vector<double>& rhs,
+        std::vector<double>& AVals, std::vector<MKL_INT>& ACols, std::vector<MKL_INT>& ARowIdx,
+        std::vector<double>& MVals, std::vector<MKL_INT>& MCols, std::vector<MKL_INT>& MRowIdx,
+        const std::shared_ptr<BoundaryCondition2D>& PBC, int64_t size, const int maxIter);
+    int CG_2FUniform_2D(double *x, double *b,
+        std::vector<double>& AVals, std::vector<MKL_INT>& ACols, std::vector<MKL_INT>& ARowIdx,
+        std::vector<double>& MVals, std::vector<MKL_INT>& MCols, std::vector<MKL_INT>& MRowIdx,
+        const std::shared_ptr<BoundaryCondition2D>& PBC, int64_t size, const int maxIter);
 
-	int BiCGStab_2FUniform_2D(std::vector<double>& ps, const std::vector<double>& rhs,
-		std::vector<double>& AVals, std::vector<MKL_INT>& ACols, std::vector<MKL_INT>& ARowIdx,
-		std::vector<double>& M, std::vector<MKL_INT>& MCols, std::vector<MKL_INT>& MRowIdx, 
-		const std::shared_ptr<BoundaryCondition2D>& PBC, int64_t size, const int maxiter);
+    int BiCGStab_2FUniform_2D(std::vector<double>& ps, const std::vector<double>& rhs,
+        std::vector<double>& AVals, std::vector<MKL_INT>& ACols, std::vector<MKL_INT>& ARowIdx,
+        std::vector<double>& M, std::vector<MKL_INT>& MCols, std::vector<MKL_INT>& MRowIdx, 
+        const std::shared_ptr<BoundaryCondition2D>& PBC, int64_t size, const int maxiter);
 
-	bool IsSymmetric(std::vector<double>& AVals, std::vector<MKL_INT>& ACols, std::vector<MKL_INT>& ARowIdx);
+    bool IsSymmetric(std::vector<double>& AVals, std::vector<MKL_INT>& ACols, std::vector<MKL_INT>& ARowIdx);
 
-	std::vector<double> InvertMatrixDiagonal(const std::vector<double>& M);
-	int idx(int i, int j);
+    std::vector<double> InvertMatrixDiagonal(const std::vector<double>& M);
+    int idx(int i, int j);
 };
 
 #endif __POISSON2D_H_
