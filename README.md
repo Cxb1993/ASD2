@@ -3,7 +3,7 @@ A Simulator of Droplet (Unfinished)
 
 # Current Status
 
-* 2D : Seem working
+* 2D : Seems to be working
 * 2D Axisymmetric : It's running but it's not right answer
 * 3D : Failed to run
 
@@ -15,18 +15,20 @@ A Simulator of Droplet (Unfinished)
 * Sussman's work (1999)
 * Subcell Fix 
 
-# Viscous term 
+## Viscous term 
 
 * 2D case : second-order differencing
 * 2D Axisymmetric : Use factorization technique
 * 3D : Use poisson equation to solve viscous term
 
-# Poisson's Solver
+## Poisson's Solver
 
 * Conjugate Gradient Method : Use Intel MKL BLAS
 * BiConjugate Gradient Stabilized Method : Use Intel MKL BLAS
 
-# Dealing with jump between fluids : Ghost Fluid Method
+## Dealing with jump between fluids
+* Viscous term : use Heaviside function to make implicit solver
+* Pressure term : use Ghost Fluid Method
 
 # References
  
